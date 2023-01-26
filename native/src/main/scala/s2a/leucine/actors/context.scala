@@ -3,16 +3,13 @@ package s2a.leucine.actors
 
 import java.util.concurrent.Callable
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.collection.immutable.{Queue,SortedMap}
 
 /* Unfortunately the current native implementation does not have threadpools or timers. We only have a
  * global execution context and a Thread.Sleep. So we have to implement a loop ourselves for the moment.
  * One advantage: no need for synchronization! */
-class ContextImplementation extends PlatformContext :
-
-  private lazy val executionContext = ExecutionContext.global
+abstract class ContextImplementation  extends PlatformContext :
 
   /* Set this to false to break the main loop */
   var continue = true
@@ -23,28 +20,30 @@ class ContextImplementation extends PlatformContext :
   /* Map for all callables that need to be executed on a specific moment. */
   private var timers: SortedMap[Long,Callable[Unit]] = SortedMap.empty
 
-  /* List for all callables that need attemped every cycle. */
-  private var attempts: List[Callable[_]] = Nil
+  /* Set for all attempts that need to be tried every cycle. */
+  private var attempts: Set[() => Option[Unit]] = Set.empty
 
   /* Variable that keeps track of the time this application has run since
-   * the start. In nanosec*/
+   * the start. In nanosec */
   private var passedTime: Long = 0
 
-  /* Time the system goes to sleep if there is nothing to do. In millisec */
-  private val pauseMS: Int  = 10
-
+  /* We only ahve timers available when there are any and the first timer has expired. */
   private def hasFirstTimer: Boolean = !timers.isEmpty && (timers.head._1 < passedTime)
   private def execFirstTimer(): Unit =
     val (time,task) = timers.head
     timers = timers - time
     task.call()
 
+  /* Tasks on the queue are execeted in posted order. */
   private def hasFirstTask: Boolean = !tasks.isEmpty
   private def execFirstTask(): Unit =
     val (task,rest) = tasks.dequeue
     tasks = rest
     task.run()
 
+  /* Each loop cycle tries all attempts. All succeeded attempts are direcly handled and removed. */
+  private def hasAttempts: Boolean = !attempts.isEmpty
+  private def tryAttempts(): Unit = attempts = attempts.filter(_().isEmpty)
 
   /* Main loop with a periodic hook */
   private def mainLoop(hook: () => Unit, interval: Long): Unit =
@@ -62,10 +61,16 @@ class ContextImplementation extends PlatformContext :
       /* In order of priorty execute the following orders: */
       if      hasFirstTimer then execFirstTimer()
       else if hasFirstTask  then execFirstTask()
-      else                       Thread.sleep(pauseMS)
+      else
+        /* Iff there are no timers or tasks it makes sense to probe the asynchrone events.
+         * This is because they usually result in more work (i/o). And in this situation
+         * we must also pause after each round of attempts so that we do not hammer the
+         * attempt methods, or consume too much time on this loop when there are none. */
+        if hasAttempts then tryAttempts()
+        Thread.sleep(pause.toMillis)
       /* See if we must call the hook. */
-      /* If there are no tasks and timers left, where is nothing to continue. */
-      continue = continue && (!tasks.isEmpty || !timers.isEmpty)
+      /* If there are no tasks, timers or attempts left, where is nothing to continue. */
+      continue = continue && !(tasks.isEmpty && timers.isEmpty && attempts.isEmpty)
 
 
 
@@ -92,13 +97,15 @@ class ContextImplementation extends PlatformContext :
     timers = timers + (time -> callable)
     new Cancellable { def cancel() = timers = timers - time  }
 
-  /** Place a task on the Execution Context which is executed after some event arrives.
-    * The arrival of the event is asynchronically probed by the attempt function,
-    * which should return None in case of a failure. */
-  def await[M](callable: Callable[Unit], attempt: () => Option[M]): Cancellable = ???
-    // var active: Boolean = true
-    // val makeAttempt: Callable[Option[M]] = new Callable[Option[M]] { def call() = if active then attempt() else None }
-    // new Cancellable { def cancel() = active = false  }
+  /** Place a task on the Execution Context which is executed after some event arrives. When
+    * it arrives it may produce an result of some type. This result is subsequently passed to the
+    * digestable process. As longs as there is no result yet, the attempt should produce None */
+  def await[M](digestable: Digestable[M], attempt: () => Option[M]): Cancellable =
+    /* Create the actual attempt as a delayed digest. */
+    val doAttempt = () => attempt().map(digestable.digest)
+    /* Add the attempt to the set of attempts. */
+    attempts = attempts + doAttempt
+    new Cancellable { def cancel() = attempts = attempts - doAttempt }
 
   /** Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
     * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks

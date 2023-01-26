@@ -47,8 +47,8 @@ trait Actor[ML <: Actor.Letter, YL <: Actor.Letter] :
 
 
 object Actor :
-  type SenderType[L] = Actor[_ <: L, _ <: Actor.Letter]
-  type Family = Actor[_,_] with FamilyActor
+  type SenderType[L] = Actor[? <: L, ? <: Actor.Letter]
+  type Family = Actor[?,?] with FamilyActor
 
   /* This is the base type for all your mail. */
   trait Letter

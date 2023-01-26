@@ -7,3 +7,4 @@ trait Cancellable :
 
 object Cancellable :
   val empty = new Cancellable { def cancel() = () }
+

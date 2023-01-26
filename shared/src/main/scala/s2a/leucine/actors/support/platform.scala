@@ -5,7 +5,14 @@ import scala.concurrent.duration.FiniteDuration
 
 
 /** Used to construct the actor context with platform depended methods. */
-trait PlatformContext :
+trait PlatformContext:
+
+  /** The average thread load per core. Override to change. This is only used
+    * on multithreaded platforms. */
+  def load: Int = 4
+
+  /** The natural pause time for this context. Its meaning and use is platform dependant. */
+  def pause: FiniteDuration
 
   /** True as long as there has been no Shutdown request. */
   def active: Boolean
@@ -21,10 +28,10 @@ trait PlatformContext :
   /** Plan a new task on the current Execution Context, which is run after some delay. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable
 
-  /** Place a task on the Execution Context which is executed after some event arrives.
-    * The arrival of the event is asynchronically probed by the attempt function,
-    * which should return None in case of a failure. */
-  def await[M](callable: Callable[Unit], attempt: () => Option[M]): Cancellable
+  /** Place a task on the Execution Context which is executed after some event arrives. When
+    * it arrives it may produce an result of some type. This result is subsequently passed to the
+    * digestable process. As longs as there is no result yet, the attempt should produce None */
+  def await[M](digestable: Digestable[M], attempt: () => Option[M]): Cancellable
 
   /** Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
     * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks

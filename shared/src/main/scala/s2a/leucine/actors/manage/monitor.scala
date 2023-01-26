@@ -9,7 +9,7 @@ import scala.concurrent.duration.DurationInt
 
 /* Extend and Instantiate this class to get a custom made monitor */
 class ActorMonitor :
-  import ActorMonitor._
+  import ActorMonitor.*
   import MonitorActor.Sample
 
   /* Holds all the actors by path. Worker actors are all stored under the same path per family level. */

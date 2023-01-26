@@ -2,6 +2,8 @@ package s2a.leucine.actors
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
 
 /**
  * An extended `scala.concurrent.ExecutionContext`; provides the ability to
@@ -10,11 +12,13 @@ import scala.util.Try
  */
 trait ActorContext extends PlatformContext with ExecutionContext :
 
+  /** Helper value to switch on/off tracing for debugging. Start your debug lines with
+    * if trace then ... */
   val trace = false
 
   def future[T](task: => T): Future[T] =
     val promise = Promise[T]()
-    def runnable =  new Runnable { def run() = promise.complete(Try(task)) }
+    def runnable = new Runnable { def run() = promise.complete(Try(task)) }
     execute(runnable)
     promise.future
 
@@ -22,6 +26,7 @@ trait ActorContext extends PlatformContext with ExecutionContext :
 
 
 object ActorContext :
-  private class ActorImplementation extends ContextImplementation with ActorContext
-  val system: ActorContext = new ActorImplementation()
+  private class ActorImplementation(val pause: FiniteDuration) extends ContextImplementation with ActorContext
+  /* Provide a default actor implementation with a pause time of 10ms.*/
+  val system: ActorContext = new ActorImplementation(10.millis)
 

@@ -36,6 +36,15 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
       processTrigger() }
     new Callable[Unit] { def call(): Unit = handle() }
 
+  /* Construct a new digestable on the fly. The digest method takes the letter given to it, and
+   * constructs a new event for the events queue and calls trigger in order to start the loop if
+   * needed. */
+  private def digestable(anchor: Object): Digestable[MyLetter] =
+    def handle(letter: MyLetter) = synchronized {
+      events.enqueue(Event(anchor,letter))
+      anchors.remove(anchor)
+      processTrigger() }
+    new Digestable[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
 
   /* See if there are events present.  */
   private[actors] override def eventsPresent: Boolean = synchronized { !events.isEmpty }
@@ -73,14 +82,15 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
   protected def dumpAll(): Unit = eventsCancel()
 
   /** Send a letter to yourself the moment an event takes place. When this happens the method
-    * reporter should produce this letter to be put on the events queue.  The reporter should
+    * fullfil should produce this letter to be put on the events queue.  The fullfil should
     * not block, if it does, it will hold the current thread. This may also hold the whole
-    * application in a single threaded environment.  */
-  protected def await(reporter: Unit => Option[MyLetter], anchor: Object = this): Unit = synchronized {
+    * application in a single threaded environment. As long as the event did not yet arrive,
+    * fullfill should produce None asap. It will be probed somewhat later once more. */
+  protected def expect(fullfil: () => Option[MyLetter], anchor: Object = this): Unit = synchronized {
     /* First remove prior anchor use. */
     dump(anchor)
-    /* Then schedule a new timer and add it to the achors map. */
-    ??? }
+    /* Then schedule a new expectation and add it to the achors map. */
+    anchors.addOne(anchor -> context.await(digestable(anchor),fullfil)) }
 
 
 object TimingActor :

@@ -1,9 +1,9 @@
 package s2a.manual
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
-import s2a.leucine.actors._
+import s2a.leucine.actors.*
 
 given actorContext: ActorContext = ActorContext.system
 

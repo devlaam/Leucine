@@ -32,7 +32,7 @@ trait StashActor extends ActorDefs :
   private[actors] override def stashFlush: Boolean = flushRequest
 
   /* Internal operation to completely clear the stash. */
-  private def _stashClear(): Unit =
+  private def stashClear(): Unit =
     flushRequest = false
     storeRequest = false
     envelopes.clear()
@@ -66,7 +66,7 @@ trait StashActor extends ActorDefs :
     def store(letter: MyLetter, sender: Sender): Unit = envelopes.enqueue(pack(letter,sender))
 
     /** Clear the stash instantly. */
-    def clear(): Unit = _stashClear()
+    def clear(): Unit = stashClear()
 
     /** Flush the stash to the mailbox. This is usually the last instruction before you switch
      * to a new state to handle the stashed messages once more. */

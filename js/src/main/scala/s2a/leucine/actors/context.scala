@@ -1,14 +1,15 @@
 package s2a.leucine.actors
 
 
-import java.util.concurrent.Callable
+import java.util.concurrent.{Callable, TimeUnit}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.scalajs.js.timers
+import scala.scalajs.js.timers.SetTimeoutHandle
 
 
-class ContextImplementation extends PlatformContext :
+abstract class ContextImplementation extends PlatformContext :
 
   private lazy val executionContext = ExecutionContext.global
 
@@ -27,13 +28,14 @@ class ContextImplementation extends PlatformContext :
 
   /** Plan a new task on the current Execution Context, which is run after some delay. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable =
-    val timeoutHandle = timers.setTimeout(delay)(callable.call())
+    val timeoutHandle: SetTimeoutHandle = timers.setTimeout(delay)(callable.call())
     new Cancellable { def cancel() = timers.clearTimeout(timeoutHandle) }
 
-  /** Place a task on the Execution Context which is executed after some event arrives.
-    * The arrival of the event is asynchronically probed by the attempt function,
-    * which should return None in case of a failure. */
-  def await[M](callable: Callable[Unit], attempt: () => Option[M]): Cancellable = ???
+  /** Place a task on the Execution Context which is executed after some event arrives. When
+    * it arrives it may produce an result of some type. This result is subsequently passed to the
+    * digestable process. As longs as there is no result yet, the attempt should produce None */
+  def await[M](digestable: Digestable[M], attempt: () => Option[M]): Cancellable =
+    new ContextImplementation.Awaitable(attempt().map(digestable.digest).isEmpty,pause)
 
   /** In JavaScript it is not possible to shutdown the only executer, so this just makes sure that no new
     * runnables/callables are scheduled for execution. Eventually all actors will be starved. */
@@ -47,11 +49,24 @@ class ContextImplementation extends PlatformContext :
     * when they complete the application will exit, just as intented, or, inside a webapp, keeps running,
     * needed to be able to continue to respond on other events. */
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean): Unit =
-    println(s"waitForExit JS")
     def delay: Callable[Unit] = new Callable[Unit] { def call(): Unit = tryExit() }
     def tryExit() = if active then
       if shutdownRequest then shutdown(force)
       schedule(delay,time)
     tryExit()
 
+
+
+object ContextImplementation :
+
+  /* Class which continously retries an attempt until it succeeds or is cancelled. The doAttempt
+   * by name reference should return true if it succeedded and false otherwise. The delay between
+   * each attempt should be in ms. The attempt itself should not block. */
+  private class Awaitable(doAttempt: => Boolean, delay: FiniteDuration) extends Cancellable :
+    private var continue = true
+    private def schedule(c: Callable[Unit]): SetTimeoutHandle = timers.setTimeout(delay)(callable.call())
+    private var th: SetTimeoutHandle = schedule(callable)
+    private def callable: Callable[Unit] = new Callable[Unit] :
+      def call() = if continue && !doAttempt then th = schedule(this)
+    def cancel() = { continue = false; timers.clearTimeout(th) }
 
