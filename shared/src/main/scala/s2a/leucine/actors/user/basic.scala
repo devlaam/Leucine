@@ -4,7 +4,7 @@ package s2a.leucine.actors
 
 
 /** The BasicActor accepts messages from any other actor, but is not able to return an answer, because the sender is not tracked.
-  * This simplifies the use, for not all possible return types need to be specified. It is still poissble to send a message to
+  * This simplifies the use, for not all possible return types need to be specified. It is still possible to send a message to
   * a fixed actor though, if the actorRef is known. */
 abstract class BasicActor[L <: Actor.Letter](val name: String)(using context: ActorContext) extends BareActor[L,Actor.Letter,Actor.State]:
   /* The basic actor does not allow any messages to be returned to the sender, so we do not need to store the sender.

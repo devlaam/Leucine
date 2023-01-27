@@ -4,25 +4,34 @@ package s2a.leucine.actors
 
 /* Used as a type-parameter free base trait for all mixins. */
 trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, MonitorDefs:
+  /* The super type for the letters you may receive. */
   private[actors] type MyLetter <: Actor.Letter
+  /* The super type for the letters you may send. */
   private[actors] type YrLetter <: Actor.Letter
+  /* The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
+  /* The combined type of Letter and Sender (Enveloppe).*/
   private[actors] type Env
+  /* The prefix used in actornames for actors that are workers */
   protected def workerPrefix: String = "#"
+  /* The charadter that will be used in the full name definitions of the actors.*/
   protected def familyPathSeparator: Char = '.'
-  type Sender = Actor[MyLetter,YrLetter]#Sender
+  /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
+  type Sender = Actor[? <: MyLetter|YrLetter, ? <: Actor.Letter]
+  /** The name of this actor. */
   def name: String
+  /** The fullname of this actor, contains the full path to the first ancestor.*/
   def path: String
+  /** Public reference to this actor instance. */
   def self: Actor[MyLetter,YrLetter]
 
 
 /** The actor (reference) can be used for some general handling, but not to send a message to the
   * actor. You need a reference to the full object for that. This is needed for proper type
   * checking (due to type erasure you cannot check the Actor itself). This can be obtained using
-  * matching. */
+  * matching. ML is the super type for the letters you may receive, YL is the super type for the
+  * letters you may send. The latter usually is the union of two or more type hyrarchies.  */
 trait Actor[ML <: Actor.Letter, YL <: Actor.Letter] :
-  /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
-  type Sender = Actor.SenderType[ML|YL]
 
   /** Name of this actor. Note: this is user defined should be unique in a within family among its siblings.
     * It can be anyting, but if possible exclude . and # Dots are used to build name paths in families and
@@ -47,8 +56,8 @@ trait Actor[ML <: Actor.Letter, YL <: Actor.Letter] :
 
 
 object Actor :
-  type SenderType[L] = Actor[? <: L, ? <: Actor.Letter]
   type Family = Actor[?,?] with FamilyActor
+  //type Family[ML,YL] = Actor[ML,YL] with FamilyActor[?,?]
 
   /* This is the base type for all your mail. */
   trait Letter

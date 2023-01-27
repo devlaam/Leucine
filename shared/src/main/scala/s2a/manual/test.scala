@@ -42,6 +42,8 @@ class Ticker(parent: Actor.Family) extends StateActor[Ticker.Letter,Ticker.Accep
       case logger: Logger => println("Sender(Ticker) = LOGGER")
       case ticker: Ticker => println("Sender(Ticker) = TICKER")
       case anonymous: Anonymous => println("Sender(Ticker) = Anonymous")
+      /* The case below can never match, but this is not recognised by the compiler. */
+      case driver: Driver => println("Sender(Ticker) = Driver??")
       case _  => println(s"Sender(Ticker) = UNMATCHED $sender")
 
     (letter,state) match
@@ -81,6 +83,7 @@ class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyAct
       logger.send(Logger.Number(nr))
       logger.send(Logger.Text("x"*nr))
       ticker.send(Ticker.Message(s"Hello-$nr"),logger.self)
+      //ticker.send(Ticker.Message(s"Hello-$nr"),self)
       if nr<10 then post(Driver.Event(nr+1),1.second) else
         stopNow()
 
