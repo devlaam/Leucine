@@ -1,12 +1,11 @@
 package s2a.leucine.actors
 
 
-abstract class BareActor[ML <: Actor.Letter, YL <: Actor.Letter, AS <: Actor.State](using context: ActorContext) extends Actor[ML,YL], ActorDefs:
+abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: ActorContext) extends Actor[ML], ActorDefs:
   import BareActor.Phase
 
   /* Implements the bounded types for every mixin. */
   private[actors] type MyLetter = ML
-  private[actors] type YrLetter = YL
   private[actors] type ActState = AS
 
   /* This is the envelope type. It may be just a letter or letter+sender. */
@@ -217,7 +216,7 @@ abstract class BareActor[ML <: Actor.Letter, YL <: Actor.Letter, AS <: Actor.Sta
   def path = name
 
   /* To be able to refer to this as an Actor */
-  final def self: Actor[MyLetter,YrLetter] = this
+  final def self: Actor[MyLetter] = this
 
   /** Only meant to send the Finish letter. The running queue id emptied, but no
     * more letters are accepted. */

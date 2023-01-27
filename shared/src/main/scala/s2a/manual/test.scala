@@ -30,7 +30,7 @@ object Logger :
 
 
 
-class Ticker(parent: Actor.Family) extends StateActor[Ticker.Letter,Ticker.Accept,Ticker.State]("ticker"), FamilyActor(parent) :
+class Ticker(parent: Actor.Family) extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyActor(parent) :
 
   def initial = Ticker.Tick(0)
 

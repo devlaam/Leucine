@@ -4,7 +4,7 @@ package s2a.leucine.actors
 /** The StandardActor is able to respond to messages, but does not keep state. You can of course keep your own in var's.
   * If you do, make sure these are private, so there is no risk the leak to the outside world.
   * All possible return types must be specified. */
-abstract class StandardActor[ML <: Actor.Letter, YL <: Actor.Letter](val name: String)(using context: ActorContext) extends BareActor[ML,YL,Actor.State] :
+abstract class StandardActor[ML <: Actor.Letter](val name: String)(using context: ActorContext) extends BareActor[ML,Actor.State] :
 
   private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)

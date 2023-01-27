@@ -4,7 +4,7 @@ package s2a.leucine.actors
 
 /** The StateActor is able to respond to messages, and keeps state between all calls. You are obliged to return the same
    or a new state upon every call. This is better than using vars.  */
-abstract class StateActor[ML <: Actor.Letter, YL <: Actor.Letter, AS <: Actor.State](val name: String)(using context: ActorContext) extends BareActor[ML,YL,AS] :
+abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](val name: String)(using context: ActorContext) extends BareActor[ML,AS] :
 
   private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
