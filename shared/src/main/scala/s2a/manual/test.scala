@@ -30,7 +30,7 @@ object Logger :
 
 
 
-class Ticker extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyLeaf[Ticker.Letter,Driver.Letter]:
+class Ticker extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyLeaf[Driver.Letter]:
 
   def initial = Ticker.Tick(0)
 
@@ -68,15 +68,14 @@ object Ticker :
 
 
 /* This actor is just a source for timing events. It does not respond to external messages. */
-class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyRoot[Ticker.Letter,Driver.Letter] :
+class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyRoot[Ticker.Letter] :
 
   println("Enter Driver")
 
   val logger = new Logger
   val ticker = new Ticker
 
-  ticker.init(this)
-  //adopt(ticker)
+  adopt(ticker)
   ActorGuard.add(logger)
 
   post(Driver.Event(1),1.second)

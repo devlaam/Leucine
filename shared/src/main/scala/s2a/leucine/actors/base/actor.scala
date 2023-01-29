@@ -54,12 +54,12 @@ trait Actor[ML <: Actor.Letter] :
 
 
 object Actor :
-  //type Family = Actor[?] with FamilyActor[?]
-  type Family[CL <: Actor.Letter, ML <: Actor.Letter, PL <: Actor.Letter] = Actor[ML] with FamilyActor[CL,ML,PL]
-  //type Family[ML,PL] = Actor[ML] with FamilyActor[PL]
+  /* The family consist of child, me, and parent, with the appropiate types. */
+  type Family[CL <: Letter, ML <: Letter, PL <: Letter] = Actor[ML] with FamilyActor[CL,PL]
 
   /* This is the base type for all your mail. */
   trait Letter
+
   object Letter :
     /* This is special letter that all actor accept and instructs them to complete
      * the current mailbox and shutdown afterwards. */
@@ -78,20 +78,22 @@ object Actor :
 
   /** Use the Anonymous Actor as a sender if you do not have a context, do want to reveal yourself.
     * it is not possible to return an answer to the Anonymous sender. Also, trying to stop it will
-    * fail. The Anonymous actor is also used as the primairy actor in a family tree. */
-  object Anonymous extends Actor[Anonymous] :
+    * fail. */
+  object Anonymous extends Actor[Anonymous] with FamilyActor[Nothing,Nothing] :
+    private[actors] type Env = Unit
     private[actors] type MyLetter = Anonymous
     def self: Actor[MyLetter] = this
     /* How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"
-    /* Anonymous actor itself as parent: generatio spontanea! This prohibits
-     * an infinite recursive call to the path. */
+    /* Anonymous actor itself as parent: generatio spontanea! */
     override val path = name
-    /* The Anonymous actor is not running, so it be send a letter. */
+    /* The Anonymous actor is not running, so it cannot be send a letter. */
     def send(letter: Actor.Letter.Finish.type): Unit = ()
     /* The Anonymous actor is not running, so it cannot be stopped. */
     def stopNow(): Unit = ()
     /* The Anonymous actor is not running, so it is never active. */
     def isActive: Boolean = false
+
+    private[actors] final def pack(letter: MyLetter, sender: Sender): Env = ()
 
 

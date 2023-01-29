@@ -9,7 +9,7 @@ val sharedSettings = Seq(
   organization        :=   "s2a",
   version             :=   "0.1.0",
   scalaVersion        :=   "3.2.1",
-  scalacOptions       ++=  Seq("-feature","-deprecation","-unchecked"))
+  scalacOptions       ++=  Seq("-feature","-deprecation","-unchecked","-explain"))
 
 
 val jvmSettings = Seq(
