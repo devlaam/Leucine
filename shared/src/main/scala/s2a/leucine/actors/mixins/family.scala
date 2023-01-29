@@ -1,22 +1,24 @@
 package s2a.leucine.actors
 
-
-import scala.collection.mutable
-
 trait FamilyDefs :
   private[actors] def familyStop() = ()
   private[actors] def familyFinish(): Unit = ()
   private[actors] def familyAbandon(name: String) = ()
 
-
 /** Mixin if you need to create child actors and setup a family tree. Actual creation should be
  * done within the parent, wuthout enclosing any of its variable state. This is your responsibilty.
  * The root actor may be created with Anonymous as parent. Since this actor has no functionality,
  * it cannot act as a real parent, so keep a separate reference to the real root. */
-trait FamilyActor(parent: Actor.Family) extends ActorDefs :
+trait FamilyActor[CL <: Actor.Letter, ML <: Actor.Letter, PL <: Actor.Letter] extends ActorDefs :
+
+  this: Actor.Family[CL,ML,PL] =>
+
+  println(s"Enter FamilyActor, parent=$parent")
+
+  protected var parent: Actor.Family[ML,PL,?] = _
 
   /* Holds all the children of this actor. */
-  private val children = mutable.Map[String,Actor.Family]()
+  private var children: Map[String,Actor.Family[?,CL,ML]] = Map.empty
 
   /* Counter to generate a unique name for the childeren of this actor. */
   private var nameCounter: Long = 0
@@ -26,17 +28,17 @@ trait FamilyActor(parent: Actor.Family) extends ActorDefs :
 
 
   /* Internally called to remove an actor from its parents list, just before termination. */
-  private[actors] override def familyAbandon(name: String) = reject(parent.name)
+  private[actors] override def familyAbandon(name: String): Unit = reject(parent.name)
 
-  /* Recursively stop the whole family tree. Even the children are stopped before
-   * the parent, it is not guaranteed that they will also finish before the parent. The
+  /* Recursively stop the whole family tree upwards. The children are stopped before
+   * the parent, but it is not guaranteed that they will also finish before the parent. The
    * actual stopping takes place after the current letter have finished processing, and
    * the children may finish after the the parents. This truth also holds recursively.
    * Directly after this call the childeren are removed from the map, so this is
    * the last action for them from this actor. */
   private[actors] override def familyStop(): Unit = synchronized {
     children.values.foreach(_.stopNow())
-    children.clear() }
+    children = Map.empty }
 
   /* Recursively stop the whole family tree, by sending the finish letter to all
    * children. This is done internally, after the parents mailbox reaches the
@@ -49,11 +51,22 @@ trait FamilyActor(parent: Actor.Family) extends ActorDefs :
    * removed. */
   private[actors] override def familyFinish(): Unit = synchronized {
     children.values.foreach(_.send(Actor.Letter.Finish))
-    children.clear() }
+    children = Map.empty }
+
+  /* Adopt a child actor with the given name. You are responsible for giving unique names and
+   * prohibiting multiple adoptions per actor yourself. If an actor under this name already
+   * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
+   * working. This is automatic. Returns if the actor was succesfully adopted. */
+  private[actors] def adopt(actor: Actor.Family[?,CL,ML]): Unit = synchronized { children += actor.name -> actor }
+
+  def init(parent: Actor.Family[ML,PL,?]): Unit =
+    println(s"init() parent=$parent, this=$this")
+    this.parent = parent
+    parent.adopt(this)
 
   /* The path returns the full lineage of this actor: dot separated names of all parents.
    * The dot can be replaced by your own char by overriding the familySepChar. */
-  override val path: String = s"${parent.path}$familyPathSeparator$name"
+  override def path: String = s"${parent.path}$familyPathSeparator$name"
 
   /* Generates a unique name for a new child actor within its siblings of the structure #<nr>.
    * Every name is quaranteed to be unique for this actor during its entire lifetime. Names that
@@ -65,16 +78,24 @@ trait FamilyActor(parent: Actor.Family) extends ActorDefs :
     nameCounter = nameCounter + 1
     s"$workerPrefix${nameCounter}"
 
-  /* Adopt a child actor with the given name. You are responsible for giving unique names and
-   * prohibiting multiple adoptions per actor yourself. If an actor under this name already
-   * exists, this one is not added. Once adopted, the actor is only removed after it stopped
-   * working. This is automatic. Returns if the actor was succesfully adopted. */
-  protected def adopt(actor: Actor.Family): Boolean = synchronized {
-    if children.contains(actor.name) then false else { children += actor.name -> actor; true } }
-
   /* Reject a child with a given name. Normally, there should not be a reason to do so, but when
    * you want to prohibit the termination of an actor when the parent stops, this could be one.  */
   protected def reject(name: String): Unit = synchronized { children -= name }
+
+
+  println("Exit FamilyActor")
+
+trait FamilyLeaf[ML <: Actor.Letter, PL <: Actor.Letter] extends FamilyActor[Nothing,ML,PL] :
+  self: Actor.Family[Nothing,ML,PL] =>
+  private[actors] override def familyStop(): Unit = ()
+  private[actors] override def familyFinish(): Unit = ()
+  private[actors] override def adopt(actor: Actor.Family[?,Nothing,ML]): Unit = ()
+
+trait FamilyRoot[CL <: Actor.Letter, ML <: Actor.Letter] extends FamilyActor[CL,ML,Nothing] :
+  self: Actor.Family[CL,ML,Nothing] =>
+  //protected override val parent = throw Exception("The FamilyRoot has no parent")
+  override val path: String = ""
+  private[actors] override def familyAbandon(name: String): Unit = ()
 
 
 

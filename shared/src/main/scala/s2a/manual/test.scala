@@ -30,7 +30,7 @@ object Logger :
 
 
 
-class Ticker(parent: Actor.Family) extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyActor(parent) :
+class Ticker extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyLeaf[Ticker.Letter,Driver.Letter]:
 
   def initial = Ticker.Tick(0)
 
@@ -68,12 +68,15 @@ object Ticker :
 
 
 /* This actor is just a source for timing events. It does not respond to external messages. */
-class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyActor(Actor.Anonymous):
+class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyRoot[Ticker.Letter,Driver.Letter] :
+
+  println("Enter Driver")
 
   val logger = new Logger
-  val ticker = new Ticker(this)
+  val ticker = new Ticker
 
-  adopt(ticker)
+  ticker.init(this)
+  //adopt(ticker)
   ActorGuard.add(logger)
 
   post(Driver.Event(1),1.second)
@@ -122,11 +125,11 @@ object test_actors :
   @main
   def main() =
 
-    //val driver = new Driver
-    //ActorGuard.add(driver)
+    val driver = new Driver
+    ActorGuard.add(driver)
 
-    val test = new TestTiming
-    ActorGuard.add(test)
+    //val test = new TestTiming
+    //ActorGuard.add(test)
 
     /* Block until the last thread has finished if needed.  */
     ActorGuard.watch(false,10.seconds)

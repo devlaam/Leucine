@@ -4,6 +4,8 @@ package s2a.leucine.actors
 abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: ActorContext) extends Actor[ML], ActorDefs:
   import BareActor.Phase
 
+  println("Enter BareActor")
+
   /* Implements the bounded types for every mixin. */
   private[actors] type MyLetter = ML
   private[actors] type ActState = AS
@@ -235,6 +237,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       case Phase.Stop   => Phase.Stop
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
+
+  println("Exit BareActor")
 
 
 object BareActor :

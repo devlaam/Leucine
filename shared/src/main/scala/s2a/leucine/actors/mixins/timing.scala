@@ -14,6 +14,7 @@ trait TimingDefs :
 
 trait TimingActor(using context: ActorContext) extends ActorDefs :
   import TimingActor.Event
+  println("Enter TimingActor")
 
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
   private[actors] def processTrigger(): Unit
@@ -92,6 +93,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
     /* Then schedule a new expectation and add it to the achors map. */
     anchors.addOne(anchor -> context.await(digestable(anchor),fullfil)) }
 
+  println("Exit TimingActor")
 
 object TimingActor :
   private class Event[L](val anchor: Object, val letter: L)
