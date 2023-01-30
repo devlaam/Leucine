@@ -55,7 +55,7 @@ trait Actor[ML <: Actor.Letter] :
 
 object Actor :
   /* The family consist of child, me, and parent, with the appropiate types. */
-  type Family[CL <: Letter, ML <: Letter, P <: Actor[?]] = Actor[ML] with FamilyActor[CL,P]
+  type Family[CL <: Letter, ML <: Letter, P <: Actor[?]] = Actor[ML] with FamilyMain[CL,P]
 
   /* This is the base type for all your mail. */
   trait Letter

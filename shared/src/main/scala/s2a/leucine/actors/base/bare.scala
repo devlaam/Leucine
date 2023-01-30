@@ -13,6 +13,9 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   /* This is the envelope type. It may be just a letter or letter+sender. */
   private[actors] type Env
 
+  private[actors] def pack(letter: MyLetter, sender: Sender): Env
+
+
   /* Use this inside the actor to test for an anonymous sender */
   type Anonymous = Actor.Anonymous.type
 
@@ -215,7 +218,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       case Phase.Done   => Phase.Done }
 
   /* In the base actor the path and name are equal. */
-  def path = name
+  def path: String = name
 
   /* To be able to refer to this as an Actor */
   final def self: Actor[MyLetter] = this
