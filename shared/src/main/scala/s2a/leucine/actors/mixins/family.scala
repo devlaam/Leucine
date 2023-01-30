@@ -6,22 +6,20 @@ trait FamilyDefs :
   private[actors] def familyAbandon(name: String) = ()
 
 /** Mixin if you need to create child actors and setup a family tree. Actual creation should be
- * done within the parent, wuthout enclosing any of its variable state. This is your responsibilty.
- * The root actor may be created with Anonymous as parent. Since this actor has no functionality,
- * it cannot act as a real parent, so keep a separate reference to the real root. */
-trait FamilyActor[ChildLetter <: Actor.Letter, ParentLetter <: Actor.Letter] extends ActorDefs :
+ * done within the parent, without enclosing any of its variable state. This is your responsibilty.
+ * You need to specify the base type of all Child Letters, as well as the parent actor type. Also,
+ * your Actor class needs to implement the parent. The best way to do this is to make it a class
+ * parameter. That way you are obliged to define it at creation. */
+trait FamilyActor[ChildLetter <: Actor.Letter, Parent <: Actor[?]] extends ActorDefs :
 
-  this: Actor.Family[ChildLetter,MyLetter,ParentLetter] =>
+  this: Actor.Family[ChildLetter,MyLetter,Parent] =>
 
   println(s"Enter FamilyActor")
 
-  /* Holds the parent of this actor. */
-  private var _parent: Actor.Family[MyLetter,ParentLetter,?] = null
-  protected def parent: Actor.Family[MyLetter,ParentLetter,?] =
-    if _parent == null then throw Exception(s"The actor $name has no parent.") else _parent
+  protected def parent: Parent
 
   /* Holds all the children of this actor. */
-  private var _children: Map[String,Actor.Family[?,ChildLetter,MyLetter]] = Map.empty
+  private var _children: Map[String,Actor.Family[?,ChildLetter,? <: Actor[MyLetter]]] = Map.empty
   protected def children = _children
 
   /* Counter to generate a unique name for the childeren of this actor. */
@@ -59,29 +57,11 @@ trait FamilyActor[ChildLetter <: Actor.Letter, ParentLetter <: Actor.Letter] ext
     children.values.foreach(_.send(Actor.Letter.Finish))
     _children = Map.empty }
 
-  /* Discussion.
-   * In the method join we have :
-   *   child.parent = this.asInstanceOf[Actor.Family[child.MyLetter,MyLetter,?]]
-   * instead of:
-   *   child.parent = this
-   * The problem with the latter is that the compiler cannot verify that ChildLetter
-   * is related to child.MyLetter, or that they are even equal, what always is the case.
-   * A solution is to abstract over MyLetter with ML:
-   *   type Family[CL,ML,PL] = Actor[ML] with FamilyActor[CL,ML,PL]
-   * and
-   *   trait FamilyActor[CL <: Actor.Letter, ML <: Actor.Letter, PL <: Actor.Letter] extends ActorDefs :
-   * and use ML instead of MyLetter in the FamilyActor implementation. ML is then automatically
-   * set to MyLetter (the correct type) in the mixin, but this is just uncessary clutter, and requires
-   * the user to specify the MyLetter type twice in the actor definition.
-   */
-
   /* Adopt child actors with the given name. You are responsible for giving unique names and
    * prohibiting multiple adoptions per actor yourself. If an actor under this name already
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
    * working. This is automatic. Returns if the actor was succesfully adopted. */
-  protected def adopt(children: Actor.Family[?,ChildLetter,MyLetter] *): Unit =
-    //TODO: This cast should never fail, but how can we convince the compiler? See disussion above.
-    children.foreach(child => child._parent = this.asInstanceOf[Actor.Family[child.MyLetter,MyLetter,?]])
+  protected def adopt(children: Actor.Family[?,ChildLetter,? <: Actor[MyLetter]] *): Unit =
     synchronized { children.foreach(child => _children += child.name -> child) }
 
   /* The path returns the full lineage of this actor: dot separated names of all parents.
@@ -99,9 +79,9 @@ trait FamilyActor[ChildLetter <: Actor.Letter, ParentLetter <: Actor.Letter] ext
     s"$workerPrefix${nameCounter}"
 
   /* Reject a child with a given name. Normally, there should not be a reason to do so, but when
-   * you want to prohibit the termination of an actor when the parent stops, this could be one.  */
+   * you want to prohibit the termination of an actor when the parent stops, this could be one.
+   * The parent cannot be removed. */
   protected def reject(name: String): Unit =
-    _children.get(name).foreach(child => child._parent = null)
     synchronized { _children -= name }
 
   protected def relay(letter: ChildLetter, sender: Sender): Unit =
@@ -110,20 +90,19 @@ trait FamilyActor[ChildLetter <: Actor.Letter, ParentLetter <: Actor.Letter] ext
 
   println("Exit FamilyActor")
 
-trait FamilyLeaf[ParentLetter <: Actor.Letter] extends FamilyActor[Nothing,ParentLetter] :
-  this: Actor.Family[Nothing,MyLetter,ParentLetter] =>
+
+trait FamilyLeaf[Parent <: Actor[?]] extends FamilyActor[Nothing,Parent] :
+  this: Actor.Family[Nothing,MyLetter,Parent] =>
   private[actors] override def familyStop(): Unit = ()
   private[actors] override def familyFinish(): Unit = ()
-  protected override def adopt(child: Actor.Family[?,Nothing,MyLetter] *): Unit = ()
+  protected override def adopt(child: Actor.Family[?,Nothing,? <: Actor[MyLetter]] *): Unit = ()
+
 
 trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyActor[ChildLetter,Nothing] :
   this: Actor.Family[ChildLetter,MyLetter,Nothing] =>
   protected override def parent = throw Exception("The FamilyRoot has no parent")
   override val path: String = name
   private[actors] override def familyAbandon(name: String): Unit = ()
-
-trait FamilyNone extends Actor[Actor.Letter], FamilyActor[Nothing,Nothing] :
-  this: Actor.Family[Nothing,MyLetter,Nothing] =>
 
 
 

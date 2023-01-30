@@ -55,7 +55,7 @@ trait Actor[ML <: Actor.Letter] :
 
 object Actor :
   /* The family consist of child, me, and parent, with the appropiate types. */
-  type Family[CL <: Letter, ML <: Letter, PL <: Letter] = Actor[ML] with FamilyActor[CL,PL]
+  type Family[CL <: Letter, ML <: Letter, P <: Actor[?]] = Actor[ML] with FamilyActor[CL,P]
 
   /* This is the base type for all your mail. */
   trait Letter
@@ -79,8 +79,7 @@ object Actor :
   /** Use the Anonymous Actor as a sender if you do not have a context, do want to reveal yourself.
     * it is not possible to return an answer to the Anonymous sender. Also, trying to stop it will
     * fail. */
-  object Anonymous extends Actor[Anonymous] with FamilyActor[Nothing,Nothing] :
-    private[actors] type Env = Unit
+  object Anonymous extends Actor[Anonymous] :
     private[actors] type MyLetter = Anonymous
     def self: Actor[MyLetter] = this
     /* How to call an Anonymous sender? (smiley: no-mouth) */
@@ -93,7 +92,3 @@ object Actor :
     def stopNow(): Unit = ()
     /* The Anonymous actor is not running, so it is never active. */
     def isActive: Boolean = false
-
-    private[actors] final def pack(letter: MyLetter, sender: Sender): Env = ()
-
-

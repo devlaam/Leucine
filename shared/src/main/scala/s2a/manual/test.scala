@@ -30,7 +30,7 @@ object Logger :
 
 
 
-class Ticker extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyLeaf[Driver.Letter]:
+class Ticker(val parent: Driver) extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyLeaf[Driver]:
 
   def initial = Ticker.Tick(0)
 
@@ -73,7 +73,7 @@ class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyRoo
   println("Enter Driver")
 
   val logger = new Logger
-  val ticker = new Ticker
+  val ticker = new Ticker(this)
 
   adopt(ticker)
   ActorGuard.add(logger)
