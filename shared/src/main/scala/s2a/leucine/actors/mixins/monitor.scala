@@ -87,7 +87,7 @@ object MonitorActor:
     def show = s"stashSum=$lettersSum, stashMax=$lettersMax"
   case class Timing(lettersSum: Int, lettersMax: Int, anchorsSize: Int) extends Sample :
     def show = s"timersSum=$lettersSum, timersMax=$lettersMax, timersNow=$anchorsSize"
-  case class Family() extends Sample :
-    def show = ""
+  case class Family(childerenNow: Int, workersSum: Long) extends Sample :
+    def show = s"childerenNow=$childerenNow, workersSum=$workersSum"
 
 

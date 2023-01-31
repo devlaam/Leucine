@@ -17,6 +17,9 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
   private var _children: Map[String,BareActor[ChildLetter,?]] = Map.empty
   protected def children: Map[String,BareActor[ChildLetter,?]] = _children
 
+  /* Get the current number of children. For internal use. */
+  private[actors] override def childrenSize: Int = children.size
+
   /* Recursively stop the whole family tree upwards. The children are stopped before
    * the parent, but it is not guaranteed that they will also finish before the parent. The
    * actual stopping takes place after the current letter have finished processing, and
@@ -97,11 +100,17 @@ private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
   this: Actor.Family[CL,MyLetter,PA] =>
   println(s"Enter FamilyMain")
 
-  /* Counter to generate a unique name for the childeren of this actor. */
-  private var nameCounter: Long = 0
+  /* Counter to generate a unique name for the childeren/workers of this actor. */
+  private var _workersCounter: Long = 0L
+
+  /** Get the number of worker names generated. */
+  protected[actors] def workersCounter: Long = _workersCounter
+
+  /* Get the current number of children. For internal use. In not overriden, this value is zero. */
+  private[actors] def childrenSize: Int = 0
 
   /* Take a snapshot of the internals of this actor. */
-  private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family())
+  private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family(childrenSize,workersCounter))
 
   /* Generates a unique name for a new child actor within its siblings of the structure #<nr>.
    * Every name is quaranteed to be unique for this actor during its entire lifetime. Names that
@@ -110,8 +119,8 @@ private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
    * stable names as well, as long as you know they are created/destroyed sequentially. If you just
    * need a bunch of actors on the fly to solve some tasks and then they are gone, autoname is great. */
   protected def autoname: String =
-    nameCounter = nameCounter + 1
-    s"$workerPrefix${nameCounter}"
+    _workersCounter = _workersCounter + 1
+    s"$workerPrefix${_workersCounter}"
 
   println("Exit FamilyMain")
 
@@ -145,7 +154,7 @@ private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?
 /** Mixin you need to create the root actor and setup a family tree. You need to specify the base
   * type of all child letters the children of this actor may receive. You may have multiple family
   * trees in your system, each with its own root. */
-trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyChild[ChildLetter,Nothing], FamilyMain[ChildLetter,Nothing] :
+trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyMain[ChildLetter,Nothing], FamilyChild[ChildLetter,Nothing] :
   this: Actor.Family[ChildLetter,MyLetter,Nothing] =>
   override def path: String = name
 
@@ -155,7 +164,7 @@ trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyChild[ChildLetter,No
   * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
   * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
   * after creation manually. */
-trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyChild[ChildLetter,Parent], FamilyMain[ChildLetter,Parent], FamilyParent[ChildLetter,Parent] :
+trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyMain[ChildLetter,Parent], FamilyChild[ChildLetter,Parent],  FamilyParent[ChildLetter,Parent] :
   this: Actor.Family[ChildLetter,MyLetter,Parent] =>
 
 /** Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
