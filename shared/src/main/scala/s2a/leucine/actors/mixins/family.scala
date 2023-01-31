@@ -6,13 +6,16 @@ trait FamilyDefs :
   private[actors] def familyAbandon(name: String) = ()
 
 /* Holds all the methods needed for managing the children of the family actor member. */
-private trait FamilyChild[ChildLetter <: Actor.Letter, Parent <: Actor[?]] extends ActorDefs :
-  this: Actor.Family[ChildLetter,MyLetter,Parent] =>
+private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
+  this: Actor.Family[CL,MyLetter,PA] =>
+
+  type ChildLetter = CL
+
   println(s"Enter FamilyChild")
 
   /* Holds all the children of this actor. */
   private var _children: Map[String,BareActor[ChildLetter,?]] = Map.empty
-  protected def children = _children
+  protected def children: Map[String,BareActor[ChildLetter,?]] = _children
 
   /* Recursively stop the whole family tree upwards. The children are stopped before
    * the parent, but it is not guaranteed that they will also finish before the parent. The
@@ -50,14 +53,48 @@ private trait FamilyChild[ChildLetter <: Actor.Letter, Parent <: Actor[?]] exten
   protected[actors] def reject(name: String): Unit =
     synchronized { _children -= name }
 
-  protected def relay(letter: ChildLetter, sender: Sender): Unit =
-    children.values.foreach(child => child.sendEnvelope(child.pack(letter,sender)))
+  /** Forward a message to all children, or children of which the name past the test 'include'. If none of the
+    * childeren is addressed, the bounce function is called. This can be used to send a message back to the
+    * sender.  */
+  protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean, bounce: () => Unit): Unit =
+    val selected = children.filter((key,_) => include(key))
+    def send(name: String, child: BareActor[ChildLetter,?]) = child.sendEnvelope(child.pack(letter,sender))
+    if selected.isEmpty then bounce() else children.foreach(send)
+
+  /** Forward a message to one specific child on the basis of its name. If that child is not present, the bounce
+    * function is called. This can be used to send a message back to the sender.*/
+  protected def pass(letter: ChildLetter, sender: Sender, name: String, bounce: () => Unit): Unit =
+    children.get(name) match
+      case Some(child) => child.sendEnvelope(child.pack(letter,sender))
+      case None        => bounce()
 
   println("Exit FamilyChild")
 
+
+trait FamilyChildExtra :
+  type ChildLetter <: Actor.Letter
+  type Sender
+
+  protected def children: Map[String,BareActor[ChildLetter,?]]
+  protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean, bounce: () => Unit): Unit
+  protected def pass(letter: ChildLetter, sender: Sender, name: String, bounce: () => Unit): Unit
+
+  /** Forward a message to all children */
+  protected def relay(letter: ChildLetter, sender: Sender): Unit = relay(letter,sender,_ => true,() => ())
+
+  /** Forward a message one specific child if it exists */
+  protected def pass(letter: ChildLetter, sender: Sender, name: String): Unit = pass(letter,sender,name,() => ())
+
+  /** Test if the actor has a child with this name. */
+  protected def has(name: String): Boolean  = children.contains(name)
+
+  /** Get the child actor with this name. if it exists. */
+  protected def get(name: String): Option[BareActor[ChildLetter,?]] = children.get(name)
+
+
 /* Holds all the general methods needed for the family actor member. */
-private trait FamilyMain[ChildLetter <: Actor.Letter, Parent <: Actor[?]] extends ActorDefs :
-  this: Actor.Family[ChildLetter,MyLetter,Parent] =>
+private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
+  this: Actor.Family[CL,MyLetter,PA] =>
   println(s"Enter FamilyMain")
 
   /* Counter to generate a unique name for the childeren of this actor. */
@@ -79,8 +116,11 @@ private trait FamilyMain[ChildLetter <: Actor.Letter, Parent <: Actor[?]] extend
   println("Exit FamilyMain")
 
 /* Holds all the methods needed for managing the parent of the family actor member. */
-private trait FamilyParent[ChildLetter <: Actor.Letter, Parent <: Actor[?] with FamilyChild[?,?]] extends ActorDefs :
-  this: Actor.Family[ChildLetter,MyLetter,Parent] =>
+private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?,?]] extends ActorDefs :
+  this: Actor.Family[CL,MyLetter,PA] =>
+
+  type Parent = PA
+
   println(s"Enter FamilyParent")
 
   protected def parent: Parent
