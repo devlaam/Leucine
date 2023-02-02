@@ -28,7 +28,7 @@ package s2a.leucine.actors
 import java.util.concurrent.Callable
 
 /* Methods stub for when there is no monitor mixin used. */
-trait MonitorDefs :
+private[actors] trait MonitorDefs :
   private[actors] def probeBare(): Option[MonitorActor.Bare]  = None
   private[actors] def probeStash(): Option[MonitorActor.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorActor.Timing]  = None

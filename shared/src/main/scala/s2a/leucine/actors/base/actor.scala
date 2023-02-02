@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /** Used as a type-parameter free base trait for all mixins. */
-trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, MonitorDefs:
+private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, MonitorDefs:
   /** The super type for the letters you may receive. */
   private[actors] type MyLetter <: Actor.Letter
   /** The super type for the state the actor can be in. */

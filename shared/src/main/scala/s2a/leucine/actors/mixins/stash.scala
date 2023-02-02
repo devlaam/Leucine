@@ -29,7 +29,7 @@ import scala.collection.mutable
 
 
 /* Methods stub for when there is no stash mixin used. */
-trait StashDefs :
+private[actors] trait StashDefs :
   private[actors] type Env
   private[actors] def stashFlush: Boolean = false
   private[actors] def stashEnqueue(envelope: Env): Unit = ()
