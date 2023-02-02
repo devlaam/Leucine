@@ -6,24 +6,25 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
 
-
-/* Extend and Instantiate this class to get a custom made monitor */
+/** Extend and Instantiate this class to get a custom made monitor */
 class ActorMonitor :
   import ActorMonitor.*
   import MonitorActor.Sample
 
-  /* Holds all the actors by path. Worker actors are all stored under the same path per family level. */
+  /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
   private var actors = Map[String,Record]()
 
-  /* update methods of the actors map. */
+  /** Add one actor to the actors map to be monitored. */
   private[actors] def addActor(path: String): Unit =
     synchronized { actors = actors.updatedWith(path)(_.map(_.inc).orElse(Record.start)) }
     change(path,Action.Created,actors)
 
+  /** Delete one actor to the actors map, will not be monitored any longer */
   private[actors] def delActor(path: String): Unit =
     synchronized { actors = actors.updatedWith(path)(_.map(_.off)) }
     change(path,Action.Removed,actors)
 
+  /** Update the samples gathered from the specific actor. */
   private[actors] def setSamples(path: String, samples: List[Sample]): Unit =
     synchronized { actors = actors.updatedWith(path)(_.map(_.probe(samples))) }
     change(path,Action.Changed,actors)
@@ -32,8 +33,9 @@ class ActorMonitor :
   /** Take a snapshot of the current actor map in the monitor. */
   def snapshot: Map[String,Record] = actors
 
-  /** Callback function that reports each change in state of the actors.
-    * Implement this to make these visible. */
+  /**
+   * Callback function that reports each change in state of the actors.
+   * Implement this to make these visible. */
   def change(path: String, action: Action, actors: Map[String,Record]): Unit = ()
 
   /** Create a basic report to a given string writer */
@@ -43,10 +45,11 @@ class ActorMonitor :
     /* Construct a basic String representation */
     actors.foreach((path,record) => target.println(s"'$path': ${record.show}"))
 
-  /* Default probe interval. Override for other value. */
+  /** Default probe interval. Override for other value. */
   def probeInterval = 5.seconds
 
-/* Use this Object to directly start monitoring with default functionality. */
+
+/** Use this Object to directly start monitoring with default functionality. */
 object ActorMonitor  :
   import MonitorActor.Sample
 

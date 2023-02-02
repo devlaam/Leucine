@@ -1,6 +1,7 @@
 package s2a.manual
 
 import scala.concurrent.duration.FiniteDuration
+//TODO: change to scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.*
 
 import s2a.leucine.actors.*

@@ -1,54 +1,58 @@
 package s2a.leucine.actors
 
 
-/* Shared base for BurstQueue and DropQueue */
+/** Shared base for BurstQueue and DropQueue */
 class ShareQueue[M] :
 
-  /* The queue that holds all incomming messages */
+  /** The queue that holds all incomming messages */
   protected var queueIn: List[M] = Nil
-  /* The queue that holds all outgoing messages */
+
+  /** The queue that holds all outgoing messages */
   protected var queueOut: List[M] = Nil
-  /* The number of messages currently stored */
+
+  /** The number of messages currently stored */
   protected var sizeNow: Int = 0
-  /* The highest number messages stored at once */
+
+  /** The highest number messages stored at once */
   protected var sizeMax: Int = 0
-  /* The total number of messages processed */
+
+  /** The total number of messages processed */
   protected var sizeSum: Int = 0
 
 
-  /* Put an element on the queue. Always fast O(1). */
+  /** Put an element on the queue. Always fast O(1). */
   def enqueue(message: M): Unit =
     queueIn = message :: queueIn
     sizeNow = sizeNow + 1
     sizeSum = sizeSum + 1
     if sizeNow > sizeSum then sizeSum = sizeNow
 
-  /* See if the queue is empty, always fast: O(1)  */
+  /** See if the queue is empty, always fast: O(1)  */
   def isEmpty: Boolean = sizeNow == 0
 
-  /* The size of this queue, always fast: O(1) */
+  /** The size of this queue, always fast: O(1) */
   def size: Int = sizeNow
 
-  /* Remove all messages from the queue(s) */
+  /** Remove all messages from the queue(s), always fast: O(1) */
   def clear(): Unit =
     queueIn  = Nil
     queueOut = Nil
     sizeNow  = 0
 
-  /* The maximum number of messages that were held in the queue at once */
+  /** The maximum number of messages that were held in the queue at once */
   def max: Int = sizeMax
 
-  /* The total number of messages that were processed by the queue */
+  /** The total number of messages that were processed by the queue */
   def sum: Int = sizeSum
 
-  /* Clear the statistics on this queue. The queue itself
-   * remains as is.  */
+  /** Clear the statistics on this queue. The queue itself remains as is.  */
   def reset(): Unit =
     sizeMax = sizeNow
     sizeSum = 0
 
 
-/* Mutable class for managing the message queue .
+/**
+ * Mutable class for managing the message queue .
  * We want this to be fast, and we know we always empty all at once, after which it may
  * grow again. Therefore we might as well use a list. Growing is fast, and whatever other
  * structure we use, there will at least be once an O(n) operation involved. In case there
@@ -56,7 +60,8 @@ class ShareQueue[M] :
  * overhead setup.*/
 class BurstQueue[M] extends ShareQueue[M]:
 
-  /* Get all the messages in posted order, clear queue.
+  /**
+   * Get all the messages in posted order, clear queue.
    * Since the list must be reversed this is not fast O(n).*/
   def dequeue: List[M] =
     queueOut = if sizeNow > 1 then queueIn.reverse else queueIn
@@ -65,7 +70,8 @@ class BurstQueue[M] extends ShareQueue[M]:
     queueOut
 
 
-/* Mutable queue for managing the event queue.
+/**
+ * Mutable queue for managing the event queue.
  * This application typically has very short lists, since placing events
  * is much more rare than consuming them. But consumption is one by one.
  * A nasty extra is that we must sometimes filter a particular element
@@ -75,7 +81,11 @@ class DropQueue[M] extends ShareQueue[M] :
   /* Unfortunately there is no filterRevese in the List defnition.
    * we take the opertunity to return the new size and an removal indicator
    * as well */
+
+  /** Helper Class to communicate the removeReverse result. */
   private class RemovedReversed[M](val result: List[M], val size: Int, val changed: Boolean)
+
+  /** Remove elements that fullfil the predicate and reverse the list in the process. */
   private def removeReverse(p: M => Boolean, in: List[M]): RemovedReversed[M] =
     var size = 0
     var changed = false
@@ -118,7 +128,7 @@ class DropQueue[M] extends ShareQueue[M] :
      * good in that case. Now return the result */
     result
 
-  /* This is an expensive operation, may be 2xO(1). */
+  /** Remove all elements that fullfil the test. This is an expensive operation, may be 2xO(1). */
   def remove(test: M => Boolean): Unit =
     /* If we have only one element, and one of the queues has it (most often case)
      * we can just clear. Otherwise nothing changes. */
@@ -146,25 +156,3 @@ class DropQueue[M] extends ShareQueue[M] :
       if rrIn.changed  then queueIn  = rrIn.result.reverse
       if rrOut.changed then queueOut = rrOut.result.reverse
       sizeNow = rrIn.size + rrOut.size
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

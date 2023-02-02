@@ -1,68 +1,80 @@
 package s2a.leucine.actors
 
-
+/** The BareActor implements all methods needed for basic actor operation. It should not be instantiated by the user. */
 abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: ActorContext) extends Actor[ML], ActorDefs:
   import BareActor.Phase
 
+  //TODO: Remove this.
   println("Enter BareActor")
 
-  /* Implements the bounded types for every mixin. */
+  /* MyLetter and ActState implement the bounded types for every mixin. */
+
+  /** This is the base type for all letters that this actor can receive. */
   private[actors] type MyLetter = ML
+
+  /** This is the base type for all states that this actor can be in. */
   private[actors] type ActState = AS
 
-  /* This is the envelope type. It may be just a letter or letter+sender. */
+  /** This is the envelope type. It may be just a letter or letter+sender. */
   private[actors] type Env
 
-  private[actors] def pack(letter: MyLetter, sender: Sender): Env
-
-
-  /* Use this inside the actor to test for an anonymous sender */
+  /** Use this inside the actor to test for an anonymous sender */
   type Anonymous = Actor.Anonymous.type
 
-  /* Holds all the envelops send to this actor in the mutable MQueue. Note that the Finish
+  /** Actor dependend packing of letter and sender into one enveloppe. */
+  private[actors] def pack(letter: MyLetter, sender: Sender): Env
+
+  /**
+   * Holds all the envelops send to this actor in the mutable MQueue. Note that the Finish
    * letter is not on the queueu but a separate state. This is because we cannot post Finish
    * on type E and when we make a union type we must type match on every letter being processed. */
   private val envelopes: BurstQueue[Env] = new BurstQueue[Env]
 
-  /* Variable that keeps track of the phase the actor is in. All actions on phase must be synchronized
+  /**
+   * Variable that keeps track of the phase the actor is in. All actions on phase must be synchronized
    * since it may be reached from different threads at equal times. Synchronization is done at the place
    * of use for maximal efficientcy */
   private var phase: Phase = Phase.Start
 
-  /* Variable that keeps track of the transient state between processes.
+  /**
+   * Variable that keeps track of the transient state between processes.
    * Note that allthough access on state may be from different threads, it is strictly sequential, so
    * there is no need to protect manipulations. */
   private var state: ActState = initialState
 
-  /* Counter for the total number of exceptions during the lifetime of this actor. */
+  /** Counter for the total number of exceptions during the lifetime of this actor. */
   private var excepts: Int = 0
 
-  /* variable that stays true for as long as the actor is active, once its cannot longer process any
-   * letters and final methodes are called, this turns false. This may be before the phase reaches Stop.
+  /**
+   * Variable that stays true for as long as the actor is active. .
    * Since it is a primitive and will only be modified once, we rely in the Atomic Access principe from
-   * Java, ie. reading will always return true or false (nothing in betwee), but the result may not
+   * Java, ie. reading will always return true or false (nothing in between), but the result may not
    * be consistent over threads. This is not a problem. Eventually it will be, which is good enough.
    * So we do not protect with synchronized or volatile. */
   private[actors] var active = true
 
-  /* See if this actor is still active. */
+  /**
+   * See if this actor is still active. Once it cannot longer process any letters and final methods
+   * are called, this turns false. This may be before the phase reaches Stop. Note that in an asynchronizes
+   * system, the answer may already have changed after the read. Once it turns tp false however, it will
+   * return to true again. */
   def isActive: Boolean = active
 
-  /* Take a snapshot of the internals of this actor. */
+  /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorActor.Bare] =
     val result = MonitorActor.Bare(phase,envelopes.sum,envelopes.max,excepts,userLoad)
     envelopes.reset()
     Some(result)
 
-  /* Construct a new runnable on the fly */
+  /** Construct a new runnable on the fly */
   private def runnable(action: => Unit) = new Runnable { def run(): Unit = action }
 
-  /* Call processPlay to continue the processLoop. */
+  /** Call processPlay to continue the processLoop. */
   private def processPlay(): Unit =
     if context.trace then println(s"In actor=$name: processPlay() called in phase=${phase}")
     context.execute(runnable(processLoop()))
 
-  /* Call processStop to terminate the processLoop. */
+  /** Call processStop to terminate the processLoop. */
   private def processStop(finish: Boolean): Unit = synchronized {
     if context.trace then println(s"In actor=$name: processStop() called in phase=${phase}")
     /* Stop all scheduled timers. */
@@ -76,13 +88,14 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     /* Inform the user this actor is about terminate, and after that remove me from the parents list. */
     context.execute(runnable(processTerminate())) }
 
-  /* Last goodbyes of this actor. */
+  /** Last goodbyes of this actor. */
   private def processTerminate(): Unit =
     stopped()
     familyAbandon(name)
     active = false
 
-  /* Primairy process loop. As soon as there are any letters, this loop runs
+  /**
+   * Primairy process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queue is exhausted. If there
    * is an exception, the next letter is processed without any cleaning up. */
   private def processLoop(): Unit =
@@ -124,7 +137,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     /* The loop is done, we may exit and reevaluate what to do next. */
     processExit()
 
-  /* Afterwork from the processLoop.  */
+  /** Afterwork from the processLoop.  */
   private def processExit(): Unit = synchronized {
     if context.trace then println(s"In actor=$name: exit processLoop() in phase=${phase}")
     /* See what has changed in the meantime and how to proceed. */
@@ -160,28 +173,33 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
-  /** This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
-    * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
+  /**
+   * This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
+   * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
   private[actors] def processEnveloppe(envelope: Env, state: ActState): ActState
 
-  /** This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
-    * next letter. The exceptionCounter is the total number of exceptions this actor experienced. The user may decide to:
-    * (1) Stop the actor, by calling stopNow() inside the handler.
-    * (2) Continue for all or certain types of exceptions.
-    * (3) Continue but chanche the state to an other one, or even the initial state.
-    * (4) Inform the parent ...
-    * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
-    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
-    * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+  /**
+   * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
+   * next letter. The exceptionCounter is the total number of exceptions this actor experienced. The user may decide to:
+   * (1) Stop the actor, by calling stopNow() inside the handler.
+   * (2) Continue for all or certain types of exceptions.
+   * (3) Continue but chanche the state to an other one, or even the initial state.
+   * (4) Inform the parent ...
+   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
+   * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
+   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+  //TODO: This private method cannot be implemented by the user.
   private[actors] def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState = state
 
 
-  /* This defines the initial state that is used before the first letter is processed if needed. The related definition must
+  /**
+   * This defines the initial state that is used before the first letter is processed if needed. The related definition must
    * be in the actor constructor of the user code. */
   private[actors] def initialState: ActState
 
 
-  /** Called before actor deactivation and guaranteed after the last message is processed.
+  /**
+   * Called before actor deactivation and guaranteed after the last message is processed.
    * In case of a actorContext shutdown this is NOT called, for this disruptly terminates the processing loops.
    * It is however called if
    * the finish letter is processed or if stopNow is called upon the actor. (The actor may still be around
@@ -217,14 +235,13 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
-  /* In the base actor the path and name are equal. */
+  /** In the base actor the path and name are equal. */
   def path: String = name
 
-  /* To be able to refer to this as an Actor */
+  /** To be able to refer to this as an Actor */
   final def self: Actor[MyLetter] = this
 
-  /** Only meant to send the Finish letter. The running queue id emptied, but no
-    * more letters are accepted. */
+  /** Only meant to send the Finish letter. The running queue is emptied, but no ore letters are accepted. */
   def send(letter: Actor.Letter.Finish.type): Unit = synchronized {
     if context.trace then println(s"In actor=$name: Terminate message, phase=${phase}")
     phase = phase match
@@ -241,6 +258,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
+  //TODO: Remove this.
   println("Exit BareActor")
 
 
@@ -255,14 +273,20 @@ object BareActor :
    * The first three phases are active (so the actor may accept letters, the last ones are not, and describe the state
    * in various ways of tearing down. */
   private[actors]  enum Phase(val active: Boolean) :
+    /** The first phase the actor is in after creation. */
     case Start  extends Phase(true)
+    /** The active phase when the actor is processing a letter. */
     case Play   extends Phase(true)
+    /** A passive phase were the actor waits for new letters to process. */
     case Pause  extends Phase(true)
+    /** A phase in which the actor will terminate the current queue and then stop. */
     case Finish extends Phase(false)
+    /** A phase in which the actor will terminate the current letter and then stop. */
     case Stop   extends Phase(false)
+    /** The last phase were the actor will not accept any new letters. */
     case Done   extends Phase(false)
 
-  /* The Envelope is responsible for holding the letter and the sender together. */
+  /** The Envelope is responsible for holding the letter and the sender together. */
   private[actors] class Envelope[L,S](val letter: L, val sender: S)
 
 

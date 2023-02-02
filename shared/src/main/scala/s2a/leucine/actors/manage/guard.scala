@@ -5,21 +5,23 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
 
-/** This object is meant to be run in the main thread and enables you to exit the application
-  * when all actors have finished. Put all the actors you create under guard by calling add
-  * on them direcly after creation. For families only the root actor needs to be added. Note
-  * that if you create actors within other actors which are not a adopted by a family you must
-  * add them as well, or call watch(force = true), if you want to properly close the application
-  * at termination. */
+/**
+ * This object is meant to be run in the main thread and enables you to exit the application
+ * when all actors have finished. Put all the actors you create under guard by calling add
+ * on them direcly after creation. For families only the root actor needs to be added. Note
+ * that if you create actors within other actors which are not a adopted by a family you must
+ * add them as well, or call watch(force = true), if you want to properly close the application
+ * at termination. */
 object ActorGuard :
 
-  /* Collection of all actors that are relevant for keeping the threadpool alive. */
+  /** Collection of all actors that are relevant for keeping the threadpool alive. */
   private var actors: Set[Actor[?]] = Set.empty
 
-  /* See if all the actors that are running have completed. We do not put synchronized
+  /**
+   * See if all the actors that are running have completed. We do not put synchronized
    * here and rely in the atomicity of the reference variable actors and _.isActive calls.
-   * Synchronizing would slow down the application and there is no problem with  memory in
-   * consistency for reading the actors variable. Note that this opens the possibility that
+   * Synchronizing would slow down the application and there is no problem with memory
+   * inconsistency for reading the actors variable. Note that this opens the possibility that
    * the application terminates when an actor is added after the watch is called in an
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
@@ -32,11 +34,12 @@ object ActorGuard :
   /** Put an actor under guard. */
   def add(actor: Actor[?]): Unit = synchronized { actors = actors + actor }
 
-  /** Start watching for actor system completion. This uses polling to see if all actors are
-   * done. Do not set the pollInterval to low, for calls all existing actors. The minimum is 1
+  /**
+   * Start watching for actor system completion. This uses polling to see if all actors are
+   * done. Do not set the pollInterval to low, for this calls all actors under guard. The minimum is 1
    * second. In pratice this time defines the maximum time to wait for the application to terminate
    * after all the work is done. Use force if you want to terminate other processes as well when
-   * the actors are all completed to shutdown. Note, that if some actors have not stopped by themselves,
+   * the actors are all completed to shutdown. Note that if some actors have not stopped by themselves,
    * but are not able to receive any messages any more, the application may run indefinitely, and this
    * is platform dependent. In that case you may need to call context.showdown(true/false) somewhere
    * manually. Calling the watch method may be needed to start the actor system  depening on the

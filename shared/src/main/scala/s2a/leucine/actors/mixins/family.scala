@@ -1,26 +1,36 @@
 package s2a.leucine.actors
 
+/* Methods stub for when there is no family mixin used. */
 trait FamilyDefs :
   private[actors] def familyStop() = ()
   private[actors] def familyFinish(): Unit = ()
   private[actors] def familyAbandon(name: String) = ()
 
-/* Holds all the methods needed for managing the children of the family actor member. */
+
+/**
+ * Holds all the methods needed for managing the children of the family actor member.
+ * For internal use. Not all families have children, so this is only mixed in
+ * when children are expected. */
 private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
   this: Actor.Family[CL,MyLetter,PA] =>
 
+  /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
 
+  //TODO: Remove this.
   println(s"Enter FamilyChild")
 
-  /* Holds all the children of this actor. */
+  /** Variable that holds all the children of this actor. */
   private var _children: Map[String,BareActor[ChildLetter,?]] = Map.empty
+
+  /** Save access to the children of this actor. */
   protected def children: Map[String,BareActor[ChildLetter,?]] = _children
 
-  /* Get the current number of children. For internal use. */
+  /** Get the current number of children. For internal use. */
   private[actors] override def childrenSize: Int = children.size
 
-  /* Recursively stop the whole family tree upwards. The children are stopped before
+  /**
+   * Recursively stop the whole family tree upwards. The children are stopped before
    * the parent, but it is not guaranteed that they will also finish before the parent. The
    * actual stopping takes place after the current letter have finished processing, and
    * the children may finish after the the parents. This truth also holds recursively.
@@ -30,7 +40,8 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
     children.values.foreach(_.stopNow())
     _children = Map.empty }
 
-  /* Recursively stop the whole family tree, by sending the finish letter to all
+  /**
+   * Recursively stop the whole family tree, by sending the finish letter to all
    * children. This is done internally, after the parents mailbox reaches the
    * finish letter. All mailboxes will be handled with the letters present. The
    * sequence in which they terminate cannot be predicted, as it is unclear what
@@ -43,41 +54,52 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
     children.values.foreach(_.send(Actor.Letter.Finish))
     _children = Map.empty }
 
-  /* Adopt child actors with the given name. You are responsible for giving unique names and
+  /**
+   * Adopt child actors with the given name. You are responsible for giving unique names and
    * prohibiting multiple adoptions per actor yourself. If an actor under this name already
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
    * working. This is automatic. Returns if the actor was succesfully adopted. */
   protected def adopt(children: Actor.Family[?,ChildLetter,? <: Actor[MyLetter]] *): Unit =
     synchronized { children.collect{ case child: BareActor[ChildLetter,?] =>_children += child.name -> child } }
 
-  /* Reject a child with a given name. Normally, there should not be a reason to do so, but when
+  /**
+   * Reject a child with a given name. Normally, there should not be a reason to do so, but when
    * you want to prohibit the termination of an actor when the parent stops, this could be one.
    * The parent cannot be removed. */
   protected[actors] def reject(name: String): Unit =
     synchronized { _children -= name }
 
-  /** Forward a message to all children, or children of which the name past the test 'include'. If none of the
-    * childeren is addressed, the bounce function is called. This can be used to send a message back to the
-    * sender.  */
+  /**
+   * Forward a message to all children, or children of which the name past the test 'include'. If none of the
+   * childeren is addressed, the bounce function is called. This can be used to send a message back to the
+   * sender. */
   protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean, bounce: () => Unit): Unit =
     val selected = children.filter((key,_) => include(key))
     def send(name: String, child: BareActor[ChildLetter,?]) = child.sendEnvelope(child.pack(letter,sender))
     if selected.isEmpty then bounce() else children.foreach(send)
 
-  /** Forward a message to one specific child on the basis of its name. If that child is not present, the bounce
-    * function is called. This can be used to send a message back to the sender.*/
+  /**
+   * Forward a message to one specific child on the basis of its name. If that child is not present, the bounce
+   * function is called. This can be used to send a message back to the sender.*/
   protected def pass(letter: ChildLetter, sender: Sender, name: String, bounce: () => Unit): Unit =
     children.get(name) match
       case Some(child) => child.sendEnvelope(child.pack(letter,sender))
       case None        => bounce()
 
+  //TODO: Remove this.
   println("Exit FamilyChild")
 
 
+//TODO: Move to the users area.
+/** Experiment to see how easy the user can extend the possibilities of the actors. */
 trait FamilyChildExtra :
+  /** The super type for the letters the childeren may receive. */
   type ChildLetter <: Actor.Letter
+
+  /* The type of the sender. */
   type Sender
 
+  /* Methods to extend. */
   protected def children: Map[String,BareActor[ChildLetter,?]]
   protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean, bounce: () => Unit): Unit
   protected def pass(letter: ChildLetter, sender: Sender, name: String, bounce: () => Unit): Unit
@@ -94,25 +116,28 @@ trait FamilyChildExtra :
   /** Get the child actor with this name. if it exists. */
   protected def get(name: String): Option[BareActor[ChildLetter,?]] = children.get(name)
 
-
-/* Holds all the general methods needed for the family actor member. */
+/**
+ * Holds all the general methods needed for managing the family actor.
+ * For internal use. This is always mixed in. */
 private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
   this: Actor.Family[CL,MyLetter,PA] =>
+  //TODO: Remove this.
   println(s"Enter FamilyMain")
 
-  /* Counter to generate a unique name for the childeren/workers of this actor. */
+  /** Counter to generate a unique name for the childeren/workers of this actor. */
   private var _workersCounter: Long = 0L
 
   /** Get the number of worker names generated. */
   protected[actors] def workersCounter: Long = _workersCounter
 
-  /* Get the current number of children. For internal use. In not overriden, this value is zero. */
+  /** Get the current number of children. For internal use. In not overriden, this value is zero. */
   private[actors] def childrenSize: Int = 0
 
-  /* Take a snapshot of the internals of this actor. */
+  /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family(childrenSize,workersCounter))
 
-  /* Generates a unique name for a new child actor within its siblings of the structure #<nr>.
+  /**
+   * Generates a unique name for a new child actor within its siblings of the structure #<nr>.
    * Every name is quaranteed to be unique for this actor during its entire lifetime. Names that
    * start with a # are expected never to be reused, and thus the number of incarnations of this
    * named actor is not stored. This is ideal for worker actors. However, worker actors can have
@@ -122,53 +147,63 @@ private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
     _workersCounter = _workersCounter + 1
     s"$workerPrefix${_workersCounter}"
 
+  //TODO: Remove this.
   println("Exit FamilyMain")
 
-/* Holds all the methods needed for managing the parent of the family actor member. */
+
+/**
+ * Holds all the methods needed for accessing the parent of this family. For internal use.
+ * Not all actors have a parent, so this is not mixed in for the root of the family. */
 private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?,?]] extends ActorDefs :
   this: Actor.Family[CL,MyLetter,PA] =>
 
+  /** The type of the parent for this actor. */
   type Parent = PA
 
+  //TODO: Remove this.
   println(s"Enter FamilyParent")
 
+  /**
+   * Access to the parent of this actor. It should be implemented as value parameter in the
+   * class definition of this actor. That way the parent is an stable reference. */
   protected def parent: Parent
 
-  /* Internally called to remove an actor from its parents list, just before termination. */
+  /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(name: String): Unit = parent.reject(name)
 
-  /* The path returns the full lineage of this actor: dot separated names of all parents.
+  /**
+   * The path returns the full lineage of this actor: dot separated names of all parents.
    * The dot can be replaced by your own char by overriding the familySepChar. */
   override def path: String = s"${parent.path}$familyPathSeparator$name"
 
+  //TODO: Remove this.
   println("Exit FamilyParent")
 
 
-/** Mixins if you need to create child actors and setup a family tree. Actual creation should be
- * done within the parent (except the root) without enclosing any of its variable state. This is
- * your responsibilty.
- * You need to specify the base type of all Child Letters, as well as the parent actor type. Also,
- * your Actor class needs to implement the parent. The best way to do this is to make it a class
- * parameter. That way you are obliged to define it at creation. */
 
-/** Mixin you need to create the root actor and setup a family tree. You need to specify the base
-  * type of all child letters the children of this actor may receive. You may have multiple family
-  * trees in your system, each with its own root. */
+/**
+ * Mixin you need to create the root actor and setup a family tree. You need to specify the base
+ * type of all child letters the children of this actor may receive. You may have multiple family
+ * trees in your system, each with its own root. */
 trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyMain[ChildLetter,Nothing], FamilyChild[ChildLetter,Nothing] :
   this: Actor.Family[ChildLetter,MyLetter,Nothing] =>
   override def path: String = name
 
-/** Mixin you need to create child actors. Actual creation should be done within the parent
-  * without enclosing any of its variable state. This is your responsibilty. You need to specify the base
-  * type of all child letters the children of this actor may receive, as well as the parent actor type.
-  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
-  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
-  * after creation manually. */
-trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyMain[ChildLetter,Parent], FamilyChild[ChildLetter,Parent],  FamilyParent[ChildLetter,Parent] :
+
+/**
+ * Mixin you need to create child actors. Actual creation should be done within the parent
+ * without enclosing any of its variable state. This is your responsibilty. You need to specify the base
+ * type of all child letters the children of this actor may receive, as well as the parent actor type.
+ * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
+ * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
+ * after creation manually. */
+trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyMain[ChildLetter,Parent], FamilyChild[ChildLetter,Parent], FamilyParent[ChildLetter,Parent] :
   this: Actor.Family[ChildLetter,MyLetter,Parent] =>
 
-/** Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
-  * but without the posibility to define children. */
+
+/**
+ * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
+ * but without the posibility to define children. */
 trait FamilyLeaf[Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyMain[Nothing,Parent], FamilyParent[Nothing,Parent] :
   this: Actor.Family[Nothing,MyLetter,Parent] =>
 
