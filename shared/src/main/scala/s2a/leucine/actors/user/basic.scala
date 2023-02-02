@@ -39,7 +39,14 @@ abstract class BasicActor[L <: Actor.Letter](val name: String)(using context: Ac
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = letter
 
   /* Process the letter in the enveloppe. The state remains unchanged. */
-  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState = { receive(envelope); state }
+  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState =
+    receive(envelope)
+    state
+
+  /* Process the exception by the user. The state remains unchanged. */
+  private[actors] final def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+    except(envelope,exception,exceptionCounter)
+    state
 
   /* Defines the initialState to be the Default state, the user does not need to implement this. */
   private[actors] final def initialState: ActState = Actor.State.Default
@@ -49,6 +56,18 @@ abstract class BasicActor[L <: Actor.Letter](val name: String)(using context: Ac
    * possible to see who send the letter, except from the content of the letter itself. Likewise it is not
    * possible to send back an answer. */
   protected def receive(letter: MyLetter): Unit
+
+  /**
+   * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
+   * is to ignore the exception and pass on to the next letter. The size is the total number of exceptions this actor
+   * experienced. You may decide to:
+   * (1) Stop the actor, by calling stopNow() inside the handler.
+   * (2) Continue for all or certain types of exceptions.
+   * (3) Inform the parent if part of a family...
+   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
+   * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
+   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+  protected def except(letter: MyLetter, cause: Exception, size: Int): Unit = ()
 
   /** Send a letter to the actor, no need to specify the sender. */
   def send(letter: MyLetter): Unit = sendEnvelope(letter)

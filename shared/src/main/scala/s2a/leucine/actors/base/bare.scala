@@ -202,23 +202,13 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
-   * next letter. The exceptionCounter is the total number of exceptions this actor experienced. The user may decide to:
-   * (1) Stop the actor, by calling stopNow() inside the handler.
-   * (2) Continue for all or certain types of exceptions.
-   * (3) Continue but chanche the state to an other one, or even the initial state.
-   * (4) Inform the parent ...
-   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
-   * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
-   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
-  //TODO: This private method cannot be implemented by the user.
-  private[actors] def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState = state
-
+   * next letter. Runtime errors are not caught and blubble up. */
+  private[actors] def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState
 
   /**
    * This defines the initial state that is used before the first letter is processed if needed. The related definition must
    * be in the actor constructor of the user code. */
   private[actors] def initialState: ActState
-
 
   /**
    * Called before actor deactivation and guaranteed after the last message is processed.
@@ -230,7 +220,6 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * will already be removed from the list. They where requested or forced to stop, but may not already
    * have actually done so. */
   protected def stopped(): Unit = ()
-
 
   /** A letter is send to this actor directly by the an other actor. */
   final private[actors] def sendEnvelope(envelope: Env): Unit = synchronized {

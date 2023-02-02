@@ -37,7 +37,12 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](val name: Strin
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
   /* Process the letter in the enveloppe. The state may also be changed by the user. */
-  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState = receive(envelope.letter,envelope.sender,state)
+  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState =
+    receive(envelope.letter,envelope.sender,state)
+
+  /* Process the exception by the user, which may return a new state. */
+  private[actors] final def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+    except(envelope.letter,envelope.sender,state,exception,exceptionCounter)
 
   /* Call the user implemented initial state. */
   private[actors] final def initialState: ActState = initial
@@ -52,6 +57,19 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](val name: Strin
    * You also have to return the new state, which may contain any values that change between each call.
    * That way, you can steer away from var's in the actors defintion, which should not leak into the open. */
   protected def receive(letter: MyLetter, sender: Sender, state: ActState): ActState
+
+  /**
+   * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
+   * is to ignore the exception and pass on to the next letter. The size is the total number of exceptions this actor
+   * experienced. You may decide to:
+   * (1) Stop the actor, by calling stopNow() inside the handler.
+   * (2) Continue for all or certain types of exceptions.
+   * (3) Continue but chanche the state to an other one, or even the initial state.
+   * (4) Inform the parent if part of a family...
+   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
+   * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
+   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+  protected def except(letter: MyLetter, sender: Sender, state: ActState, cause: Exception, size: Int): ActState = state
 
   /** Send a letter, with the obligation to say who is sending it. */
   def send(letter: MyLetter, sender: Sender): Unit = sendEnvelope(pack(letter,sender))
