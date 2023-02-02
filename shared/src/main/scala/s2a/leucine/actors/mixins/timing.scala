@@ -15,8 +15,6 @@ trait TimingDefs :
 
 trait TimingActor(using context: ActorContext) extends ActorDefs :
   import TimingActor.Event
-  //TODO: Remove this.
-  println("Enter TimingActor")
 
   /** Actor dependend packing of letter and sender into one enveloppe. */
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
@@ -103,8 +101,6 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
     /* Then schedule a new expectation and add it to the achors map. */
     anchors.addOne(anchor -> context.await(digestable(anchor),fullfil)) }
 
-  //TODO: Remove this.
-  println("Exit TimingActor")
 
 object TimingActor :
   /** Auxiliarly class that holds the relevant elements of an event. */

@@ -71,8 +71,6 @@ object Ticker :
 /* This actor is just a source for timing events. It does not respond to external messages. */
 class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyRoot[Ticker.Letter], FamilyChildExtra :
 
-  println("Enter Driver")
-
   val logger = new Logger
   val ticker = new Ticker(this)
 

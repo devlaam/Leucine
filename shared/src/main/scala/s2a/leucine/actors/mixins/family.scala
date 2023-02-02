@@ -17,9 +17,6 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
   /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
 
-  //TODO: Remove this.
-  println(s"Enter FamilyChild")
-
   /** Variable that holds all the children of this actor. */
   private var _children: Map[String,BareActor[ChildLetter,?]] = Map.empty
 
@@ -86,9 +83,6 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
       case Some(child) => child.sendEnvelope(child.pack(letter,sender))
       case None        => bounce()
 
-  //TODO: Remove this.
-  println("Exit FamilyChild")
-
 
 //TODO: Move to the users area.
 /** Experiment to see how easy the user can extend the possibilities of the actors. */
@@ -121,8 +115,6 @@ trait FamilyChildExtra :
  * For internal use. This is always mixed in. */
 private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
   this: Actor.Family[CL,MyLetter,PA] =>
-  //TODO: Remove this.
-  println(s"Enter FamilyMain")
 
   /** Counter to generate a unique name for the childeren/workers of this actor. */
   private var _workersCounter: Long = 0L
@@ -147,9 +139,6 @@ private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
     _workersCounter = _workersCounter + 1
     s"$workerPrefix${_workersCounter}"
 
-  //TODO: Remove this.
-  println("Exit FamilyMain")
-
 
 /**
  * Holds all the methods needed for accessing the parent of this family. For internal use.
@@ -159,9 +148,6 @@ private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?
 
   /** The type of the parent for this actor. */
   type Parent = PA
-
-  //TODO: Remove this.
-  println(s"Enter FamilyParent")
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
@@ -175,10 +161,6 @@ private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?
    * The path returns the full lineage of this actor: dot separated names of all parents.
    * The dot can be replaced by your own char by overriding the familySepChar. */
   override def path: String = s"${parent.path}$familyPathSeparator$name"
-
-  //TODO: Remove this.
-  println("Exit FamilyParent")
-
 
 
 /**
