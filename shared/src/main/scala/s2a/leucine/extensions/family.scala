@@ -1,4 +1,4 @@
-package s2a.manual
+package s2a.leucine.extensions
 
 
 import s2a.leucine.actors.*
