@@ -202,7 +202,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
-   * next letter. Runtime errors are not caught and blubble up. */
+   * next letter. Errors are not caught and blubble up. Now, this follows the Java style. */
   private[actors] def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState
 
   /**

@@ -28,6 +28,7 @@ package s2a.manual
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
+import s2a.leucine.extensions.*
 
 
 given actorContext: ActorContext = ActorContext.system
@@ -36,8 +37,9 @@ val monitor = new ActorMonitor {
   override def change(path: String, action: ActorMonitor.Action, actors: Map[String,ActorMonitor.Record]): Unit =
     actors.get(path).foreach(record => println(s"$action: '$path'; ${record.show}")) }
 
-class Logger extends BasicActor[Logger.Letter]("logger") :
+class Logger extends BasicActor[Logger.Letter] :
 
+  val name = "logger"
   override protected def stopped()   = println("stopped logger")
 
 
@@ -55,7 +57,9 @@ object Logger :
 
 
 
-class Ticker(val parent: Driver) extends StateActor[Ticker.Letter,Ticker.State]("ticker"), FamilyLeaf[Driver]:
+class Ticker(val parent: Driver) extends StateActor[Ticker.Letter,Ticker.State], FamilyLeaf[Driver]:
+
+  val name = "ticker"
 
   def initial = Ticker.Tick(0)
 
@@ -93,7 +97,7 @@ object Ticker :
 
 
 /* This actor is just a source for timing events. It does not respond to external messages. */
-class Driver extends BasicActor[Driver.Letter]("driver"), TimingActor, FamilyRoot[Ticker.Letter], FamilyChildExtra :
+class Driver(val name: String) extends BasicActor[Driver.Letter], TimingActor, FamilyRoot[Ticker.Letter], FamilyChildExtra :
 
   val logger = new Logger
   val ticker = new Ticker(this)
@@ -117,8 +121,10 @@ object Driver :
   case class Event(nr: Int) extends Letter
 
 
-class TestTiming extends BasicActor[TestTiming.Letter]("timers"), TimingActor, MonitorActor(monitor) :
+class TestTiming(val name: String) extends BasicActor[TestTiming.Letter], TimingActor, MonitorActor(monitor) :
   import TestTiming.Event
+
+
 
   class Anchor
   val anchor1 = new Anchor
@@ -147,10 +153,10 @@ object test_actors :
   @main
   def main() =
 
-    val driver = new Driver
+    val driver = new Driver("driver")
     ActorGuard.add(driver)
 
-    //val test = new TestTiming
+    //val test = new TestTiming("timing")
     //ActorGuard.add(test)
 
     /* Block until the last thread has finished if needed.  */
