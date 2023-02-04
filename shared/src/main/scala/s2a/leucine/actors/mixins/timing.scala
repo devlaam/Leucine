@@ -120,7 +120,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
    * not block, if it does, it will hold the current thread. This may also hold the whole
    * application in a single threaded environment. As long as the event did not yet arrive,
    * fullfill should produce None asap. It will be probed somewhat later once more. */
-  protected def expect(fullfil: () => Option[MyLetter], anchor: Object = this): Unit = synchronized {
+  protected def expect(fullfil: => Option[MyLetter], anchor: Object = this): Unit = synchronized {
     /* First remove prior anchor use. */
     dump(anchor)
     /* Then schedule a new expectation and add it to the achors map. */

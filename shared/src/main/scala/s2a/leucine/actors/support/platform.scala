@@ -32,6 +32,9 @@ import scala.concurrent.duration.FiniteDuration
 /** Used to construct the actor context with platform depended methods. */
 trait PlatformContext:
 
+  /** Method to detect on which platform the code is running. */
+  def platform: PlatformContext.Platform
+
   /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
   def load: Int = 4
 
@@ -57,7 +60,7 @@ trait PlatformContext:
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
    * digestable process. As longs as there is no result yet, the attempt should produce None */
-  def await[M](digestable: Digestable[M], attempt: () => Option[M]): Cancellable
+  def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
@@ -73,3 +76,7 @@ trait PlatformContext:
    * when they complete the application will exit, just as intented, or, inside a webapp, keeps running,
    * needed to be able to continue to respond on other events. */
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean): Unit
+
+
+object PlatformContext :
+  enum Platform { case JVM, JS, Native }

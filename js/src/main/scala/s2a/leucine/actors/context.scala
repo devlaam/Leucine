@@ -39,8 +39,11 @@ abstract class ContextImplementation extends PlatformContext :
   /** True as long as there has been no Shutdown request. */
   private var _active = true
 
+  /** Returns the platform that is currentluy running, here Jave Script. */
+  def platform = PlatformContext.Platform.JS
+
   /** Save access method on the _active variable */
-  def active =  _active
+  def active = _active
 
   /**
    * True if all treads have completed, for JS this is never the case since the main
@@ -60,8 +63,8 @@ abstract class ContextImplementation extends PlatformContext :
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
   * digestable process. As longs as there is no result yet, the attempt should produce None */
-  def await[M](digestable: Digestable[M], attempt: () => Option[M]): Cancellable =
-    new ContextImplementation.Awaitable(attempt().map(digestable.digest).isEmpty,pause)
+  def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
+    new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,pause)
 
   /**
    * In JavaScript it is not possible to shutdown the only executer, so this just makes sure that no new

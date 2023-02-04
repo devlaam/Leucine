@@ -37,7 +37,7 @@ import scala.collection.immutable.{Queue,SortedMap}
 abstract class ContextImplementation  extends PlatformContext :
 
   /** Variable that determins the continuation of the main loop. Set to false to halt execution. */
-  var continue = true
+  private var continue = true
 
   /** Queue for all runnables that need to be executed directly */
   private var tasks: Queue[Runnable] = Queue.empty
@@ -115,6 +115,9 @@ abstract class ContextImplementation  extends PlatformContext :
    * are completed, no new ones will be accepted. */
   private var _active = true
 
+  /** Returns the platform that is currentluy running, here Native. */
+  def platform = PlatformContext.Platform.Native
+
   /** True as long as there has been no Shutdown request. */
   def active =  _active
 
@@ -141,9 +144,9 @@ abstract class ContextImplementation  extends PlatformContext :
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
    * digestable process. As longs as there is no result yet, the attempt should produce None */
-  def await[M](digestable: Digestable[M], attempt: () => Option[M]): Cancellable =
+  def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
     /* Create the actual attempt as a delayed digest. */
-    val doAttempt = () => attempt().map(digestable.digest)
+    val doAttempt = () => attempt.map(digestable.digest)
     /* Add the attempt to the set of attempts. */
     attempts = attempts + doAttempt
     /* Construct an object that enables the user to retract the attempt. */
