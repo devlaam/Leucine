@@ -150,8 +150,7 @@ object TestTiming :
 
 object test_actors :
 
-  @main
-  def main() =
+  def mainxxx() =
 
     val driver = new Driver("driver")
     ActorGuard.add(driver)

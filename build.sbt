@@ -16,7 +16,8 @@ val jvmSettings = Seq(
   )
 
 val jsSettings = Seq(
-  scalaJSUseMainModuleInitializer := true
+  scalaJSUseMainModuleInitializer := true,
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
 val nativeSettings = Seq(
