@@ -30,6 +30,7 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.Dynamic.{global => g}
 
+
 /* Holder for the Java Script facades for Node JS objects. */
 object JS :
 

@@ -24,6 +24,9 @@ package s2a.examples
  * SOFTWARE.
  **/
 
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
+
 import s2a.leucine.actors.*
 
 /* Note: The examples are given to illustrate how the actors could be used, and are
@@ -32,4 +35,37 @@ import s2a.leucine.actors.*
 
 /* The default actor context for these examples */
 given actorContext: ActorContext = ActorContext.system
+
+
+class ActorPath(val value: String)
+
+object ActorPath :
+  val empty = ActorPath("*")
+  def apply(path: String): ActorPath = new ActorPath(path)
+
+
+
+object Main :
+  import PlatformContext.Platform
+
+  def startTicker(): Unit =
+    val ticker = new Ticker
+    /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
+    ActorGuard.add(ticker)
+
+
+  def startServer(): Unit =
+    /* Create the root of the family */
+    val server = new Server
+    /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
+    ActorGuard.add(server)
+
+  //@main
+  def main(args: Array[String]): Unit =
+    val welcome = s"Started on the ${actorContext.platform} platform."
+    Logger.info(welcome)
+    println(welcome)
+    startTicker()
+    /* Wait until the actor system stops it activity. The application closes after this. */
+    ActorGuard.watch(false,10.seconds)
 

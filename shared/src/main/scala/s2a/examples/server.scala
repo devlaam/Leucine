@@ -229,22 +229,6 @@ object Provider :
   case object Send extends Letter
 
 
-object Main :
-  import PlatformContext.Platform
-
-  def start(): Unit =
-    /* Create the root of the family */
-    val server = new Server
-    /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
-    ActorGuard.add(server)
-    /* Wait until the actor system stops it activity. The application closes after this. */
-    ActorGuard.watch(false,10.seconds)
-
-  //@main
-  def main(args: Array[String]): Unit =
-    println(s"Started on the ${actorContext.platform} platform.")
-    start()
-
 
 
 

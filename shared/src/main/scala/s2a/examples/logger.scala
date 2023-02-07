@@ -25,7 +25,6 @@ package s2a.examples
  **/
 
 
-import java.time.Instant
 import s2a.leucine.actors.*
 
 
@@ -42,7 +41,10 @@ private class Logger extends BasicActor[Logger.Letter] :
   private var level: Level = Level.Debug
 
   /* Report that this logger has been disabled. */
-  override protected def stopped() = println("Stopped logger")
+  override protected def stopped() = println("Stopped Logger")
+
+  /* Report that this logger has started. */
+  println("Started Logger")
 
   /* receive method that handles the incomming logger and control messages. */
   def receive(letter: Logger.Letter) = letter match
@@ -67,15 +69,13 @@ object Logger :
     case Platform.Native => false
 
   /* Class to send a log message to the logger. */
-  private case class Message(level: Level, text: String) extends Letter :
+  private case class Message(level: Level, path: ActorPath, text: String) extends Letter :
     /* Automatically timestamp the message at creation. */
-    private val timeStamp = System.currentTimeMillis()
+    private val timeStamp = Time.nowUTC
     /* Find in which thread this was running if relevant. */
     private val threadStamp = if multithreaded then Thread.currentThread().getName() else ""
     /* Make a reasonable entry for this log message. This is done in the Logger Actor context. */
-    def show: String =
-      val datetime = Instant.ofEpochMilli(timeStamp).toString
-      s"$datetime -$threadStamp- $level: $text"
+    def show: String = s"$timeStamp; $threadStamp; ${path.value}; $level; $text"
 
   /* Message to dynamincally switch the level of the messages. Note that this is
    * expensive since the messages are send to the logger actor anyway. Bettter is
@@ -90,61 +90,70 @@ object Logger :
 
   /* Hard wired minimum level for logging. This is handy to quickly decide what to ignore.
    * This can be changed in something that is decided at program start. */
-  private val level: Level = Level.Debug
+  val level: Level = Level.Debug
 
   /* Below are the methods that you use in your program. So for the user these feel just like
    * ordinary log calls. Under the hood they are handled by the actor so that the normal flow
    * of the program can continue.  */
 
   /** Level to report severe problems. */
-  def error(text: String) = if level.ordinal <= Level.Error.ordinal then logger.send(Message(Level.Error,text))
+  def error(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
+    if Level.Error.ordinal <= level.ordinal then logger.send(Message(Level.Error,path,text))
 
   /** Level to report problems that require attention. */
-  def warn(text: String) = if level.ordinal <= Level.Warning.ordinal then logger.send(Message(Level.Error,text))
+  def warn(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
+    if  Level.Warning.ordinal <= level.ordinal then logger.send(Message(Level.Warning,path,text))
 
   /** Level to just inform want is going down. */
-  def info(text: String) = if level.ordinal <= Level.Info.ordinal then logger.send(Message(Level.Error,text))
+  def info(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
+    if Level.Info.ordinal <= level.ordinal then logger.send(Message(Level.Info,path,text))
 
   /** Level to report inside information to correct and improve your code. */
-  def debug(text: String) = if level.ordinal <= Level.Debug.ordinal then logger.send(Message(Level.Error,text))
+  def debug(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
+    if Level.Debug.ordinal <= level.ordinal then logger.send(Message(Level.Debug,path,text))
 
   /** Change the log level */
-  def switch(level: Level) = logger.send(Switch(level))
+  def switch(level: Level): Unit = logger.send(Switch(level))
 
   /** Stop the logger */
-  def stop() = logger.send(Stop)
+  def stop(): Unit = logger.send(Stop)
 
 
 
-/* Now, we of course also need some code to let the logger do its job. */
-
+/* Now, we of course also need some code to let the logger do its job. At the same time this serves as
+ * a minimal example of Statefull actors. Since this actor is the main motor of this 'application' it
+ * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
 class Ticker extends StateActor[Ticker.Letter,Ticker.State] :
+
+  given ActorPath(path)
 
   val name = "ticker"
 
   def initial = Ticker.Tick(0)
 
-  override protected def stopped()   = println("stopped ticker")
+  override protected def stopped() = Logger.error("stopped ticker")
+
+  send(Ticker.Work,self)
+
+  Logger.warn("Ticker Actor created")
 
   def receive(letter: Ticker.Letter, sender: Sender, state: Ticker.State) =
 
-
-    (letter,state) match
-      case (Ticker.Message(text),Ticker.Tick(value: Int)) =>
-        println(s"tick = $value, msg=$text")
+    state match
+      case Ticker.Tick(value: Int) =>
+        Logger.debug(s"tick = $value")
+        send(Ticker.Work,self)
         Ticker.Tock(value+1)
-      case (Ticker.Message(text),Ticker.Tock(value: Int)) =>
-        if value>6 then
-          this.send(Actor.Letter.Finish)
-          println(s"My name was ${path}")
-        println(s"tock = $value, msg=$text")
+      case Ticker.Tock(value: Int) =>
+        if value<10 then send(Ticker.Work,self) else send(Actor.Letter.Finish)
+        Logger.info(s"tock = $value")
+        if value == 5 then Logger.switch(Logger.Level.Info)
         Ticker.Tick(value+1)
 
-
 object Ticker :
-  type Accept = Logger.Letter | Actor.Anonymous
   sealed trait Letter extends Actor.Letter
-  case class Message(text: String) extends Letter
+  object Work extends Letter
+  /* This actor can be in two 'states' */
   sealed trait State extends Actor.State
   case class Tick(value: Int) extends State
   case class Tock(value: Int) extends State
