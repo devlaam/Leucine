@@ -37,15 +37,7 @@ import s2a.leucine.actors.*
 given actorContext: ActorContext = ActorContext.system
 
 
-class ActorPath(val value: String)
-
-object ActorPath :
-  val empty = ActorPath("*")
-  def apply(path: String): ActorPath = new ActorPath(path)
-
-
-
-object Main :
+object Main extends LogInfo:
   import PlatformContext.Platform
 
   def startTicker(): Unit =
@@ -53,19 +45,42 @@ object Main :
     /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
     ActorGuard.add(ticker)
 
-
   def startServer(): Unit =
     /* Create the root of the family */
     val server = new Server
     /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
     ActorGuard.add(server)
 
-  //@main
+  def startCrawler(): Unit =
+    println("To be implemented!")
+
+  def runtimeDef(args: Array[String]): Unit =
+    args.map(_.toLowerCase) match
+     case Array("ticker")  => startTicker()
+     case Array("server")  => startServer()
+     case Array("crawler") => startCrawler()
+     case _                => println("Please specify 'ticker', 'server' or 'crawler' as argument at startup.")
+
+  def compiletimeDef(): Unit =
+    println("Platform does not support command line parameters.")
+    println("If you want an other demo, change the source.")
+    /* Choose your demo here. */
+    startTicker()
+
   def main(args: Array[String]): Unit =
-    val welcome = s"Started on the ${actorContext.platform} platform."
+    val welcome = s"Started Actor examples on the ${actorContext.platform} platform."
     Logger.info(welcome)
     println(welcome)
-    startTicker()
+    /* See on which platform we are. */
+    actorContext.platform match
+      /* On the JVM you can specify the demo at runtime */
+      case Platform.JVM    => runtimeDef(args)
+      /* On JS, no command line parameters are possible, specify at compile time. */
+      case Platform.JS     => compiletimeDef()
+      /* On the JVM you can specify the demo at runtime */
+      case Platform.Native => runtimeDef(args)
+
+    /* Let the user choose one of the demo's. */
     /* Wait until the actor system stops it activity. The application closes after this. */
     ActorGuard.watch(false,10.seconds)
 

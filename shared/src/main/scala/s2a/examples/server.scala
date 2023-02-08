@@ -96,19 +96,22 @@ trait ClientSocket() :
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider.Letter] :
+class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider.Letter], LogInfo :
 
   /* There is only one 'Server' so we may fix the name here. */
   val name = "server"
 
-  println("Server Constructed.")
+  /* Time this demo will last. */
+  val runtime = 60.seconds
+
+  println(s"Server Constructed, will run for $runtime.")
 
   /* We use different timer methods, which need different anchors so they do not overwrite each other. */
   val terminationAnchor = new Object
   val expectationAnchor = new Object
 
   /* Make sure this server ends after 60 seconds. It is just for testing. */
-  post(Server.Terminated,60.seconds,terminationAnchor)
+  post(Server.Terminated,runtime,terminationAnchor)
 
   /* First create the generiziled serverSocket. This should not fail. */
   private val serverSocket: ServerSocket = new ServerSocketImplementation
@@ -117,7 +120,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
    * it uses less resources compated to io polling by expect. Anytime a new connection
    * arrives we send a letter to ourselves with the connection enclosed. */
   private val useCallback = serverSocket.onConnect(socket =>
-    println("Callback called.")
+    Logger.debug("Callback called.")
     send(Server.Connect(socket)))
 
   /* See if there anyone knocking on the door. We need this if there is no callback
@@ -132,7 +135,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
     /* ... so then */
     else
       /* ... report the problem */
-      println(s"Exception on ServerSocket: ${serverSocket.error}")
+      Logger.warn(s"Exception on ServerSocket: ${serverSocket.error}")
       /* ... stop the server by sending the termination letter. */
       Some(Server.Terminated)
 
@@ -143,12 +146,12 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
   if serverSocket.error.isEmpty
   then
     /* ... if so report this */
-    println("ServerSocket Open on port 8180")
+    println("ServerSocket Open on port 8180, try to make a connection.")
     /* ... and wait for the first connection, if needed */
     if !useCallback then expect(connect,expectationAnchor)
   else
     /* ... if not report this */
-    println(s"ServerSocket cannot be opened: ${serverSocket.error}")
+    Logger.warn(s"ServerSocket cannot be opened: ${serverSocket.error}")
     /* ... and stop the server. */
     stopNow()
 
@@ -157,7 +160,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
   protected def receive(letter: Server.Letter): Unit = letter match
     /* The new connection will come in as a letter. */
     case Server.Connect(socket) =>
-      println("Accepted a connection.")
+      Logger.info("Accepted a connection.")
       /* We see the providers as workers and generate automatic names for them. */
       val provider = new Provider(autoname,socket,this)
       /* Integrate this provider into the family */
@@ -166,7 +169,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
       if !useCallback then expect(connect,expectationAnchor)
     /* The request has come to close stop this server. */
     case Server.Terminated =>
-      println("Server Termination Request")
+      Logger.info("Server Termination Request")
       /* Cancel the expection for a new connection.
        * BTW, this is automatic in stopNow, for illustration only. */
       dump(expectationAnchor)
@@ -174,7 +177,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
       stopNow()
 
   protected override def except(letter: Server.Letter, cause: Exception, size: Int): Unit =
-    println(s"Exception Occurred: ${cause.getMessage()}")
+    Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   override def stopped() =
     println("Server stopped")
@@ -201,9 +204,9 @@ object Server :
  * we could have chosen the BasicActor as well. This actor is part of a family but does not have childeren of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the childeren. But less is more. */
-class Provider(val name: String, protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter], TimingActor, FamilyLeaf[Server] :
+class Provider(val name: String, protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter], TimingActor, FamilyLeaf[Server], LogInfo :
 
-  println(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
+  Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */
   socket.writeln(s"Provider $path Connected.")
 
@@ -214,8 +217,9 @@ class Provider(val name: String, protected val socket: ClientSocket, protected v
   def receive(letter: Provider.Letter, sender: Sender): Unit = letter match
     case Provider.Send =>
       val datetime = new Date().toString
-      println(s"Provider $path says: $datetime")
-      socket.writeln(s"Provider $path says: $datetime")
+      val message  = s"Provider $path says: $datetime"
+      Logger.info(message)
+      socket.writeln(message)
       /* Send a new message after two seconds. */
       post(Provider.Send,2.seconds)
 

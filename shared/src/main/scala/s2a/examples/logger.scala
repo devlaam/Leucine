@@ -29,6 +29,33 @@ import s2a.leucine.actors.*
 
 
 /**
+ * LogData provides context specific information about the location where
+ * the logentry was made. This can be anything like the class name, actor path
+ * etc. Extend to your own liking. */
+private class LogData(val value: () => String)
+
+private object LogData :
+  /* In case such information is not available, empty is used. */
+  val empty = LogData(() => "---")
+
+/* This is the trait you mixin with your class if you need extra context
+ * information in the logging. Note, The Logger will also work without. */
+trait LogInfo :
+
+  /* data containts the function the gathers the information on request.
+   * This is needed for two reasons:
+   * (1) The info may not be available at the time of construction of this instance.
+   * (2) If the logging is ditched, we can prevent its execution.  */
+  private val data = this match
+    case ba: BareActor[?,?] => () => s"actor:${ba.path}"
+    case _                  => () => s"class:${getClass.getName}"
+
+  /* Finally this is the object picked up by the Logger methodes. */
+  given LogData(data)
+
+
+
+/**
  * The logger will only receive messages and never send one. Also, we do not
  * care from whom the message is originating. */
 private class Logger extends BasicActor[Logger.Letter] :
@@ -69,13 +96,13 @@ object Logger :
     case Platform.Native => false
 
   /* Class to send a log message to the logger. */
-  private case class Message(level: Level, path: ActorPath, text: String) extends Letter :
+  private case class Message(level: Level, data: LogData, text: String) extends Letter :
     /* Automatically timestamp the message at creation. */
     private val timeStamp = Time.nowUTC
     /* Find in which thread this was running if relevant. */
     private val threadStamp = if multithreaded then Thread.currentThread().getName() else ""
     /* Make a reasonable entry for this log message. This is done in the Logger Actor context. */
-    def show: String = s"$timeStamp; $threadStamp; ${path.value}; $level; $text"
+    def show: String = s"$timeStamp; $threadStamp; ${data.value()}; $level; $text"
 
   /* Message to dynamincally switch the level of the messages. Note that this is
    * expensive since the messages are send to the logger actor anyway. Bettter is
@@ -97,20 +124,20 @@ object Logger :
    * of the program can continue.  */
 
   /** Level to report severe problems. */
-  def error(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
-    if Level.Error.ordinal <= level.ordinal then logger.send(Message(Level.Error,path,text))
+  def error(text: => String)(using data: LogData = LogData.empty): Unit =
+    if Level.Error.ordinal <= level.ordinal then logger.send(Message(Level.Error,data,text))
 
   /** Level to report problems that require attention. */
-  def warn(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
-    if  Level.Warning.ordinal <= level.ordinal then logger.send(Message(Level.Warning,path,text))
+  def warn(text: => String)(using data: LogData = LogData.empty): Unit =
+    if  Level.Warning.ordinal <= level.ordinal then logger.send(Message(Level.Warning,data,text))
 
   /** Level to just inform want is going down. */
-  def info(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
-    if Level.Info.ordinal <= level.ordinal then logger.send(Message(Level.Info,path,text))
+  def info(text: => String)(using data: LogData = LogData.empty): Unit =
+    if Level.Info.ordinal <= level.ordinal then logger.send(Message(Level.Info,data,text))
 
   /** Level to report inside information to correct and improve your code. */
-  def debug(text: => String)(using path: ActorPath = ActorPath.empty): Unit =
-    if Level.Debug.ordinal <= level.ordinal then logger.send(Message(Level.Debug,path,text))
+  def debug(text: => String)(using data: LogData = LogData.empty): Unit =
+    if Level.Debug.ordinal <= level.ordinal then logger.send(Message(Level.Debug,data,text))
 
   /** Change the log level */
   def switch(level: Level): Unit = logger.send(Switch(level))
@@ -119,43 +146,5 @@ object Logger :
   def stop(): Unit = logger.send(Stop)
 
 
-
-/* Now, we of course also need some code to let the logger do its job. At the same time this serves as
- * a minimal example of Statefull actors. Since this actor is the main motor of this 'application' it
- * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker extends StateActor[Ticker.Letter,Ticker.State] :
-
-  given ActorPath(path)
-
-  val name = "ticker"
-
-  def initial = Ticker.Tick(0)
-
-  override protected def stopped() = Logger.error("stopped ticker")
-
-  send(Ticker.Work,self)
-
-  Logger.warn("Ticker Actor created")
-
-  def receive(letter: Ticker.Letter, sender: Sender, state: Ticker.State) =
-
-    state match
-      case Ticker.Tick(value: Int) =>
-        Logger.debug(s"tick = $value")
-        send(Ticker.Work,self)
-        Ticker.Tock(value+1)
-      case Ticker.Tock(value: Int) =>
-        if value<10 then send(Ticker.Work,self) else send(Actor.Letter.Finish)
-        Logger.info(s"tock = $value")
-        if value == 5 then Logger.switch(Logger.Level.Info)
-        Ticker.Tick(value+1)
-
-object Ticker :
-  sealed trait Letter extends Actor.Letter
-  object Work extends Letter
-  /* This actor can be in two 'states' */
-  sealed trait State extends Actor.State
-  case class Tick(value: Int) extends State
-  case class Tock(value: Int) extends State
 
 
