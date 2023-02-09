@@ -147,7 +147,7 @@ object TestTiming :
   sealed trait Letter extends Actor.Letter
   case class Event(nr: Int) extends Letter
 
-
+//TODO: Define real tests
 object test_actors :
 
   def mainxxx() =

@@ -1,4 +1,4 @@
-package s2a.examples
+package s2a.leucine.demo
 
 /**
  * MIT License
