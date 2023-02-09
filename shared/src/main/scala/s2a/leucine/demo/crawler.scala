@@ -25,3 +25,5 @@ package s2a.leucine.demo
  **/
 
 import s2a.leucine.actors.*
+
+object NoContent

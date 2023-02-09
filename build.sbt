@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 
 /* Set to false for local publishing to exclude the demo files. */
-val withDemo  = false
+val withDemo  = true
 
 val sharedSettings = Seq(
   name                :=   "leucine",
