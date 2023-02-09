@@ -20,15 +20,15 @@ class MyActor extends BasicActor[MyActor.Letter] :
   // some startup code
 
   /* Handle all incoming letters. */
-  protected def receive(letter: MyActor): Unit = letter match
+  protected def receive(letter: MyActor.Letter): Unit = letter match
     case Text(data) => println(data)
     case Terminated => stopNow
 
 
 object MyActor :
-  /* Base type of all MyActor Letters, sealed because that enables the compiler to see if we handled them all. */
+  /* Base type of all MyActor Letters, sealed to see if we handled them all. */
   sealed trait Letter extends Actor.Letter
-  /* Letter that sends some text*/
+  /* Letter that sends some text */
   case class Text(data: String) extends Letter
   /* Letter that indicates we are done. */
   case object Terminated extends Letter
