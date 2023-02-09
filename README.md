@@ -12,6 +12,7 @@ Leucine is useful for you as well.
 ## Features
 Leucine is typed actor system, where all letters to be received by an actor have to
 be derived from a base type, best defined in the companion object of the actor.
+It runs on JVM, JS and Native.
 
 ### Getting started
 It could look something like this:
@@ -101,3 +102,11 @@ And although projectNative is still single threaded, the Actor implementation ru
 
 On projectJS the `ticker` runs by default. If you want to see the `server` in action, the source code has to be
 changed, for JavaScript does not allow arguments at startup.
+
+## Future
+This library will be a replacement for my other projects that use Akka at the moment. I will not try
+to copy Akka in any way, but changes in the design may still happen. I take feature requests as well, if
+motivated, and of course, bug reports. Please do not send a PR without consultation, for i lack the
+time to handle them.
+
+
