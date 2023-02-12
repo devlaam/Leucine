@@ -39,10 +39,10 @@ There are three actor types where to derive from: `BasicActor`, `StandardActor` 
 
 ### Advanced features
 The functionality of actors can be extended with mixin's. There are:
-* `Family` mixin's, so you can set op a tree of actors that are accessible through their children. There can be multiple family root's so the cleanup is done in an orderly manner.
+* `Family` mixin's, so you can set up a tree of actors that are accessible through their children. There can be multiple family root's so the cleanup is done in an orderly manner.
 * `Stash` mixin, so you can put away a letter for handling later.
 * `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place
-* `Monitor` mixin, which probes you actor at intervals, and generates an overview of the workings of the whole system. It enables you to see the time spend in an actor, number of children or worker actors etc.
+* `Monitor` mixin, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see the time spend in an actor, number of children or worker actors etc.
 
 ### Demos
 
@@ -52,7 +52,7 @@ There are three demo's:
 * Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
 * Crawler: Yet to be implemented
 
-All implementations (JVM,JS,Native) have there own Execution Context so you are isolated from the underlying threading model.
+All implementations (JVM,JS,Native) have their own Execution Context so you are isolated from the underlying threading model.
 In an actor you may never block of course, but with `expect` you can handle waiting for external events in your actor.
 
 ## Status
@@ -106,7 +106,7 @@ changed, for JavaScript does not allow arguments at startup.
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment. I will not try
 to copy Akka in any way, but changes in the design may still happen. I take feature requests as well, if
-motivated, and of course, bug reports. Please do not send a PR without consultation, for i lack the
+motivated, and of course, bug reports. Please do not send a PR without consultation, for I lack the
 time to handle them.
 
 
