@@ -14,6 +14,8 @@ val sharedSettings = Seq(
   version             :=   "0.1.0",
   scalaVersion        :=   "3.2.1",
   scalacOptions       ++=  Seq("-feature","-deprecation","-unchecked","-explain"),
+  libraryDependencies +=   "com.lihaoyi" %%% "utest" % "0.8.1" % Test,
+  testFrameworks      +=   new TestFramework("s2a.control.LeucineFramework"),
   Compile / excludeFilter := new FileFilter { def accept(f: File) = !withDemo && f.getPath.containsSlice("/demo/") }
   )
 
@@ -26,6 +28,7 @@ val jsSettings = Seq(
   )
 
 val nativeSettings = Seq(
+  nativeLinkStubs := true
   )
 
 lazy val leucine = crossProject(JSPlatform, JVMPlatform, NativePlatform)
