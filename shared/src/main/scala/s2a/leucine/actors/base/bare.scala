@@ -171,7 +171,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
       /* If we got an Finish letter, we must complete the queue or stop.  */
-      case Phase.Finish => if envelopes.isEmpty then { processStop(true); Phase.Done } else { processPlay(); Phase.Play }
+      case Phase.Finish => if envelopes.isEmpty then { processStop(true); Phase.Done } else { processPlay(); Phase.Finish }
       /* If we got an exteral stop request, make an end to this. */
       case Phase.Stop   => processStop(false); Phase.Done
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
