@@ -1,0 +1,54 @@
+package s2a.leucine.actors
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
+import utest.*
+
+import s2a.control.Deferred
+
+object StateActorTest extends TestSuite :
+
+  implicit val ac: ActorContext = ActorContext.system
+
+  class Clock(val writeln: String => Unit) extends StateActor[Clock.Letter,Clock.State] :
+   val name = "clock"
+   protected def initial: ActState = Clock.State(0,0,0)
+   protected def receive(letter: Clock.Letter, sender: Sender, state: Clock.State): Clock.State = letter match
+     case Clock.Tick(extraSec) => state.advance(extraSec)
+     case Clock.PrintTime      => writeln(state.show); state
+
+  object Clock :
+    sealed trait Letter extends Actor.Letter
+    case class Tick(extraSec: Int) extends Letter
+    case object PrintTime extends Letter
+
+    class State(hour: Int, min: Int, sec: Int) extends Actor.State :
+      def advance(eSec: Int): State =
+        val sec  = (this.sec + eSec) % 60
+        val eMin = (this.sec + eSec) / 60
+        val min  = (this.min + eMin) % 60
+        val eHr  = (this.min + eMin) / 60
+        val hour = (this.hour + eHr) % 24
+        State(hour,min,sec)
+      def show: String = s"$hour:$min:$sec"
+
+
+  val tests = Tests {
+    val result = new ListBuffer[String]()
+    val expect = List("0:0:30","0:2:10","0:18:50","6:29:12")
+    def writeln(s: String)    = synchronized{result.append(s)}
+    def readlns: List[String] = synchronized{result.toList}
+    test("changing state"){
+      val clock = new Clock(writeln)
+      clock ! Clock.Tick(30)
+      clock ! Clock.PrintTime
+      clock ! Clock.Tick(100)
+      clock ! Clock.PrintTime
+      clock ! Clock.Tick(1000)
+      clock ! Clock.PrintTime
+      clock ! Clock.Tick(22222)
+      clock ! Clock.PrintTime
+      clock.stopFinish()
+      Deferred(readlns).result.map(_ ==> expect) } }
+
