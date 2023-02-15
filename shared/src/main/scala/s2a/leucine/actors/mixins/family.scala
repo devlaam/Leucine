@@ -59,7 +59,7 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
    * Directly after this call the childeren are removed from the map, so this is
    * the last action for them from this actor. */
   private[actors] override def familyStop(): Unit = synchronized {
-    children.values.foreach(_.stopNow())
+    children.values.foreach(_.stopDirect())
     _children = Map.empty }
 
   /**
@@ -73,7 +73,7 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
    * map, by there own doing. So it may take a little while before there references are
    * removed. */
   private[actors] override def familyFinish(): Unit = synchronized {
-    children.values.foreach(_.send(Actor.Letter.Finish))
+    children.values.foreach(_.stopFinish())
     _children = Map.empty }
 
   /**

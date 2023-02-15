@@ -60,7 +60,7 @@ abstract class StandardActor[ML <: Actor.Letter](using val context: ActorContext
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
    * is to ignore the exception and pass on to the next letter. The size is the total number of exceptions this actor
    * experienced. You may decide to:
-   * (1) Stop the actor, by calling stopNow() inside the handler.
+   * (1) Stop the actor, by calling stopDirect() inside the handler.
    * (2) Continue for all or certain types of exceptions.
    * (3) Inform the parent if part of a family...
    * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
@@ -68,5 +68,11 @@ abstract class StandardActor[ML <: Actor.Letter](using val context: ActorContext
    * example, just log the exception. Runtime errors cannot be caught and blubble up. */
   protected def except(letter: MyLetter, sender: Sender, cause: Exception, size: Int): Unit = ()
 
-  /** Send a letter, with the obligation to say who is sending it. */
-  def send(letter: MyLetter, sender: Sender): Unit = sendEnvelope(pack(letter,sender))
+  /**
+   * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context
+   * of an actor and to self inside an actor. Returns if the letter was accepted for delivery. Note, this
+   * does not mean it also processed. In the mean time the actor may stop. */
+  def send(letter: MyLetter)(using sender: Sender = Actor.Anonymous): Boolean = sendEnvelope(pack(letter,sender))
+
+  /** Send a letter with the 'tell' operator. For compatibility with Akka. */
+  def ! (letter: MyLetter)(using sender: Sender = Actor.Anonymous): Unit = sendEnvelope(pack(letter,sender))

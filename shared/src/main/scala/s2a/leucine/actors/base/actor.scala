@@ -66,15 +66,15 @@ trait Actor[ML <: Actor.Letter] :
   def path: String
 
   /**
-   * Only meant to send the Termination letter. This can be done by anyone that holds a reference, and
-   * there is no need to say who send it, for it is never visibly processed within the actor. */
-  def send(letter: Actor.Letter.Finish.type): Unit
-
-  /**
-   * Stop this actor asap, but complete the running letter. Since this is a synchronized method
+   * Terminate this actor asap, but complete the running letter. Since this is a synchronized method
    * it is thread safe. However, use it sparsely from the outside, since it may be unclear who is
    * stopping your actors. */
-  def stopNow(): Unit
+  def stopDirect(): Unit
+
+  /**
+   * Stop this actor from accepting new letters, terminate once the queue is emptied.
+   * Method is thread safe. */
+  def stopFinish(): Unit
 
   /** See if this actor is still active. */
   def isActive: Boolean
@@ -86,12 +86,6 @@ object Actor :
 
   /** This is the base type for all your mail. */
   trait Letter
-
-  object Letter :
-    /**
-     * This is special letter that all actor accept and instructs them to complete
-     * the current mailbox and shutdown afterwards. */
-    object Finish extends Letter
 
   /** This is the base type for all your states. */
   trait State
@@ -113,9 +107,9 @@ object Actor :
     val name = ":x"
     /** Anonymous actor itself as parent: generatio spontanea! */
     override val path = name
-    /** The Anonymous actor is not running, so it cannot be send a letter. */
-    def send(letter: Actor.Letter.Finish.type): Unit = ()
     /** The Anonymous actor is not running, so it cannot be stopped. */
-    def stopNow(): Unit = ()
+    def stopDirect(): Unit = ()
+    /** The Anonymous actor is not running, so it cannot finish. */
+    def stopFinish(): Unit = ()
     /** The Anonymous actor is not running, so it is never active. */
     def isActive: Boolean = false

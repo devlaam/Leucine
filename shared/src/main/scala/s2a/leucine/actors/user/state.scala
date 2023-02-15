@@ -1,5 +1,7 @@
 package s2a.leucine.actors
 
+import s2a.leucine.actors.Actor.Anonymous
+
 /**
  * MIT License
  *
@@ -62,7 +64,7 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](using val conte
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
    * is to ignore the exception and pass on to the next letter. The size is the total number of exceptions this actor
    * experienced. You may decide to:
-   * (1) Stop the actor, by calling stopNow() inside the handler.
+   * (1) Stop the actor, by calling stopDirect() inside the handler.
    * (2) Continue for all or certain types of exceptions.
    * (3) Continue but chanche the state to an other one, or even the initial state.
    * (4) Inform the parent if part of a family...
@@ -71,5 +73,11 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](using val conte
    * example, just log the exception. Runtime errors cannot be caught and blubble up. */
   protected def except(letter: MyLetter, sender: Sender, state: ActState, cause: Exception, size: Int): ActState = state
 
-  /** Send a letter, with the obligation to say who is sending it. */
-  def send(letter: MyLetter, sender: Sender): Unit = sendEnvelope(pack(letter,sender))
+  /**
+   * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context of an actor
+   * and to self inside an actor. Returns if the letter was accepted for delivery. Note, this does not mean it also
+   * processed. In the mean time the actor may stop. */
+  def send(letter: MyLetter)(using sender: Sender = Actor.Anonymous): Boolean = sendEnvelope(pack(letter,sender))
+
+  /** Send a letter with the 'tell' operator. For compatibility with Akka. */
+  def ! (letter: MyLetter)(using sender: Sender = Actor.Anonymous): Unit = sendEnvelope(pack(letter,sender))

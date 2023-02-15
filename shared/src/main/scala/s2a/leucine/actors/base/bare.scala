@@ -77,8 +77,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
 
   /**
    * See if this actor is still active. Once it cannot longer process any letters and final methods
-   * are called, this turns false. This may be before the phase reaches Stop. Note that in an asynchronizes
-   * system, the answer may already have changed after the read. Once it turns tp false however, it will
+   * are called, this turns false. This may be before the phase reaches Stop. Note that in an asynchronous
+   * system, the answer may already have changed after the read. Once it turns to false however, it will
    * return to true again. */
   def isActive: Boolean = active
 
@@ -214,24 +214,27 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * Called before actor deactivation and guaranteed after the last message is processed.
    * In case of a actorContext shutdown this is NOT called, for this disruptly terminates the processing loops.
    * It is however called if
-   * the finish letter is processed or if stopNow is called upon the actor. (The actor may still be around
+   * the finish letter is processed or if stopDirect is called upon the actor. (The actor may still be around
    * after this method is called, but will never accept new messages.) The parent is still defined,
    * when afterStop() is executed (but may already stopped processing messages) but all the childeren
    * will already be removed from the list. They where requested or forced to stop, but may not already
    * have actually done so. */
   protected def stopped(): Unit = ()
 
-  /** A letter is send to this actor directly by the an other actor. */
-  final private[actors] def sendEnvelope(envelope: Env): Unit = synchronized {
+  /**
+   * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
+   * for delivery. Note, this does not mean it also processed. In the mean time the actor may stop. */
+  final private[actors] def sendEnvelope(envelope: Env): Boolean = synchronized {
     if context.trace then println(s"In actor=$name: Enqueue message $envelope, phase=${phase}")
     /* See if we may accept the letter, if so, enqueue it and trigger the processLoop. */
-    if phase.active then
+    if !phase.active then false else
       envelopes.enqueue(envelope)
-      processTrigger() }
+      processTrigger()
+      true }
 
   /** Stop this actor asap, but complete the running letter. */
-  final def stopNow(): Unit = synchronized {
-    if context.trace then println(s"In actor=$name: Before stopNow message, phase=${phase}")
+  final def stopDirect(): Unit = synchronized {
+    if context.trace then println(s"In actor=$name: Before stopDirect message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
       case Phase.Start  => Phase.Done
@@ -241,19 +244,13 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       case Phase.Pause  => processStop(false); Phase.Done
       /* The finish letter was received, but we want to stop even quicker */
       case Phase.Finish => Phase.Stop
-      /* Repeated call to stopNow has no effect. */
+      /* Repeated call to stopDirect has no effect. */
       case Phase.Stop   => Phase.Stop
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
-  /** In the base actor the path and name are equal. */
-  def path: String = name
-
-  /** To be able to refer to this as an Actor */
-  final def self: Actor[MyLetter] = this
-
-  /** Only meant to send the Finish letter. The running queue is emptied, but no ore letters are accepted. */
-  def send(letter: Actor.Letter.Finish.type): Unit = synchronized {
+  /** The running queue is processed, but no more letters are accepted. Terminate afterwards. */
+  final def stopFinish(): Unit = synchronized {
     if context.trace then println(s"In actor=$name: Terminate message, phase=${phase}")
     phase = phase match
       /* If the first message is a finish letter, this will be the only letter ever processed. */
@@ -269,6 +266,13 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
+  /** In the base actor the path and name are equal. */
+  def path: String = name
+
+  /**
+   * To be able to refer to this as an Actor, which is also used as sender for all messages
+   * send from this actor without explicit sender. */
+  given self: Actor[MyLetter] = this
 
 object BareActor :
 
@@ -276,7 +280,7 @@ object BareActor :
    * After construction the phase is Start. When the first message comes in, it calls beforeStart and advances to Play.
    * From there it may oscillate between Play and Pause. The phase is Pause when the message queue is empty and Play
    * as long as there are letters on the queue. If a Finish letter arrives while the loop is running, the phase moves
-   * to Finish, and the current queue is fisished. If stopNow() is called, the phase advances to Stop, which terminates
+   * to Finish, and the current queue is fisished. If stopDirect() is called, the phase advances to Stop, which terminates
    * the loop asap. Subsequently afterStop() is called, and the pahse becomes Done. It may never be reactivated again.
    * The first three phases are active (so the actor may accept letters, the last ones are not, and describe the state
    * in various ways of tearing down. */
