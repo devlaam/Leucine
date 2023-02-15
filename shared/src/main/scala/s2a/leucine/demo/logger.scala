@@ -77,7 +77,7 @@ private class Logger extends BasicActor[Logger.Letter] :
   def receive(letter: Logger.Letter) = letter match
     case msg: Message => if msg.level.ordinal <= this.level.ordinal then println(msg.show)
     case Switch(level: Level) => this.level = level
-    case Stop                 => stopNow()
+    case Stop                 => stopDirect()
 
 
 object Logger :

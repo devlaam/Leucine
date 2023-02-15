@@ -153,7 +153,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
     /* ... if not report this */
     Logger.warn(s"ServerSocket cannot be opened: ${serverSocket.error}")
     /* ... and stop the server. */
-    stopNow()
+    stopDirect()
 
 
   /* Handle all incomming letters. */
@@ -171,10 +171,10 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
     case Server.Terminated =>
       Logger.info("Server Termination Request")
       /* Cancel the expection for a new connection.
-       * BTW, this is automatic in stopNow, for illustration only. */
+       * BTW, this is automatic in stopDirect, for illustration only. */
       dump(expectationAnchor)
       /* Stop the actor. */
-      stopNow()
+      stopDirect()
 
   protected override def except(letter: Server.Letter, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
