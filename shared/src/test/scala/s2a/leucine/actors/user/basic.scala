@@ -66,7 +66,7 @@ object BasicActorTest extends TestSuite :
       Deferred(readlns).result.map(_ ==> List("D:text6","except(D,1)","D:6","D:text7","except(D,2)","D:7","except(D,3)","D:stopped")) }
     test("sending letters with random stop"){
       val writer = new Writer("E",writeln)
-      def result(n: Int) = (1 until n).map(i => s"E:$i").appended("E:stopped").toList
+      def result(n: Int) = if n==0 then Nil else (1 until n).map(i => s"E:$i").appended("E:stopped").toList
       ac.delayed(writer.stopDirect(), 1.millis)
       for i <- 1 until 100 do writer.send(Writer.Number(i))
       Deferred(readlns).result.map(l => l ==> result(l.size)) } }
