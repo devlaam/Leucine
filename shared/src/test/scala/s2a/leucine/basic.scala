@@ -40,7 +40,7 @@ val monitor = new ActorMonitor {
 class Logger extends BasicActor[Logger.Letter] :
 
   val name = "logger"
-  override protected def stopped()   = println("stopped logger")
+  override protected def stopped(complete: Boolean)   = println("stopped logger")
 
 
   def receive(letter: Logger.Letter) = letter match
@@ -63,7 +63,7 @@ class Ticker(val parent: Driver) extends StateActor[Ticker.Letter,Ticker.State],
 
   def initial = Ticker.Tick(0)
 
-  override protected def stopped()   = println("stopped ticker")
+  override protected def stopped(complete: Boolean) = println("stopped ticker")
 
   def receive(letter: Ticker.Letter, sender: Sender, state: Ticker.State) =
 

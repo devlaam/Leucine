@@ -34,6 +34,8 @@ private[actors] trait StashDefs :
   private[actors] def stashFlush: Boolean = false
   private[actors] def stashEnqueue(envelope: Env): Unit = ()
   private[actors] def stashDequeue: List[Env] = Nil
+  private[actors] def stashEmpty: Boolean = true
+  private[actors] def stashClear(): Unit = ()
 
 
 /** Mixin if you need to store letters away.  */
@@ -59,15 +61,17 @@ trait StashActor extends ActorDefs :
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeStash(): Option[MonitorActor.Stash] = Some(MonitorActor.Stash(envelopes.sum,envelopes.max))
 
-  /** Internal test  to see if we must flush */
+  /** Internal test to see if we must flush */
   private[actors] override def stashFlush: Boolean = flushRequest
 
   /** Internal operation to completely clear the stash. */
-  private def stashClear(): Unit =
+  private[actors] override def stashClear(): Unit =
     flushRequest = false
     storeRequest = false
     envelopes.clear()
 
+  /** See if the stash is empty. */
+  private[actors] override def stashEmpty: Boolean = envelopes.isEmpty
 
   /**
    * Internal enqueue operation for the stash. This handles the storeRequest for
@@ -111,5 +115,5 @@ trait StashActor extends ActorDefs :
     def size: Int = envelopes.size
 
     /** See is there are any letters on the stash. */
-    def isEmpty: Boolean = envelopes.isEmpty
+    def isEmpty: Boolean = stashEmpty
 

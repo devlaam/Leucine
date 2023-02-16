@@ -179,7 +179,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
   protected override def except(letter: Server.Letter, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
-  override def stopped() =
+  override def stopped(complete: Boolean) =
     println("Server stopped")
     /* Decently close this socket. */
     serverSocket.close()
@@ -224,7 +224,7 @@ class Provider(val name: String, protected val socket: ClientSocket, protected v
       post(Provider.Send,2.seconds)
 
   /* If this actor is stopped, we must close the connection. */
-  override def stopped() =
+  override def stopped(complete: Boolean) =
     println(s"Provider $path stopped.")
     socket.close()
 

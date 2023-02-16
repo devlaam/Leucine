@@ -12,7 +12,7 @@ object BasicActorTest extends TestSuite :
   implicit val ac: ActorContext = ActorContext.system
 
   class Writer(val name: String, val writeln: String => Unit) extends BasicActor[Writer.Letter] :
-    override protected def stopped() = writeln(s"$name:stopped")
+    override protected def stopped(complete: Boolean) = writeln(s"$name:stop:$complete")
     override protected def except(letter: MyLetter, cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
     def receive(letter: Writer.Letter) = letter match
       case  Writer.Text(text: String) => writeln(s"$name:$text")
@@ -37,7 +37,7 @@ object BasicActorTest extends TestSuite :
       writer.send(Writer.Text("text2"))
       writer.send(Writer.Number(2))
       writer.stopFinish()
-      Deferred(readlns).result.map(_ ==> List("A:text1","A:1","A:text2","A:2","A:stopped")) }
+      Deferred(readlns).result.map(_ ==> List("A:text1","A:1","A:text2","A:2","A:stop:true")) }
     test("sending letters, stop in the middle."){
       val writer = new Writer("B",writeln)
       writer.send(Writer.Text("text3"))
@@ -46,13 +46,13 @@ object BasicActorTest extends TestSuite :
       writer.send(Writer.Text("text4"))
       writer.send(Writer.Number(4))
       writer.stopFinish()
-      Deferred(readlns).result.map(_ ==> List("B:text3","B:3","B:stopped")) }
+      Deferred(readlns).result.map(_ ==> List("B:text3","B:3","B:stop:true")) }
     test("sending letters, stop at the start."){
       val writer = new Writer("C",writeln)
       writer.stopFinish()
       writer.send(Writer.Text("text5"))
       writer.send(Writer.Number(5))
-      Deferred(readlns).result.map(_ ==> List("C:stopped")) }
+      Deferred(readlns).result.map(_ ==> List("C:stop:true")) }
     test("sending letters with exceptions"){
       val writer = new Writer("D",writeln)
       writer.send(Writer.Text("text6"))
@@ -63,10 +63,10 @@ object BasicActorTest extends TestSuite :
       writer.send(Writer.Number(7))
       writer.send(Writer.Except)
       writer.stopFinish()
-      Deferred(readlns).result.map(_ ==> List("D:text6","except(D,1)","D:6","D:text7","except(D,2)","D:7","except(D,3)","D:stopped")) }
+      Deferred(readlns).result.map(_ ==> List("D:text6","except(D,1)","D:6","D:text7","except(D,2)","D:7","except(D,3)","D:stop:true")) }
     test("sending letters with random stop"){
       val writer = new Writer("E",writeln)
-      def result(n: Int) = (1 until n).map(i => s"E:$i").appended("E:stopped").toList
+      def result(processed: Int, accepted: Int) = (1 until processed).map(i => s"E:$i").appended(s"E:stop):${processed-1},${accepted}").toList
       ac.delayed(writer.stopDirect(), 1.millis)
-      for i <- 1 until 100 do writer.send(Writer.Number(i))
-      Deferred(readlns).result.map(l => l ==> result(l.size)) } }
+      val accepted = (1 until 10).map(i => writer.send(Writer.Number(i))).count(identity)
+      Deferred(readlns).result.map(l => l ==> result(l.size,accepted) ) } }

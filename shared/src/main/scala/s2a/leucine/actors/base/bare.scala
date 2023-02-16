@@ -97,16 +97,20 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     eventsCancel()
     /* In case we have family and stopped by a finish letter, pass them on, otherwise directly stop them. */
     if finish then familyFinish() else familyStop()
-    /* After a stop, we can remove the remaining letters, if any. */
+    /* See if there is anything left that was not processed */
+    val complete = envelopes.isEmpty && stashEmpty
+    /* Remove the remaining letters, if any. */
     envelopes.clear()
+    /* Remove the remaining stashed letters, if any. */
+    stashClear()
     /* Stop the monitoring of processed time. */
     monitorStop()
     /* Inform the user this actor is about terminate, and after that remove me from the parents list. */
-    deferred(processTerminate()) }
+    deferred(processTerminate(complete)) }
 
   /** Last goodbyes of this actor. */
-  private def processTerminate(): Unit =
-    stopped()
+  private def processTerminate(complete: Boolean): Unit =
+    stopped(complete)
     familyAbandon(name)
 
   /**
@@ -128,10 +132,21 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     for
       /* Get a envelope (letter with sender if present) from the copied queueu */
       envelope <- envs
-      /* Test if we may continue, this is the case if the state is Phase.Play and receive the Phase.Stop. We must skip all further
-       * letters (we could also break the loop, but this is an exception in Scala. Just ignoring a few letters is most likely quicker.
+      /* Test if we may continue, this is not the case if the state is Phase.Play and receive the Phase.Stop. We must skip all further
+       * letters (we could also break the loop, but this is an exception in Scala. Just ignoring a few letters is most likely quicker.)
        * The other phases do not interrupt the loop or are not possible. If we got a stashFlush we also break the loop so that we can
-       * first handle the stashed messages.  */
+       * first handle the stashed messages. The same holds true when a timer produces an event. */
+      //TODO: since the events queue was completely emptied, this posses problems
+      // (1) In case of a stashFlush (put them back on the queue??)
+      // (2) In case of eventsPresent (put them back on the queue??)
+      // (3) In case of Phase.Stop remaining letters are not counted as lost.
+      // TODO: Other problem, if an event is being processed, it can be interrupted by a later event. This should not be possible.
+      // Solution:
+      // - get the events from the queue one at the time on every loop, so they are always first.
+      // - if a stashFlush comes in, get them all, and put them before the current list.
+      // - only the stop may than break the loop, so we never need to put letters back.
+      // - if we stop, we must communicate if there were letters dropped to stopped(...)
+
       if !stashFlush && synchronized{!eventsPresent && (phase != Phase.Stop)}
     do
       /* Start measuring the time passed in the user environment */
@@ -204,15 +219,16 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   private[actors] def initialState: ActState
 
   /**
-   * Called before actor deactivation and guaranteed after the last message is processed.
+   * Called before actor deactivation and guaranteed after the last message is processed. If there were any
+   * unprocessed letters in this actor at teardown, complete is false. These could be in the normal mailbox
+   * or on the stash, if present.
    * In case of a actorContext shutdown this is NOT called, for this disruptly terminates the processing loops.
    * It is however called when stopDirect() or stopFinish() are used. The actor may still be around
    * after this method is called, but will never accept new messages. The parent is still defined,
    * when stopped() is executed (but may already stopped processing messages) but all the childeren
    * will already be removed from the list. They where requested or forced to stop, but may not already
    * have actually done so. */
-   // TODO: add receivedLetters and remainingLetters (do not forget stashed)
-  protected def stopped(): Unit = ()
+  protected def stopped(complete: Boolean): Unit = ()
 
   /**
    * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
