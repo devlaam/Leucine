@@ -41,6 +41,9 @@ private[actors] trait TimingDefs :
 trait TimingActor(using context: ActorContext) extends ActorDefs :
   import TimingActor.Event
 
+  /* See if this actor is still active. */
+  def isActive: Boolean
+
   /** Actor dependend packing of letter and sender into one enveloppe. */
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
 
@@ -98,7 +101,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
     /* First remove a post that may be out there. */
     dump(anchor)
     /* Then schedule a new timer and add it to the achors map. */
-    anchors.addOne(anchor -> context.schedule(callable(Event(anchor,letter)),delay)) }
+    if isActive then anchors.addOne(anchor -> context.schedule(callable(Event(anchor,letter)),delay)) }
 
   /**
    * Stop a scheduled letter, after dump() it is guaranteed that no letters will arive on this
@@ -124,7 +127,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
     /* First remove prior anchor use. */
     dump(anchor)
     /* Then schedule a new expectation and add it to the achors map. */
-    anchors.addOne(anchor -> context.await(digestable(anchor),fullfil)) }
+    if isActive then anchors.addOne(anchor -> context.await(digestable(anchor),fullfil)) }
 
 
 object TimingActor :

@@ -39,6 +39,9 @@ private[actors] trait StashDefs :
 /** Mixin if you need to store letters away.  */
 trait StashActor extends ActorDefs :
 
+  /* See if this actor is still active. */
+  def isActive: Boolean
+
   /** Actor dependend packing of letter and sender into one enveloppe. */
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
 
@@ -68,12 +71,12 @@ trait StashActor extends ActorDefs :
 
   /**
    * Internal enqueue operation for the stash. This handles the storeRequest for
-   * the last letter that was processed.  */
+   * the last letter that was processed. */
   private[actors] override def stashEnqueue(envelope: Env): Unit = if storeRequest then
     /* This call handles the store(), so we are done. Reset the storeRequest */
     storeRequest = false
     /* Put the letter/sender on the stash. */
-    envelopes.enqueue(envelope)
+    if isActive then envelopes.enqueue(envelope)
 
   /** Internal dequeue operation for the stash. */
   private[actors] override def stashDequeue: List[Env] =
@@ -94,7 +97,7 @@ trait StashActor extends ActorDefs :
     /**
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. */
-    def store(letter: MyLetter, sender: Sender): Unit = envelopes.enqueue(pack(letter,sender))
+    def store(letter: MyLetter, sender: Sender): Unit = if isActive then envelopes.enqueue(pack(letter,sender))
 
     /** Clear the stash instantly. */
     def clear(): Unit = stashClear()

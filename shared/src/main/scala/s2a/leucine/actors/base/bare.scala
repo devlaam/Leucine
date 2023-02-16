@@ -68,19 +68,11 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   private var excepts: Int = 0
 
   /**
-   * Variable that stays true for as long as the actor is active. .
-   * Since it is a primitive and will only be modified once, we rely in the Atomic Access principe from
-   * Java, ie. reading will always return true or false (nothing in between), but the result may not
-   * be consistent over threads. This is not a problem. Eventually it will be, which is good enough.
-   * So we do not protect with synchronized or volatile. */
-  private[actors] var active = true
-
-  /**
-   * See if this actor is still active. Once it cannot longer process any letters and final methods
-   * are called, this turns false. This may be before the phase reaches Stop. Note that in an asynchronous
+   * See if this actor is still active. Once it cannot longer process any letters this turns false.
+   * This is before stopped() is called. Cleanup work my still be ongoing. Note that in an asynchronous
    * system, the answer may already have changed after the read. Once it turns to false however, it will
-   * return to true again. */
-  def isActive: Boolean = active
+   * never return to true again. */
+  def isActive: Boolean = phase.active
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorActor.Bare] =
@@ -88,13 +80,15 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     envelopes.reset()
     Some(result)
 
-  /** Construct a new runnable on the fly */
-  private def runnable(action: => Unit) = new Runnable { def run(): Unit = action }
+  /** Execute an action later on the context. */
+  private def deferred(action: => Unit) =
+    val runnable = new Runnable { def run(): Unit = action }
+    context.execute(runnable)
 
   /** Call processPlay to continue the processLoop. */
   private def processPlay(): Unit =
     if context.trace then println(s"In actor=$name: processPlay() called in phase=${phase}")
-    context.execute(runnable(processLoop()))
+    deferred(processLoop())
 
   /** Call processStop to terminate the processLoop. */
   private def processStop(finish: Boolean): Unit = synchronized {
@@ -108,13 +102,12 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     /* Stop the monitoring of processed time. */
     monitorStop()
     /* Inform the user this actor is about terminate, and after that remove me from the parents list. */
-    context.execute(runnable(processTerminate())) }
+    deferred(processTerminate()) }
 
   /** Last goodbyes of this actor. */
   private def processTerminate(): Unit =
     stopped()
     familyAbandon(name)
-    active = false
 
   /**
    * Primairy process loop. As soon as there are any letters, this loop runs
@@ -213,12 +206,12 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   /**
    * Called before actor deactivation and guaranteed after the last message is processed.
    * In case of a actorContext shutdown this is NOT called, for this disruptly terminates the processing loops.
-   * It is however called if
-   * the finish letter is processed or if stopDirect is called upon the actor. (The actor may still be around
-   * after this method is called, but will never accept new messages.) The parent is still defined,
-   * when afterStop() is executed (but may already stopped processing messages) but all the childeren
+   * It is however called when stopDirect() or stopFinish() are used. The actor may still be around
+   * after this method is called, but will never accept new messages. The parent is still defined,
+   * when stopped() is executed (but may already stopped processing messages) but all the childeren
    * will already be removed from the list. They where requested or forced to stop, but may not already
    * have actually done so. */
+   // TODO: add receivedLetters and remainingLetters (do not forget stashed)
   protected def stopped(): Unit = ()
 
   /**
@@ -237,11 +230,11 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     if context.trace then println(s"In actor=$name: Before stopDirect message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
-      case Phase.Start  => Phase.Done
+      case Phase.Start  => deferred(processStop(true)); Phase.Done
       /* If we are already looping, proceed to stop, which will halt the looping after the letter is done */
       case Phase.Play   => Phase.Stop
-      /* If we we were just taking a break, we can stop immideately. */
-      case Phase.Pause  => processStop(false); Phase.Done
+      /* If we we were just taking a break, we can stop immediately. */
+      case Phase.Pause  => deferred(processStop(false)); Phase.Done
       /* The finish letter was received, but we want to stop even quicker */
       case Phase.Finish => Phase.Stop
       /* Repeated call to stopDirect has no effect. */
@@ -253,12 +246,12 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   final def stopFinish(): Unit = synchronized {
     if context.trace then println(s"In actor=$name: Terminate message, phase=${phase}")
     phase = phase match
-      /* If the first message is a finish letter, this will be the only letter ever processed. */
-      case Phase.Start  => context.execute(runnable(processStop(false))); Phase.Done
+      /* If the action is to finish, this will be the only action performed. */
+      case Phase.Start  => deferred(processStop(false)); Phase.Done
       /* If the loop is running, set the phase to Phase.Finish, so it may complete but not restart. */
       case Phase.Play   => Phase.Finish
       /* If we were pausing at the moment, there are no messages, we can directly stop. */
-      case Phase.Pause  => processStop(true); Phase.Done
+      case Phase.Pause  => deferred(processStop(true)); Phase.Done
       /* An other finish letter was already received, we do not except new letters. Do nothing */
       case Phase.Finish => Phase.Finish
       /* We are already stopping and do not except new letters, also no finish letters. Do nothing */

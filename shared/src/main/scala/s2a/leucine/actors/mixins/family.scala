@@ -82,7 +82,7 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
    * working. This is automatic. Returns if the actor was succesfully adopted. */
   protected def adopt(children: Actor.Family[?,ChildLetter,? <: Actor[MyLetter]] *): Unit =
-    synchronized { children.collect{ case child: BareActor[ChildLetter,?] =>_children += child.name -> child } }
+    synchronized { if isActive then children.collect{ case child: BareActor[ChildLetter,?] =>_children += child.name -> child } }
 
   /**
    * Reject a child with a given name. Normally, there should not be a reason to do so, but when
@@ -92,21 +92,18 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
     synchronized { _children -= name }
 
   /**
-   * Forward a message to all children, or children of which the name past the test 'include'. If none of the
-   * childeren is addressed, the bounce function is called. This can be used to send a message back to the
-   * sender. */
-  protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean, bounce: () => Unit): Unit =
+   * Forward a message to all children, or children of which the name pass the test 'include'.
+   * Returns the number of children that accepted the letter. */
+  protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean): Int =
     val selected = children.filter((key,_) => include(key))
     def send(name: String, child: BareActor[ChildLetter,?]) = child.sendEnvelope(child.pack(letter,sender))
-    if selected.isEmpty then bounce() else children.foreach(send)
+    children.map(send).count(identity)
 
   /**
-   * Forward a message to one specific child on the basis of its name. If that child is not present, the bounce
-   * function is called. This can be used to send a message back to the sender.*/
-  protected def pass(letter: ChildLetter, sender: Sender, name: String, bounce: () => Unit): Unit =
-    children.get(name) match
-      case Some(child) => child.sendEnvelope(child.pack(letter,sender))
-      case None        => bounce()
+   * Forward a message to one specific child on the basis of its name. Returns true if successful and
+   * false if that child is not present or does not accept the letter. */
+  protected def pass(letter: ChildLetter, sender: Sender, name: String): Boolean =
+    children.get(name).map(child => child.sendEnvelope(child.pack(letter,sender))).getOrElse(false)
 
 
 /**
