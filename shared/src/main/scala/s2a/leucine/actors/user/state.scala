@@ -38,12 +38,12 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](using val conte
   /* Pack the letter with the sender into one envellope */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
-  /* Process the letter in the enveloppe. The state may also be changed by the user. */
-  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState =
+  /* Deliver the letter in the enveloppe. The state may also be changed by the user. */
+  private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender,state)
 
-  /* Process the exception by the user, which may return a new state. */
-  private[actors] final def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  /* Deliver the exception to the user, which may return a new state. */
+  private[actors] final def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,envelope.sender,state,exception,exceptionCounter)
 
   /* Call the user implemented initial state. */

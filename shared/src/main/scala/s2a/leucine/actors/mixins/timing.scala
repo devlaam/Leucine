@@ -35,7 +35,7 @@ private[actors] trait TimingDefs :
   private[actors] type Env
   private[actors] def eventsPresent: Boolean = false
   private[actors] def eventsCancel(): Unit = ()
-  private[actors] def eventsDequeue: List[Env] = Nil
+  private[actors] def eventsDequeue(tail: List[Env]): List[Env] = tail
 
 
 trait TimingActor(using context: ActorContext) extends ActorDefs :
@@ -90,8 +90,11 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
     events.clear() }
 
   /** Obtain a single event from the eventqueu, get the letter and put it in an envelope. */
-  private[actors] override def eventsDequeue: List[Env] = synchronized {
-     events.dequeue.map(event => pack(event.letter,self)) }
+  private[actors] override def eventsDequeue(tail: List[Env]): List[Env] = synchronized {
+    val event = events.dequeue.map(event => pack(event.letter,self))
+    if       tail.isEmpty  then event
+    else if  event.isEmpty then tail
+    else                        event.head :: tail }
 
   /**
    * A letter is send to myself after the delay. If there is already a letter posted under this

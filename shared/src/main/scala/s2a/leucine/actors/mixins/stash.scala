@@ -33,7 +33,7 @@ private[actors] trait StashDefs :
   private[actors] type Env
   private[actors] def stashFlush: Boolean = false
   private[actors] def stashEnqueue(envelope: Env): Unit = ()
-  private[actors] def stashDequeue: List[Env] = Nil
+  private[actors] def stashDequeue(tail: List[Env]): List[Env] = tail
   private[actors] def stashEmpty: Boolean = true
   private[actors] def stashClear(): Unit = ()
 
@@ -48,7 +48,7 @@ trait StashActor extends ActorDefs :
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
 
   /** The queue for the letters/senders. */
-  private val envelopes: BurstQueue[Env] = new BurstQueue[Env]
+  private val stashbox: BurstQueue[Env] = new BurstQueue[Env]
 
   /**
    * flushRequest holds if the user has requested a flush during processing current the letter
@@ -59,7 +59,7 @@ trait StashActor extends ActorDefs :
   private var storeRequest: Boolean = false
 
   /** Take a snapshot of the internals of this actor. */
-  private[actors] override def probeStash(): Option[MonitorActor.Stash] = Some(MonitorActor.Stash(envelopes.sum,envelopes.max))
+  private[actors] override def probeStash(): Option[MonitorActor.Stash] = Some(MonitorActor.Stash(stashbox.sum,stashbox.max))
 
   /** Internal test to see if we must flush */
   private[actors] override def stashFlush: Boolean = flushRequest
@@ -68,10 +68,10 @@ trait StashActor extends ActorDefs :
   private[actors] override def stashClear(): Unit =
     flushRequest = false
     storeRequest = false
-    envelopes.clear()
+    stashbox.clear()
 
   /** See if the stash is empty. */
-  private[actors] override def stashEmpty: Boolean = envelopes.isEmpty
+  private[actors] override def stashEmpty: Boolean = stashbox.isEmpty
 
   /**
    * Internal enqueue operation for the stash. This handles the storeRequest for
@@ -80,16 +80,16 @@ trait StashActor extends ActorDefs :
     /* This call handles the store(), so we are done. Reset the storeRequest */
     storeRequest = false
     /* Put the letter/sender on the stash. */
-    if isActive then envelopes.enqueue(envelope)
+    if isActive then stashbox.enqueue(envelope)
 
   /** Internal dequeue operation for the stash. */
-  private[actors] override def stashDequeue: List[Env] =
+  private[actors] override def stashDequeue(tail: List[Env]): List[Env] = if !flushRequest then tail else
     /* Just to be save, we remove any store requests after dequeing. */
     storeRequest = false
     /* This call handles the flush, so we are done. Reset the flushRequest */
     flushRequest = false
     /* Get the letters/senders from the queue. */
-    envelopes.dequeue
+    stashbox.dequeue(tail)
 
 
   /** Object Stash for user to manipulate the Stash */
@@ -101,7 +101,7 @@ trait StashActor extends ActorDefs :
     /**
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. */
-    def store(letter: MyLetter, sender: Sender): Unit = if isActive then envelopes.enqueue(pack(letter,sender))
+    def store(letter: MyLetter, sender: Sender): Unit = if isActive then stashbox.enqueue(pack(letter,sender))
 
     /** Clear the stash instantly. */
     def clear(): Unit = stashClear()
@@ -109,10 +109,10 @@ trait StashActor extends ActorDefs :
     /**
      * Flush the stash to the mailbox. This is usually the last instruction before you
      * switch to a new state to handle the stashed messages once more. */
-    def flush(): Unit = flushRequest = !envelopes.isEmpty
+    def flush(): Unit = flushRequest = !stashbox.isEmpty
 
     /** See how many letters are on the stash. This is fast O(1). */
-    def size: Int = envelopes.size
+    def size: Int = stashbox.size
 
     /** See is there are any letters on the stash. */
     def isEmpty: Boolean = stashEmpty

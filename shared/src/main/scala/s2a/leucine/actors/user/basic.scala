@@ -38,13 +38,13 @@ abstract class BasicActor[L <: Actor.Letter](using val context: ActorContext) ex
   /* Pack the letter with the sender. Here the sender is ignored. */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = letter
 
-  /* Process the letter in the enveloppe. The state remains unchanged. */
-  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState =
+  /* Deliver the letter in the enveloppe. The state remains unchanged. */
+  private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope)
     state
 
-  /* Process the exception by the user. The state remains unchanged. */
-  private[actors] final def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  /* Deliver the exception to the user. The state remains unchanged. */
+  private[actors] final def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope,exception,exceptionCounter)
     state
 

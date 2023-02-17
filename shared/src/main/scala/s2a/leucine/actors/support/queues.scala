@@ -85,12 +85,12 @@ class ShareQueue[M] :
 class BurstQueue[M] extends ShareQueue[M]:
 
   /**
-   * Get all the messages in posted order, clear queue.
-   * Since the list must be reversed this is not fast O(n).*/
-  def dequeue: List[M] =
-    queueOut = if sizeNow > 1 then queueIn.reverse else queueIn
-    queueIn = Nil
-    sizeNow = 0
+   * Get all the messages in posted order, clear queue. Since the list must be reversed
+   * this is not fast O(n). If there is already a tail, elements of the queue are prepended. */
+  def dequeue(tail: List[M] = Nil): List[M] =
+    queueOut = queueIn reverse_::: tail
+    queueIn  = Nil
+    sizeNow  = 0
     queueOut
 
 

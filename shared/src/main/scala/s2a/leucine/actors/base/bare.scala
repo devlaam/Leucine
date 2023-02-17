@@ -50,7 +50,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * Holds all the envelops send to this actor in the mutable MQueue. Note that the Finish
    * letter is not on the queueu but a separate state. This is because we cannot post Finish
    * on type E and when we make a union type we must type match on every letter being processed. */
-  private val envelopes: BurstQueue[Env] = new BurstQueue[Env]
+  private val mailbox: BurstQueue[Env] = new BurstQueue[Env]
 
   /**
    * Variable that keeps track of the phase the actor is in. All actions on phase must be synchronized
@@ -76,8 +76,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorActor.Bare] =
-    val result = MonitorActor.Bare(phase,envelopes.sum,envelopes.max,excepts,userLoad)
-    envelopes.reset()
+    val result = MonitorActor.Bare(phase,mailbox.sum,mailbox.max,excepts,userLoad)
+    mailbox.reset()
     Some(result)
 
   /** Execute an action later on the context. */
@@ -90,17 +90,20 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     if context.trace then println(s"In actor=$name: processPlay() called in phase=${phase}")
     deferred(processLoop())
 
-  /** Call processStop to terminate the processLoop. */
-  private def processStop(finish: Boolean): Unit = synchronized {
+  /**
+   * Call processStop to terminate the processLoop. Dropped should contain the number
+   * of letters that could not be completed due to a forced stop. If finish is true
+   * the stop was not forced, but the current queue was allowed to be completed. */
+  private def processStop(dropped: Boolean, finish: Boolean): Unit = synchronized {
     if context.trace then println(s"In actor=$name: processStop() called in phase=${phase}")
     /* Stop all scheduled timers. */
     eventsCancel()
     /* In case we have family and stopped by a finish letter, pass them on, otherwise directly stop them. */
     if finish then familyFinish() else familyStop()
     /* See if there is anything left that was not processed */
-    val complete = envelopes.isEmpty && stashEmpty
+    val complete = !dropped && mailbox.isEmpty && stashEmpty
     /* Remove the remaining letters, if any. */
-    envelopes.clear()
+    mailbox.clear()
     /* Remove the remaining stashed letters, if any. */
     stashClear()
     /* Stop the monitoring of processed time. */
@@ -124,9 +127,9 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
      * here. So we do not need to guard this dequeue call. But first we must see if there are
      * any events that need to be processed, and those need protection, just as the envelopes do. */
     val envs = synchronized {
-      if      eventsPresent  then eventsDequeue
-      else if stashFlush     then stashDequeue
-      else                        envelopes.dequeue }
+      if      eventsPresent  then eventsDequeue(Nil)
+      else if stashFlush     then stashDequeue(Nil)
+      else                        mailbox.dequeue() }
     if context.trace then println(s"In actor=$name: Process queue with ${envs.size} letters in thread ${Thread.currentThread().getName()}")
     /* Process the letters one by one, if the actor stops being active, all further letters are ignored. The loop runs to the end.*/
     for
@@ -146,7 +149,9 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       // - if a stashFlush comes in, get them all, and put them before the current list.
       // - only the stop may than break the loop, so we never need to put letters back.
       // - if we stop, we must communicate if there were letters dropped to stopped(...)
-
+      // change val envs to var local
+      // change for do to while local.isEmpty do
+      // at stop simply pass the local.size to processExit() and clear the local queue to quickly leave.
       if !stashFlush && synchronized{!eventsPresent && (phase != Phase.Stop)}
     do
       /* Start measuring the time passed in the user environment */
@@ -154,34 +159,77 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* User code is protected by an exception guard.*/
       try
         /* Execute the receiver handler. */
-        state = processEnveloppe(envelope,state)
+        state = deliverEnveloppe(envelope,state)
         /* stashEnqueue checks if there was a stash request for this message. If so it is enqueued. */
         stashEnqueue(envelope)
       catch
         /* Normal exceptions may be handled by the user or ignored. They are counted as well. */
-        case exception: Exception => excepts += 1; state = processException(envelope,state,exception,excepts)
+        case exception: Exception => excepts += 1; state = deliverException(envelope,state,exception,excepts)
         /* Runtime (and other) errors bubble up. */
         case error: Error         => throw error
       /* Make sure the clock is stopped. */
       finally monitorExit()
     /* The loop is done, we may exit and reevaluate what to do next. */
-    processExit()
+    processExit(false)
 
-  /** Afterwork from the processLoop.  */
-  private def processExit(): Unit = synchronized {
+  /**
+   * Tries to process the contents of one envelope. If there is an exception, this is delived to
+   * the user. If this method is not implemented, the exception is only counted, and the processLoop
+   * will advance to the next envelope.  */
+  private def processEnveloppe(envelope: Env): Unit =
+    /* Start measuring the time passed in the user environment */
+    monitorEnter()
+    /* User code is protected by an exception guard.*/
+    try
+      /* Execute the receiver handler. */
+      state = deliverEnveloppe(envelope,state)
+      /* stashEnqueue checks if there was a stash request for this message. If so it is enqueued. */
+      stashEnqueue(envelope)
+    catch
+      /* Normal exceptions may be handled by the user or ignored. They are counted as well. */
+      case exception: Exception => excepts += 1; state = deliverException(envelope,state,exception,excepts)
+      /* Runtime (and other) errors bubble up. */
+      case error: Error         => throw error
+    /* Make sure the clock is stopped. */
+    finally monitorExit()
+
+  /**
+   * Primairy process loop. As soon as there are any letters, this loop runs
+   * until all the letters are processed and the queues are exhausted. */
+  //TODO: This loop seems to drop letters sometimes. ???
+  private def processLoopNEW(): Unit =
+    if context.trace then println(s"In actor=$name: enter processLoop() in phase=${phase}")
+    /* Method that recontructs the envelope list in order of importance. If there is an
+     * event, it will be put in front. Then if there is a request to destash, all the
+     * stash messages will be dequeued. */
+    def augment(base: List[Env]) = synchronized { eventsDequeue(stashDequeue(base)) }
+    /* List of envelopes to process. It starts with the mailbox, which is augmented with
+     * destashed evenlopes if any and possibly one event. */
+    var envs: List[Env] = augment(mailbox.dequeue())
+    /* Loop through all envelopes. We try to process as many as we can within this timeslice. */
+    while !envs.isEmpty && synchronized { phase != Phase.Stop } do
+      /* Process the first envelope in line. */
+      processEnveloppe(envs.head)
+      /* When done, see if we must augment the list with more important envelopes. */
+      envs = augment(envs.tail)
+    /* The loop is done, we must exit. If this due to a stop, we may have dropped envelopes. */
+    processExit(!envs.isEmpty)
+
+  /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
+  private def processExit(dropped: Boolean): Unit = synchronized {
     if context.trace then println(s"In actor=$name: exit processLoop() in phase=${phase}")
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
       case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
       /* If there are no more letters on the queue or stashed, wait for new ones, otherwise continue */
-      case Phase.Play   => if !eventsPresent && !stashFlush && envelopes.isEmpty then Phase.Pause else { processPlay(); Phase.Play }
+      case Phase.Play   => if !eventsPresent && !stashFlush && mailbox.isEmpty then Phase.Pause else { processPlay(); Phase.Play }
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
       /* If we got an Finish letter, we must complete the queue or stop.  */
-      case Phase.Finish => if envelopes.isEmpty then { processStop(true); Phase.Done } else { processPlay(); Phase.Finish }
+      case Phase.Finish => if mailbox.isEmpty then { processStop(dropped,true); Phase.Done } else { processPlay(); Phase.Finish }
       /* If we got an exteral stop request, make an end to this. */
-      case Phase.Stop   => processStop(false); Phase.Done
+      case Phase.Stop   => processStop(dropped,false); Phase.Done
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
       case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop"); Phase.Done }
 
@@ -206,12 +254,12 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   /**
    * This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
    * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
-  private[actors] def processEnveloppe(envelope: Env, state: ActState): ActState
+  private[actors] def deliverEnveloppe(envelope: Env, state: ActState): ActState
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
    * next letter. Errors are not caught and blubble up. Now, this follows the Java style. */
-  private[actors] def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState
+  private[actors] def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState
 
   /**
    * This defines the initial state that is used before the first letter is processed if needed. The related definition must
@@ -237,7 +285,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     if context.trace then println(s"In actor=$name: Enqueue message $envelope, phase=${phase}")
     /* See if we may accept the letter, if so, enqueue it and trigger the processLoop. */
     if !phase.active then false else
-      envelopes.enqueue(envelope)
+      mailbox.enqueue(envelope)
       processTrigger()
       true }
 
@@ -246,11 +294,11 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     if context.trace then println(s"In actor=$name: Before stopDirect message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
-      case Phase.Start  => deferred(processStop(true)); Phase.Done
+      case Phase.Start  => deferred(processStop(false,false)); Phase.Done
       /* If we are already looping, proceed to stop, which will halt the looping after the letter is done */
       case Phase.Play   => Phase.Stop
       /* If we we were just taking a break, we can stop immediately. */
-      case Phase.Pause  => deferred(processStop(false)); Phase.Done
+      case Phase.Pause  => deferred(processStop(false,false)); Phase.Done
       /* The finish letter was received, but we want to stop even quicker */
       case Phase.Finish => Phase.Stop
       /* Repeated call to stopDirect has no effect. */
@@ -263,11 +311,11 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     if context.trace then println(s"In actor=$name: Terminate message, phase=${phase}")
     phase = phase match
       /* If the action is to finish, this will be the only action performed. */
-      case Phase.Start  => deferred(processStop(false)); Phase.Done
+      case Phase.Start  => deferred(processStop(false,true)); Phase.Done
       /* If the loop is running, set the phase to Phase.Finish, so it may complete but not restart. */
       case Phase.Play   => Phase.Finish
       /* If we were pausing at the moment, there are no messages, we can directly stop. */
-      case Phase.Pause  => deferred(processStop(true)); Phase.Done
+      case Phase.Pause  => deferred(processStop(false,true)); Phase.Done
       /* An other finish letter was already received, we do not except new letters. Do nothing */
       case Phase.Finish => Phase.Finish
       /* We are already stopping and do not except new letters, also no finish letters. Do nothing */
@@ -282,6 +330,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * To be able to refer to this as an Actor, which is also used as sender for all messages
    * send from this actor without explicit sender. */
   given self: Actor[MyLetter] = this
+
 
 object BareActor :
 

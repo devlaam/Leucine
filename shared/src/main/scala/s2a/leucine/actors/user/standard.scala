@@ -37,13 +37,13 @@ abstract class StandardActor[ML <: Actor.Letter](using val context: ActorContext
   /* Pack the letter with the sender into one envellope */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
-  /* Process the letter in the enveloppe. The state remains unchanged. */
-  private[actors] final def processEnveloppe(envelope: Env, state: ActState): ActState =
+  /* Deliver the letter in the enveloppe. The state remains unchanged. */
+  private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender)
     state
 
-  /* Process the exception by the user. The state remains unchanged. */
-  private[actors] final def processException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  /* Process the exception to the user. The state remains unchanged. */
+  private[actors] final def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,envelope.sender,exception,exceptionCounter)
     state
 
