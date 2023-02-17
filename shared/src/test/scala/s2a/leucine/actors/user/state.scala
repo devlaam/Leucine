@@ -5,14 +5,15 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import utest.*
 
-import s2a.control.Deferred
+import s2a.control.{Buffer, Deferred}
 
 object StateActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Clock(val writeln: String => Unit) extends StateActor[Clock.Letter,Clock.State] :
+  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor[Clock.Letter,Clock.State] :
    val name = "clock"
+   override protected def stopped(complete: Boolean) = done()
    protected def initial: ActState = Clock.State(0,0,0)
    protected def receive(letter: Clock.Letter, sender: Sender, state: Clock.State): Clock.State = letter match
      case Clock.Tick(extraSec) => state.advance(extraSec)
@@ -35,12 +36,11 @@ object StateActorTest extends TestSuite :
 
 
   val tests = Tests {
-    val result = new ListBuffer[String]()
+    val buffer = Buffer[String]
     val expect = List("0:0:30","0:2:10","0:18:50","6:29:12")
-    def writeln(s: String)    = synchronized{result.append(s)}
-    def readlns: List[String] = synchronized{result.toList}
     test("changing state"){
-      val clock = new Clock(writeln)
+      val deferred = Deferred(buffer.readlns)
+      val clock = new Clock(buffer.writeln,deferred.done)
       clock ! Clock.Tick(30)
       clock ! Clock.PrintTime
       clock ! Clock.Tick(100)
@@ -50,5 +50,5 @@ object StateActorTest extends TestSuite :
       clock ! Clock.Tick(22222)
       clock ! Clock.PrintTime
       clock.stopFinish()
-      Deferred(readlns).result.map(_ ==> expect) } }
+      deferred.result.map(_ ==> expect) } }
 

@@ -13,14 +13,17 @@ object BurstQueueTest extends TestSuite :
       queue.isEmpty ==> (size==0)
     test("Empty BurstQueue "){
       check(0,0,0)
-      queue.dequeue ==> List() }
+      queue.dequeue() ==> List() }
     test("BurstQueue with 3 elements"){
       queue.enqueue(1)
       queue.enqueue(2)
       queue.enqueue(3)
       check(3,3,3)
       test("all dequeued"){
-        queue.dequeue ==> List(1,2,3)
+        queue.dequeue() ==> List(1,2,3)
+        check(0,3,3) }
+      test("all dequeued with tail"){
+        queue.dequeue(List(4,5,6)) ==> List(1,2,3,4,5,6)
         check(0,3,3) }
       test("elements cleared"){
         queue.clear()
@@ -33,7 +36,7 @@ object BurstQueueTest extends TestSuite :
             queue.reset()
             check(2,0,2) }
           test("all dequeued again"){
-            queue.dequeue ==> List(4,5)
+            queue.dequeue() ==> List(4,5)
             check(0,5,3) } } } } }
 
 

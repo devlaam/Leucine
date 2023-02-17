@@ -23,6 +23,6 @@ object ActorContextTest extends TestSuite :
       val delay1 = ac.delayed({d1 = true}, 80.millis)
       val delay2 = ac.delayed({d2 = true}, 60.millis)
       ac.delayed({delay2.cancel()}, 30.millis)
-      val deferred = Deferred((d1,d2))
+      val deferred = Deferred((d1,d2),0,100.millis)
       test("continued delay") - deferred.result.map((x,_) => x ==> true)
       test("cancelled delay") - deferred.result.map((_,x) => x ==> false) } }
