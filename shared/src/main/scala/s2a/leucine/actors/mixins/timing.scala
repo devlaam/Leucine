@@ -33,6 +33,7 @@ import scala.concurrent.duration.FiniteDuration
 /* Methods stub for when there is no timing mixin used. */
 private[actors] trait TimingDefs :
   private[actors] type Env
+  private[actors] def eventsPossible: Boolean = false
   private[actors] def eventsPresent: Boolean = false
   private[actors] def eventsCancel(): Unit = ()
   private[actors] def eventsDequeue(tail: List[Env]): List[Env] = tail
@@ -79,6 +80,9 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
       anchors.remove(anchor)
       processTrigger() }
     new Digestable[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
+
+  /** See if there could be events present.  */
+  private[actors] override def eventsPossible: Boolean = true
 
   /** See if there are events present.  */
   private[actors] override def eventsPresent: Boolean = synchronized { !events.isEmpty }

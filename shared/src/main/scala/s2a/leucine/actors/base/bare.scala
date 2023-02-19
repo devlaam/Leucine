@@ -117,62 +117,6 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     familyAbandon(name)
 
   /**
-   * Primairy process loop. As soon as there are any letters, this loop runs
-   * until all the letters are processed and the queue is exhausted. If there
-   * is an exception, the next letter is processed without any cleaning up. */
-  private def processLoop(): Unit =
-    if context.trace then println(s"In actor=$name: enter processLoop() in phase=${phase}")
-    /* Get the letters+senders as quickly as possible, release the queue. The stashQueue, when
-     * present, may only be manipulated from within the actor, which is not running when we are
-     * here. So we do not need to guard this dequeue call. But first we must see if there are
-     * any events that need to be processed, and those need protection, just as the envelopes do. */
-    val envs = synchronized {
-      if      eventsPresent  then eventsDequeue(Nil)
-      else if stashFlush     then stashDequeue(Nil)
-      else                        mailbox.dequeue() }
-    if context.trace then println(s"In actor=$name: Process queue with ${envs.size} letters in thread ${Thread.currentThread().getName()}")
-    /* Process the letters one by one, if the actor stops being active, all further letters are ignored. The loop runs to the end.*/
-    for
-      /* Get a envelope (letter with sender if present) from the copied queueu */
-      envelope <- envs
-      /* Test if we may continue, this is not the case if the state is Phase.Play and receive the Phase.Stop. We must skip all further
-       * letters (we could also break the loop, but this is an exception in Scala. Just ignoring a few letters is most likely quicker.)
-       * The other phases do not interrupt the loop or are not possible. If we got a stashFlush we also break the loop so that we can
-       * first handle the stashed messages. The same holds true when a timer produces an event. */
-      //TODO: since the events queue was completely emptied, this posses problems
-      // (1) In case of a stashFlush (put them back on the queue??)
-      // (2) In case of eventsPresent (put them back on the queue??)
-      // (3) In case of Phase.Stop remaining letters are not counted as lost.
-      // TODO: Other problem, if an event is being processed, it can be interrupted by a later event. This should not be possible.
-      // Solution:
-      // - get the events from the queue one at the time on every loop, so they are always first.
-      // - if a stashFlush comes in, get them all, and put them before the current list.
-      // - only the stop may than break the loop, so we never need to put letters back.
-      // - if we stop, we must communicate if there were letters dropped to stopped(...)
-      // change val envs to var local
-      // change for do to while local.isEmpty do
-      // at stop simply pass the local.size to processExit() and clear the local queue to quickly leave.
-      if !stashFlush && synchronized{!eventsPresent && (phase != Phase.Stop)}
-    do
-      /* Start measuring the time passed in the user environment */
-      monitorEnter()
-      /* User code is protected by an exception guard.*/
-      try
-        /* Execute the receiver handler. */
-        state = deliverEnveloppe(envelope,state)
-        /* stashEnqueue checks if there was a stash request for this message. If so it is enqueued. */
-        stashEnqueue(envelope)
-      catch
-        /* Normal exceptions may be handled by the user or ignored. They are counted as well. */
-        case exception: Exception => excepts += 1; state = deliverException(envelope,state,exception,excepts)
-        /* Runtime (and other) errors bubble up. */
-        case error: Error         => throw error
-      /* Make sure the clock is stopped. */
-      finally monitorExit()
-    /* The loop is done, we may exit and reevaluate what to do next. */
-    processExit(false)
-
-  /**
    * Tries to process the contents of one envelope. If there is an exception, this is delived to
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
@@ -196,22 +140,20 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   /**
    * Primairy process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queues are exhausted. */
-  //TODO: This loop seems to drop letters sometimes. ???
-  private def processLoopNEW(): Unit =
+  private def processLoop(): Unit =
     if context.trace then println(s"In actor=$name: enter processLoop() in phase=${phase}")
-    /* Method that recontructs the envelope list in order of importance. If there is an
-     * event, it will be put in front. Then if there is a request to destash, all the
-     * stash messages will be dequeued. */
-    def augment(base: List[Env]) = synchronized { eventsDequeue(stashDequeue(base)) }
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
-     * destashed evenlopes if any and possibly one event. */
-    var envs: List[Env] = augment(mailbox.dequeue())
+     * destashed evenlopes if any and possibly one event. Since the eventsDequeue and the
+     * mailbox.dequeue both need synchronization we do that on once. */
+    var envs: List[Env] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
     /* Loop through all envelopes. We try to process as many as we can within this timeslice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
       processEnveloppe(envs.head)
-      /* When done, see if we must augment the list with more important envelopes. */
-      envs = augment(envs.tail)
+      /* When done, see if we must augment the list with more important envelopes. If there are no
+       * events possible then there is no need to synchronize. The stash is always filled within the
+       * letter handling. */
+      envs = if eventsPossible then synchronized { eventsDequeue(stashDequeue(envs.tail)) } else stashDequeue(envs.tail)
     /* The loop is done, we must exit. If this due to a stop, we may have dropped envelopes. */
     processExit(!envs.isEmpty)
 
