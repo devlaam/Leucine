@@ -18,12 +18,13 @@ It runs on JVM, JS and Native.
 It could look something like this:
 ```Scala
 class MyActor extends BasicActor[MyActor.Letter] :
+  val name = "printer"
   // some startup code
 
   /* Handle all incoming letters. */
   protected def receive(letter: MyActor.Letter): Unit = letter match
     case Text(data) => println(data)
-    case Terminated => stopNow
+    case Terminated => stopDirect()
 
 
 object MyActor :
@@ -34,7 +35,7 @@ object MyActor :
   /* Letter that indicates we are done. */
   case object Terminated extends Letter
 ```
-And of course you can send letters to the actor from other actors with `.send(...)`.
+And of course you can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`.
 There are three actor types where to derive from: `BasicActor`, `StandardActor` and `StateActor`.
 
 ### Advanced features
@@ -106,7 +107,6 @@ changed, for JavaScript does not allow arguments at startup.
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment. I will not try
 to copy Akka in any way, but changes in the design may still happen. I take feature requests as well, if
-motivated, and of course, bug reports. Please do not send a PR without consultation, for I lack the
-time to handle them.
+motivated, and of course, bug reports. Please do not send a PR without consultation.
 
 
