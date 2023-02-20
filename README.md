@@ -34,7 +34,8 @@ object MyActor :
   /* Letter that indicates we are done. */
   case object Terminated extends Letter
 ```
-And of course you can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`.
+And of course you can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
+short form `receiver ! letter` from within the `sender`.
 There are three actor types where to derive from: `BasicActor`, `StandardActor` and `StateActor`.
 
 ### Advanced features
