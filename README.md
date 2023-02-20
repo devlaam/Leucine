@@ -17,8 +17,7 @@ It runs on JVM, JS and Native.
 ### Getting started
 It could look something like this:
 ```Scala
-class MyActor extends BasicActor[MyActor.Letter] :
-  val name = "printer"
+class MyActor(val name: String) extends BasicActor[MyActor.Letter] :
   // some startup code
 
   /* Handle all incoming letters. */
