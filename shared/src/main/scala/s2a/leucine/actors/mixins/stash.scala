@@ -41,9 +41,6 @@ private[actors] trait StashDefs :
 /** Mixin if you need to store letters away.  */
 trait StashActor extends ActorDefs :
 
-  /* See if this actor is still active. */
-  def isActive: Boolean
-
   /** Actor dependend packing of letter and sender into one enveloppe. */
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
 
@@ -80,12 +77,12 @@ trait StashActor extends ActorDefs :
     /* This call handles the store(), so we are done. Reset the storeRequest */
     storeRequest = false
     /* Put the letter/sender on the stash. */
-    if isActive then stashbox.enqueue(envelope)
+    stashbox.enqueue(envelope)
 
   /** Internal dequeue operation for the stash. */
   private[actors] override def stashDequeue(tail: List[Env]): List[Env] = if !flushRequest then tail else
-    /* Just to be save, we remove any store requests after dequeing. */
-    storeRequest = false
+    /* Test if there are no outstanding storeRequests. */
+    assert(storeRequest == false)
     /* This call handles the flush, so we are done. Reset the flushRequest */
     flushRequest = false
     /* Get the letters/senders from the queue. */
@@ -95,20 +92,24 @@ trait StashActor extends ActorDefs :
   /** Object Stash for user to manipulate the Stash */
   protected object Stash:
 
-    /** Automatically stores the current letter (and sender) that is processed on the stash. */
+    /**
+     * Automatically stores the current letter (and sender) that is processed on the stash. If the
+     * actor was asked to finish, store will still work, since the letter was from before that request. */
     def store(): Unit = storeRequest = true
 
     /**
      * Store a letter and sender manually on the stash. With this method, you may replace one
-     * letter with an other, or spoof the sender, and reprocess later. */
-    def store(letter: MyLetter, sender: Sender): Unit = if isActive then stashbox.enqueue(pack(letter,sender))
+     * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
+     * finish, store will still work, since the letter was from before that request. */
+    def store(letter: MyLetter, sender: Sender): Unit = stashbox.enqueue(pack(letter,sender))
 
     /** Clear the stash instantly. */
     def clear(): Unit = stashClear()
 
     /**
-     * Flush the stash to the mailbox. This is usually the last instruction before you
-     * switch to a new state to handle the stashed messages once more. */
+     * Flush the stash to the mailbox. This is usually the last instruction before you switch to a
+     * new state to handle the stashed messages once more. If the actor was asked to finish,
+     * flush will still work, since the stored letters were from before that request. */
     def flush(): Unit = flushRequest = !stashbox.isEmpty
 
     /** See how many letters are on the stash. This is fast O(1). */

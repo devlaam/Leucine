@@ -103,7 +103,8 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
   /**
    * A letter is send to myself after the delay. If there is already a letter posted under this
    * anchor, it will replace that letter. The original is guaranteed not to arrive, even if the
-   * timer has already expired during execution of this letter. */
+   * timer has already expired during execution of this letter. If the actor was asked to finish,
+   * the letter will NOT be posted AND the original letter is removed as well. */
   protected def post(letter: MyLetter, delay: FiniteDuration, anchor: Object = this): Unit = synchronized {
     /* First remove a post that may be out there. */
     dump(anchor)
@@ -129,7 +130,9 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
    * fullfil should produce this letter to be put on the events queue.  The fullfil should
    * not block, if it does, it will hold the current thread. This may also hold the whole
    * application in a single threaded environment. As long as the event did not yet arrive,
-   * fullfill should produce None asap. It will be probed somewhat later once more. */
+   * fullfill should produce None asap. It will be probed somewhat later once more. If the actor
+   * was asked to finish, the request will be ignored AND the any former timer/expectation on
+   * this anchor is cleared as well. */
   protected def expect(fullfil: => Option[MyLetter], anchor: Object = this): Unit = synchronized {
     /* First remove prior anchor use. */
     dump(anchor)

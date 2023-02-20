@@ -88,10 +88,10 @@ class BurstQueue[M] extends ShareQueue[M]:
    * Get all the messages in posted order, clear queue. Since the list must be reversed
    * this is not fast O(n). If there is already a tail, elements of the queue are prepended. */
   def dequeue(tail: List[M] = Nil): List[M] =
-    queueOut = queueIn reverse_::: tail
+    val result = queueIn reverse_::: tail
     queueIn  = Nil
     sizeNow  = 0
-    queueOut
+    result
 
 
 /**
