@@ -51,7 +51,7 @@ object ActorGuard :
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
-  private def allDone = actors.forall(!_.isActive)
+  private def allTerminated = actors.forall(_.isTerminated)
 
   /* This method is synchronized for it modifies the actors set. This is not a big problem
    * normally since it is mostly done at the start of the application. Synchronization is
@@ -71,4 +71,4 @@ object ActorGuard :
    * platform. */
   def watch(force: Boolean, pollInterval: FiniteDuration = 10.seconds)(using context: ActorContext): Unit =
     /* Make sure we wait at least one second. */
-    context.waitForExit(force,pollInterval min 1.second)(allDone)
+    context.waitForExit(force,pollInterval min 1.second)(allTerminated)

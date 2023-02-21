@@ -27,8 +27,9 @@ package s2a.leucine.actors
 
 /* Methods stub for when there is no family mixin used. */
 private[actors] trait FamilyDefs :
-  private[actors] def familyStop() = ()
-  private[actors] def familyFinish(): Unit = ()
+  private[actors] def familySize: Int = 0
+  private[actors] def familyStop(finish: Boolean) = ()
+  private[actors] def familyTerminate(complete: Boolean) = ()
   private[actors] def familyAbandon(name: String) = ()
 
 
@@ -42,39 +43,44 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
   /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
 
+  /**
+   * Variable that holds the termination result from the actor in case
+   * we have to wait for the children to finish */
+  private var termination: Option[Boolean] = None
+
+  /** Execute an action later on the context. */
+  private[actors] def deferred(action: => Unit): Unit
+
+  /** Last goodbyes of this actor. */
+  private[actors] def processTerminate(complete: Boolean): Unit
+
   /** Variable that holds all the children of this actor. */
   private var _children: Map[String,BareActor[ChildLetter,?]] = Map.empty
 
-  /** Save access to the children of this actor. */
+  /**
+   * Save access to the children of this actor. Note, this is temporary copy,
+   * so it may already have changed after being read. */
   protected def children: Map[String,BareActor[ChildLetter,?]] = _children
 
-  /** Get the current number of children. For internal use. */
-  private[actors] override def childrenSize: Int = children.size
+  /** Get the current number of children. For internal use, not synchronized. */
+  private[actors] override def familySize: Int = _children.size
 
   /**
    * Recursively stop the whole family tree upwards. The children are stopped before
    * the parent, but it is not guaranteed that they will also finish before the parent. The
-   * actual stopping takes place after the current letter have finished processing, and
-   * the children may finish after the the parents. This truth also holds recursively.
-   * Directly after this call the childeren are removed from the map, so this is
-   * the last action for them from this actor. */
-  private[actors] override def familyStop(): Unit = synchronized {
-    children.values.foreach(_.stopDirect())
-    _children = Map.empty }
-
-  /**
-   * Recursively stop the whole family tree, by sending the finish letter to all
-   * children. This is done internally, after the parents mailbox reaches the
-   * finish letter. All mailboxes will be handled with the letters present. The
-   * sequence in which they terminate cannot be predicted, as it is unclear what
-   * actions are caused by the letters that are waiting to be processed. But, if the
-   * parent is the only actor that sends letters to the children, all mailboxes are
+   * actual stopping takes place after the current letter/mailbox has finished processing, and
+   * the children may finish their letters after the parents. This truth also holds recursively.
+   * If the parent is the only actor that sends letters to the children, all mailboxes are
    * cleaned from the bottom up. Afterwards, the actors are removed from the childrens
    * map, by there own doing. So it may take a little while before there references are
-   * removed. */
-  private[actors] override def familyFinish(): Unit = synchronized {
-    children.values.foreach(_.stopFinish())
-    _children = Map.empty }
+   * removed.
+   */
+  private[actors] override def familyStop(finish: Boolean): Unit = synchronized { _children.values.foreach(_.stopWith(finish)) }
+
+  /**
+   * Called when this actor still has childeren (_children guaranteed to be non empty). Defers
+   * the termination to the moment the last child says goodbye. */
+  private[actors] override def familyTerminate(complete: Boolean): Unit = termination = Some(complete)
 
   /**
    * Adopt child actors with the given name. You are responsible for giving unique names and
@@ -85,11 +91,17 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
     synchronized { if isActive then children.collect{ case child: BareActor[ChildLetter,?] =>_children += child.name -> child } }
 
   /**
-   * Reject a child with a given name. Normally, there should not be a reason to do so, but when
-   * you want to prohibit the termination of an actor when the parent stops, this could be one.
-   * The parent cannot be removed. */
-  protected[actors] def reject(name: String): Unit =
-    synchronized { _children -= name }
+   * Reject a child with a given name. For internal use. Normally, there should not be a reason
+   * for the user to do so, but when you want to prohibit the termination of an actor when the
+   * parent stops, this could be one. The parent cannot be removed. Note: children that leave the
+   * parent do not generate an event, for it cannot be guaranteed to run in the same thread as
+   * the letter processing. This might lead to race conditions. So, the child must inform the
+   * parent with a goodbye letter manually if needed. */
+  protected[actors] def reject(name: String): Unit = synchronized {
+    /* Remove the child from the list */
+    _children -= name
+    /* If we are terminating, and this is the last child, call the deferred termination steps. */
+    termination.foreach(complete => if _children.isEmpty then deferred(processTerminate(complete))) }
 
   /**
    * Forward a message to all children, or children of which the name pass the test 'include'.
@@ -118,11 +130,8 @@ private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
   /** Get the number of worker names generated. */
   protected[actors] def workersCounter: Long = _workersCounter
 
-  /** Get the current number of children. For internal use. In not overriden, this value is zero. */
-  private[actors] def childrenSize: Int = 0
-
   /** Take a snapshot of the internals of this actor. */
-  private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family(childrenSize,workersCounter))
+  private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family(familySize,workersCounter))
 
   /**
    * Generates a unique name for a new child actor within its siblings of the structure #<nr>.

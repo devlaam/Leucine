@@ -66,19 +66,39 @@ trait Actor[ML <: Actor.Letter] :
   def path: String
 
   /**
-   * Terminate this actor asap, but complete the running letter. Since this is a synchronized method
-   * it is thread safe. However, use it sparsely from the outside, since it may be unclear who is
-   * stopping your actors. */
+   * Terminate this actor asap, but complete the running letter. Can be called from outside and inside
+   * the actor, since the method it is thread safe. If the actor has children, stopDirect() is called
+   * on all of them, after the running letter has completed. */
   def stopDirect(): Unit
 
   /**
-   * Stop this actor from accepting new letters, terminate once the queue is emptied.
-   * Method is thread safe. */
+   * Stop this actor from accepting new letters, terminate once the mailbox is emptied. Can be called
+   * from outside and inside the actor, since the method it is thread safe. If the actor has children,
+   * stopFinish() is called on all of them, after the mailbox has completed. This allows for a smooth
+   * teardown of the whole family tree. Note that it is not possible for childeren to send results back
+   * to the parent in this case. */
   def stopFinish(): Unit
 
-  /** See if this actor is still active. */
+  /**
+   * See if this actor is still active. As long as it is active, it will accept letters. Once it
+   * cannot longer process any new letters this turns false. Last letter processing and cleanup work
+   * my still be ongoing. This is before stopped() is called.
+   * This can also be used inside an actor. When it returns false, you know that stopFinish()
+   * or stopDirect() was called upon the Actor from the outside. In the latter case, the current
+   * letter will be the last. It makes no sense to wait for it turning false inside the actor,
+   * for that may never happen, even if the actor is stopped from the outside.
+   * Note that in an asynchronous system, the answer may already have changed after the read. Once it
+   * turns to false however, it will never return to true again. */
   def isActive: Boolean
 
+  /**
+   * See if this actor is completely terminated. All letters, events and callbacks are over. If the
+   * the reference is dropped the object will be garbage collected. When this turns true, all children,
+   * when present, have already terminated, albeit that their isTerminated may turn to true later.
+   * It makes no sense to call this from within an actor, because it will always return false.
+   * Note that in an asynchronous system, the answer may already have changed after the read. Once it
+   * turns to false however, it will never return to true again. */
+  def isTerminated: Boolean
 
 object Actor :
   /** The family consist of child, me, and parent, with the appropiate types. */
@@ -105,11 +125,13 @@ object Actor :
     def self: Actor[MyLetter] = this
     /** How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"
-    /** Anonymous actor itself as parent: generatio spontanea! */
-    override val path = name
+    /** Anonymous actor is not part of a familty. */
+    def path = name
     /** The Anonymous actor is not running, so it cannot be stopped. */
     def stopDirect(): Unit = ()
     /** The Anonymous actor is not running, so it cannot finish. */
     def stopFinish(): Unit = ()
-    /** The Anonymous actor is not running, so it is never active. */
+    /** The Anonymous actor will not accept letters so it is never active. */
     def isActive: Boolean = false
+    /** The Anonymous actor was never in action, so technically it is never terminated */
+    def isTerminated: Boolean = false

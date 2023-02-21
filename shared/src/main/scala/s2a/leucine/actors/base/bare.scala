@@ -68,11 +68,13 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   private var excepts: Int = 0
 
   /**
-   * See if this actor is still active. Once it cannot longer process any letters this turns false.
-   * This is before stopped() is called. Cleanup work my still be ongoing. Note that in an asynchronous
-   * system, the answer may already have changed after the read. Once it turns to false however, it will
-   * never return to true again. */
-  def isActive: Boolean = phase.active
+   * See if this actor is still active. */
+  def isActive: Boolean = synchronized { phase.active }
+
+  /**
+   * See if this actor is completely terminated. */
+  def isTerminated: Boolean = synchronized { phase == Phase.Done }
+
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorActor.Bare] =
@@ -81,7 +83,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     Some(result)
 
   /** Execute an action later on the context. */
-  private def deferred(action: => Unit) =
+  private[actors] def deferred(action: => Unit): Unit =
     val runnable = new Runnable { def run(): Unit = action }
     context.execute(runnable)
 
@@ -98,8 +100,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     if context.trace then println(s"In actor=$name: processStop() called in phase=${phase}")
     /* Stop all scheduled timers. */
     eventsCancel()
-    /* In case we have family and stopped by a finish letter, pass them on, otherwise directly stop them. */
-    if finish then familyFinish() else familyStop()
+    /* Stop/finish the family tree recursively. */
+    familyStop(finish)
     /* See if there is anything left that was not processed */
     val complete = !dropped && mailbox.isEmpty && stashEmpty
     /* Remove the remaining letters, if any. */
@@ -108,13 +110,22 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
     stashClear()
     /* Stop the monitoring of processed time. */
     monitorStop()
-    /* Inform the user this actor is about terminate, and after that remove me from the parents list. */
-    deferred(processTerminate(complete)) }
+    /* If we have no family or no children any more we may directly terminate, otherwise
+     * we must wait until the last child has terminated. */
+    if familySize == 0 then deferred(processTerminate(complete)) else familyTerminate(complete) }
 
   /** Last goodbyes of this actor. */
-  private def processTerminate(complete: Boolean): Unit =
+  private[actors] def processTerminate(complete: Boolean): Unit =
+    /* Call the stop event handler of this actor, if implemented. */
     stopped(complete)
+    /* We must abandon after the stopped has called, so that we call all stopped in a family in
+     * the correct order, since they may be executed in different threads. When all stopped
+     * of the children of a family are done, the processTerminate of the parent is called. */
     familyAbandon(name)
+    /* This actor is now Done. Note that, actors called by familyAbandon above may reach the
+     * phase Done before this actor does. However, this actor has completed its actions before
+     * the others have.  */
+    synchronized { phase = Phase.Done }
 
   /**
    * Tries to process the contents of one envelope. If there is an exception, this is delived to
@@ -169,9 +180,9 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
       /* If we got an Finish letter, we must complete the queue or stop.  */
-      case Phase.Finish => if mailbox.isEmpty then { processStop(dropped,true); Phase.Done } else { processPlay(); Phase.Finish }
+      case Phase.Finish => if mailbox.isEmpty then { processStop(dropped,true); Phase.Stop } else { processPlay(); Phase.Finish }
       /* If we got an exteral stop request, make an end to this. */
-      case Phase.Stop   => processStop(dropped,false); Phase.Done
+      case Phase.Stop   => processStop(dropped,false); Phase.Stop
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
       case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop"); Phase.Done }
 
@@ -216,8 +227,7 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * It is however called when stopDirect() or stopFinish() are used. The actor may still be around
    * after this method is called, but will never accept new messages. The parent is still defined,
    * when stopped() is executed (but may already stopped processing messages) but all the childeren
-   * will already be removed from the list. They where requested or forced to stop, but may not already
-   * have actually done so. */
+   * will already be removed from the list, and their stopped() methods have already been called. */
   protected def stopped(complete: Boolean): Unit = ()
 
   /**
@@ -232,38 +242,28 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       true }
 
   /** Stop this actor asap, but complete the running letter. */
-  final def stopDirect(): Unit = synchronized {
-    if context.trace then println(s"In actor=$name: Before stopDirect message, phase=${phase}")
+  private[actors] def stopWith(finish: Boolean): Unit = synchronized {
+    if context.trace then println(s"In actor=$name: Before stopInternal($finish) message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
-      case Phase.Start  => deferred(processStop(false,false)); Phase.Done
-      /* If we are already looping, proceed to stop, which will halt the looping after the letter is done */
-      case Phase.Play   => Phase.Stop
+      case Phase.Start  => deferred(processStop(false,finish)); Phase.Stop
+      /* If we are already looping, proceed to stop, which will halt the looping after the
+       * letter is done or finish and let the mailbox complete. */
+      case Phase.Play   => if finish then Phase.Finish else Phase.Stop
       /* If we we were just taking a break, we can stop immediately. */
-      case Phase.Pause  => deferred(processStop(false,false)); Phase.Done
-      /* The finish letter was received, but we want to stop even quicker */
-      case Phase.Finish => Phase.Stop
-      /* Repeated call to stopDirect has no effect. */
+      case Phase.Pause  => deferred(processStop(false,finish)); Phase.Stop
+      /* The finish command was already given but we may want to stop even quicker */
+      case Phase.Finish => if finish then Phase.Finish else Phase.Stop
+      /* Repeated call to stop has no effect. */
       case Phase.Stop   => Phase.Stop
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
-  /** The running queue is processed, but no more letters are accepted. Terminate afterwards. */
-  final def stopFinish(): Unit = synchronized {
-    if context.trace then println(s"In actor=$name: Terminate message, phase=${phase}")
-    phase = phase match
-      /* If the action is to finish, this will be the only action performed. */
-      case Phase.Start  => deferred(processStop(false,true)); Phase.Done
-      /* If the loop is running, set the phase to Phase.Finish, so it may complete but not restart. */
-      case Phase.Play   => Phase.Finish
-      /* If we were pausing at the moment, there are no messages, we can directly stop. */
-      case Phase.Pause  => deferred(processStop(false,true)); Phase.Done
-      /* An other finish letter was already received, we do not except new letters. Do nothing */
-      case Phase.Finish => Phase.Finish
-      /* We are already stopping and do not except new letters, also no finish letters. Do nothing */
-      case Phase.Stop   => Phase.Stop
-      /* When we are done, we are done. */
-      case Phase.Done   => Phase.Done }
+  /** Stop this actor asap, but complete the running letter. Terminate afterwards. */
+  final def stopDirect(): Unit = stopWith(false)
+
+  /** The mailbox is processed, but no more letters are accepted. Terminate afterwards. */
+  final def stopFinish(): Unit = stopWith(true)
 
   /** In the base actor the path and name are equal. */
   def path: String = name
