@@ -37,11 +37,16 @@ private[actors] trait FamilyDefs :
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
-private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
-  this: Actor.Family[CL,MyLetter,PA] =>
+private trait FamilyChild extends ActorDefs :
+
+  /* Local type */
+  private[actors] type CL <: Actor.Letter
 
   /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
+
+  /** Reference to the actor context. */
+  private[actors] def context: ActorContext
 
   /**
    * Variable that holds the termination result from the actor in case
@@ -86,9 +91,10 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
    * Adopt child actors with the given name. You are responsible for giving unique names and
    * prohibiting multiple adoptions per actor yourself. If an actor under this name already
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
-   * working. This is automatic. Returns if the actor was succesfully adopted. */
-  protected def adopt(children: Actor.Family[?,ChildLetter,? <: Actor[MyLetter]] *): Unit =
-    synchronized { if isActive then children.collect{ case child: BareActor[ChildLetter,?] =>_children += child.name -> child } }
+   * working. This is automatic.  */
+  protected def adopt(children: Actor[ChildLetter] *): Unit = synchronized {
+    if context.trace then println(s"In actor=$path:  adopting: ${children.map(_.path)}")
+    children.collect{ case child: BareActor[ChildLetter,?] => _children += child.name -> child } }
 
   /**
    * Reject a child with a given name. For internal use. Normally, there should not be a reason
@@ -108,8 +114,9 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
    * Returns the number of children that accepted the letter. */
   protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean): Int =
     val selected = children.filter((key,_) => include(key))
+    if context.trace then println(s"In actor=$path: relay: children.size=${children.size}, selected.size=${selected.size}")
     def send(name: String, child: BareActor[ChildLetter,?]) = child.sendEnvelope(child.pack(letter,sender))
-    children.map(send).count(identity)
+    selected.map(send).count(identity)
 
   /**
    * Forward a message to one specific child on the basis of its name. Returns true if successful and
@@ -121,8 +128,7 @@ private trait FamilyChild[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs 
 /**
  * Holds all the general methods needed for managing the family actor.
  * For internal use. This is always mixed in. */
-private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
-  this: Actor.Family[CL,MyLetter,PA] =>
+private trait FamilyMain extends ActorDefs :
 
   /** Counter to generate a unique name for the childeren/workers of this actor. */
   private var _workersCounter: Long = 0L
@@ -148,8 +154,10 @@ private trait FamilyMain[CL <: Actor.Letter, PA <: Actor[?]] extends ActorDefs :
 /**
  * Holds all the methods needed for accessing the parent of this family. For internal use.
  * Not all actors have a parent, so this is not mixed in for the root of the family. */
-private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?,?]] extends ActorDefs :
-  this: Actor.Family[CL,MyLetter,PA] =>
+private trait FamilyParent extends ActorDefs :
+
+  /* Local type */
+  private[actors] type PA <: Actor.Parent
 
   /** The type of the parent for this actor. */
   type Parent = PA
@@ -172,8 +180,8 @@ private trait FamilyParent[CL <: Actor.Letter, PA <: Actor[?] with FamilyChild[?
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyMain[ChildLetter,Nothing], FamilyChild[ChildLetter,Nothing] :
-  this: Actor.Family[ChildLetter,MyLetter,Nothing] =>
+trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyChild, FamilyMain :
+  private[actors] type CL = ChildLetter
   override def path: String = name
 
 
@@ -184,15 +192,39 @@ trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyMain[ChildLetter,Not
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyMain[ChildLetter,Parent], FamilyChild[ChildLetter,Parent], FamilyParent[ChildLetter,Parent] :
-  this: Actor.Family[ChildLetter,MyLetter,Parent] =>
+trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
+  private[actors] type CL = ChildLetter
+  private[actors] type PA = Parent
 
 
 /**
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
  * but without the posibility to define children. */
-trait FamilyLeaf[Parent <: Actor[?] with FamilyChild[?,?]] extends FamilyMain[Nothing,Parent], FamilyParent[Nothing,Parent] :
-  this: Actor.Family[Nothing,MyLetter,Parent] =>
+trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
+  private[actors] type PA = Parent
 
+
+/**
+ * Mixin to construct a family tree where all levels accept the same letters, and which may be build dynamically/recursively.
+ * The field 'parent' is an option in this case and the root of the tree should not have a parent. The type of the parent equals
+ * the type of the FamilyTree and all letters are derived from one common ancestor. */
+trait FamilyTree[Parent <: Actor.Parent] extends FamilyChild, FamilyMain :
+  private[actors] type CL = MyLetter
+
+  /**
+   * Access to the parent of this actor. It should be implemented as value parameter in the
+   * class definition of this actor. That way the parent is an stable reference. The root
+   * of the family tree should not have a parent (supply none)*/
+  protected def parent: Option[Parent]
+
+  /** Internally called to remove an actor from its parents list, just before termination. */
+  private[actors] override def familyAbandon(name: String): Unit = parent.map(_.reject(name))
+
+  /**
+   * The path returns the full lineage of this actor: dot separated names of all parents.
+   * The dot can be replaced by your own char by overriding the familySepChar. */
+  override def path: String = parent match
+    case Some(p) => s"${p.path}$familyPathSeparator$name"
+    case None    => name
 
 

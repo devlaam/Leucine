@@ -101,8 +101,8 @@ trait Actor[ML <: Actor.Letter] :
   def isTerminated: Boolean
 
 object Actor :
-  /** The family consist of child, me, and parent, with the appropiate types. */
-  type Family[CL <: Letter, ML <: Letter, P <: Actor[?]] = Actor[ML] with FamilyMain[CL,P]
+  /** Having children defines the parent */
+  type Parent = Actor[?] with FamilyChild
 
   /** This is the base type for all your mail. */
   trait Letter
