@@ -1,4 +1,8 @@
-# Leucine <img style="float: right;" src="https://github.com/devlaam/Leucine/actions/workflows/scala.yml/badge.svg?event=push">
+# Leucine
+
+![onJVM](https://github.com/devlaam/Leucine/actions/workflows/onJVM.yml/badge.svg?event=push)
+![onJS](https://github.com/devlaam/Leucine/actions/workflows/onJS.yml/badge.svg?event=push)
+
 
 ## Motivation
 

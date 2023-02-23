@@ -1,0 +1,22 @@
+name: Leucine/JS
+
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Scala
+      uses: japgolly/setup-everything-scala@v3.1
+    - name: Run tests
+      run: sbt leucineJS/test
