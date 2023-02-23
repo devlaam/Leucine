@@ -2,7 +2,10 @@
 
 ![onJVM](https://github.com/devlaam/Leucine/actions/workflows/onJVM.yml/badge.svg?event=push)
 ![onJS](https://github.com/devlaam/Leucine/actions/workflows/onJS.yml/badge.svg?event=push)
+![onNative](https://github.com/devlaam/Leucine/actions/workflows/onNative.yml/badge.svg?event=push)
 
+Above the results of the tests on different platforms. Note that tests on Native fail because of an "Error during tests".
+As soon as i found out why, this will be updated.
 
 ## Motivation
 
