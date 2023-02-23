@@ -1,4 +1,4 @@
-# Leucine
+# Leucine <img style="float: right;" src="https://github.com/devlaam/Leucine/actions/workflows/scala.yml/badge.svg?event=push">
 
 ## Motivation
 
