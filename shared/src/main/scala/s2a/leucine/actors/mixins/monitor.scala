@@ -29,17 +29,20 @@ import java.util.concurrent.Callable
 
 /* Methods stub for when there is no monitor mixin used. */
 private[actors] trait MonitorDefs :
+  private[actors] type Env
   private[actors] def probeBare(): Option[MonitorActor.Bare]  = None
   private[actors] def probeStash(): Option[MonitorActor.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorActor.Timing]  = None
   private[actors] def probeFamily(): Option[MonitorActor.Family]  = None
-  private[actors] def monitorEnter(): Unit = ()
-  private[actors] def monitorExit(): Unit = ()
+  private[actors] def monitorSend(isActive: Boolean, envelope: Env): Unit = ()
+  private[actors] def monitorEnter(envelope: Env): Unit = ()
+  private[actors] def monitorExit(envelope: Env): Unit = ()
   private[actors] def monitorStop(): Unit = ()
   private[actors] def userLoad: Double = 0
 
 /** Extend your actor with this mixin to put it under monitoring */
 trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
+  import MonitorActor.{Action,Trace}
 
   /** The prefix used in actornames for actors that are workers */
   protected def workerPrefix: String
@@ -53,9 +56,23 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   private var threadPlayTime: Long = 0
   private var treadPauseTime: Long = 0
 
+  /* Variable that is true is traching is active */
+  private var tracing: Boolean = false
+
+  /* Temporary fast storage for the trace objects. */
+  private var traces: List[Trace] = Nil
+
+  /* Provisional way to regain the letters/senders from the envelope. */
+  private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender]
+
+  /** Method called from the actor store its activity */
+  private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
+
+  /** Method for the user to activate/deactivate the tracing on this actor. */
+  protected def trace(active: Boolean): Unit = tracing = active
+
   /** Calculate the gain in time since the last visit. */
-  private def gain: Long =
-    val newClockTime  = System.nanoTime()
+  private def gain(newClockTime: Long): Long =
     /* Calculate the increase in time. This should be positive of course, but there never
      * is an absolute guarantee of the presence of a monotic clock on every OS. So better
      * be inaccurate as negative. */
@@ -70,13 +87,23 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   private def callProbe   = new Callable[Unit] { def call(): Unit = probeNow(true) }
 
   /** Method to do the actual probing of the actor. */
-  private def probeNow(continue: Boolean): Unit = synchronized {
-    /* Schedule the probing to take place over a*/
+  private def probeNow(continue: Boolean): Unit =
+    /* Schedule the probing to take place over a fixed amount of time. */
     cancelProbe = if continue then context.schedule(callProbe,monitor.probeInterval) else Cancellable.empty
-    /* Do the actual probing work on all mixins and the bare actor trait. */
-    val samples = List(probeBare(),probeStash(),probeTiming(),probeFamily()).flatten
+    val (samples,traces) = synchronized {
+      /* Do the actual probing work on all mixins and the bare actor trait. */
+      val samples = List(probeBare(),probeStash(),probeTiming(),probeFamily()).flatten
+      /* Get the traces gathered from this actor */
+      val traces = this.traces
+      /* Clean the trace storage */
+      this.traces = Nil
+      /* Communicate the result outside the synchronized environment */
+      (samples,traces) }
     /* Store the collected samples in the monitor storage */
-    monitor.setSamples(storePath,samples) }
+    monitor.setSamples(storePath,samples)
+    /* Store the traces in the monitor storage */
+    monitor.setTraces(path,traces)
+
 
   /** Cancel the delayed probe actions, but also perfom one last probe action right now. */
   private def probeCancel() = synchronized {
@@ -92,33 +119,49 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   private val storePath = if isWorker then path.substring(0,path.length()-name.length()+workerPrefix.length()) else path
 
   /**
-   * Method called from the actor to indicate that oprations have commenced. Since the actor mixes in this trait,
+   * Method called from the actor to indicate that operations have commenced. Since the actor mixes in this trait,
    * it can be called from this trait as well. */
   private[actors] def monitorStart(): Unit =
-    threadStartMoment = gain
+    val time = System.nanoTime
+    threadStartMoment = gain(time)
     monitor.addActor(storePath)
+    if tracing then addTrace(Trace(time,path,Action.Created))
     probeNow(true)
 
+  /** Method called from the actor to indicate that it receives a new letter */
+  private[actors] override def monitorSend(isActive: Boolean, envelope: Env): Unit =
+    /* Trace if requested, the letter is received or rejected. */
+    if tracing then addTrace(Trace(System.nanoTime,path,isActive,repack(envelope)))
+
   /** Method called from the actor to indicate that it starts processing a letter. */
-  private[actors] override def monitorEnter(): Unit =
+  private[actors] override def monitorEnter(envelope: Env): Unit =
+    val time = System.nanoTime
+    /* Trace if requested, the letter processing is initiated */
+    if tracing then addTrace(Trace(time,path,Action.Initiated,repack(envelope)))
     /* The time past since has to be added to the total time in pause. */
-    treadPauseTime += gain
+    treadPauseTime += gain(time)
 
   /** Method called from the actor to indicate that it finished processing a letter. */
-  private[actors] override def monitorExit(): Unit  =
+  private[actors] override def monitorExit(envelope: Env): Unit  =
+    val time = System.nanoTime
     /* The time past since has to be added to the total time in play. */
-    threadPlayTime += gain
+    threadPlayTime += gain(time)
+    /* Trace if requested, the letter processing is completed */
+    if tracing then addTrace(Trace(time,path,Action.Completed,repack(envelope)))
 
   /** Method called from the actor to indicate that we are done in this actor. */
   private[actors] override def monitorStop(): Unit  =
+    val time = System.nanoTime
     /* The time past since has to be added to the total time in pause, since we can
      * never directly stop inside a letter. */
-    treadPauseTime += gain
+    treadPauseTime += gain(time)
     /* Tell the monitor this actor is done. Depending on the path it may just ignore
      * it or take cleaning up actions. */
     monitor.delActor(storePath)
     /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
     probeCancel()
+    /* Trace if requested, the actor is terminated */
+    if tracing then addTrace(Trace(time,path,Action.Terminated))
 
   /** Calculate the relative time this actor spend performing processing letters. */
   private[actors] override def userLoad: Double =
@@ -130,6 +173,23 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
 
 
 object MonitorActor:
+
+  enum Action :
+    case Created, Terminated, Accepted, Refused, Initiated, Completed, Updated
+
+  case class Trace(time: Long, actor: String, action: Action, letter: String, sender: String) extends Ordered[Trace] :
+    def compare(that: Trace): Int =
+      if      this.time < that.time then -1
+      else if this.time > that.time then  1
+      else                                0
+
+  object Trace :
+    def apply[L,S <: Actor[?]](time: Long, actor: String, accept: Boolean, env: BareActor.Envelope[L,S]): Trace =
+      apply(time,actor,if accept then Action.Accepted else Action.Refused,env)
+    def apply[L,S <: Actor[?]](time: Long, actor: String, action: Action, env: BareActor.Envelope[L,S]): Trace =
+      new Trace(time,actor,action,env.letter.toString,env.sender.path)
+    def apply[L,S <: Actor[?]](time: Long, actor: String, action: Action): Trace =
+      new Trace(time,actor,action,"","")
 
   /** Class to return the results on a monitor probe. */
   sealed trait Sample :

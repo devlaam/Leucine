@@ -37,6 +37,8 @@ abstract class StandardActor[ML <: Actor.Letter](using val context: ActorContext
   /* Pack the letter with the sender into one envellope */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
+  private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
+
   /* Deliver the letter in the enveloppe. The state remains unchanged. */
   private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender)

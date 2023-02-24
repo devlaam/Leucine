@@ -24,7 +24,8 @@ object FamilyActorTest extends TestSuite :
       else if  exp == 0     then 1
       else                  pow(value,exp)
 
-  /* Fixed hierarchy */
+
+  /* Hetrogeneous hierarchy */
 
   class Root(val name: String) extends StandardActor[Root.Letter], FamilyRoot[Branch.Letter] :
 

@@ -38,6 +38,8 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](using val conte
   /* Pack the letter with the sender into one envellope */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
+  private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
+
   /* Deliver the letter in the enveloppe. The state may also be changed by the user. */
   private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender,state)

@@ -28,15 +28,19 @@ package s2a.leucine.actors
 import java.io.PrintWriter
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
+import scala.collection.SortedSet
 
 
 /** Extend and Instantiate this class to get a custom made monitor */
 class ActorMonitor :
-  import ActorMonitor.*
-  import MonitorActor.Sample
+  import MonitorActor.{Action, Sample, Trace}
+  import ActorMonitor.Record
 
   /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
   private var actors = Map[String,Record]()
+
+  /** Holds all trace entries. This can grow very fast. Purge when needed. */
+  private var traces: SortedSet[Trace] = SortedSet.empty
 
   /** Add one actor to the actors map to be monitored. */
   private[actors] def addActor(path: String): Unit =
@@ -46,13 +50,17 @@ class ActorMonitor :
   /** Delete one actor to the actors map, will not be monitored any longer */
   private[actors] def delActor(path: String): Unit =
     synchronized { actors = actors.updatedWith(path)(_.map(_.off)) }
-    change(path,Action.Removed,actors)
+    change(path,Action.Terminated,actors)
 
   /** Update the samples gathered from the specific actor. */
   private[actors] def setSamples(path: String, samples: List[Sample]): Unit =
     synchronized { actors = actors.updatedWith(path)(_.map(_.probe(samples))) }
-    change(path,Action.Changed,actors)
+    change(path,Action.Updated,actors)
 
+  /** Integrate the traces gathered from the specific actor. */
+  private[actors] def setTraces(path: String, traces: Iterable[Trace]): Unit =
+    synchronized { this.traces = this.traces ++ traces }
+    change(path,Action.Updated,actors)
 
   /** Take a snapshot of the current actor map in the monitor. */
   def snapshot: Map[String,Record] = actors
@@ -76,9 +84,6 @@ class ActorMonitor :
 /** Use this Object to directly start monitoring with default functionality. */
 object ActorMonitor  :
   import MonitorActor.Sample
-
-  enum Action :
-    case Created,Changed,Removed
 
   case class Record(val incarnations: Int, val active: Boolean, val samples: List[Sample]) :
     def inc: Record = copy(incarnations+1,true)

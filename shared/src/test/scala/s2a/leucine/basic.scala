@@ -34,7 +34,7 @@ import s2a.leucine.extensions.*
 given actorContext: ActorContext = ActorContext.system
 
 val monitor = new ActorMonitor {
-  override def change(path: String, action: ActorMonitor.Action, actors: Map[String,ActorMonitor.Record]): Unit =
+  override def change(path: String, action: MonitorActor.Action, actors: Map[String,ActorMonitor.Record]): Unit =
     actors.get(path).foreach(record => println(s"$action: '$path'; ${record.show}")) }
 
 class Logger extends BasicActor[Logger.Letter] :

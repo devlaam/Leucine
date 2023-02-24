@@ -138,8 +138,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
   private def processEnveloppe(envelope: Env): Unit =
-    /* Start measuring the time passed in the user environment */
-    monitorEnter()
+    /* Start measuring the time passed in the user environment, and trace when requested */
+    monitorEnter(envelope)
     /* User code is protected by an exception guard.*/
     try
       /* Execute the receiver handler. */
@@ -151,8 +151,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
       case exception: Exception => excepts += 1; state = deliverException(envelope,state,exception,excepts)
       /* Runtime (and other) errors bubble up. */
       case error: Error         => throw error
-    /* Make sure the clock is stopped. */
-    finally monitorExit()
+    /* Make sure the clock is stopped, and trace when requested */
+    finally monitorExit(envelope)
 
   /**
    * Primairy process loop. As soon as there are any letters, this loop runs
@@ -241,6 +241,8 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may stop. */
   final private[actors] def sendEnvelope(envelope: Env): Boolean = synchronized {
     if context.trace then println(s"In actor=$path: Enqueue message $envelope, phase=${phase}")
+    /* Trace if we have to, we accepted (active) or refused (inactive) the letter processing */
+    monitorSend(phase.active,envelope)
     /* See if we may accept the letter, if so, enqueue it and trigger the processLoop. */
     if !phase.active then false else
       mailbox.enqueue(envelope)

@@ -38,6 +38,8 @@ abstract class BasicActor[L <: Actor.Letter](using val context: ActorContext) ex
   /* Pack the letter with the sender. Here the sender is ignored. */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = letter
 
+  private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = BareActor.Envelope(env,Actor.Anonymous)
+
   /* Deliver the letter in the enveloppe. The state remains unchanged. */
   private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope)
