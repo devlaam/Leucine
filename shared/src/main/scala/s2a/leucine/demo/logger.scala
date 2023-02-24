@@ -48,7 +48,7 @@ trait LogInfo :
    * (2) If the logging is ditched, we can prevent its execution.  */
   private val data = this match
     case ba: BareActor[?,?] => () => s"actor:${ba.path}"
-    case _                  => () => s"class:${getClass.getName}"
+    case _                  => () => s"class:${getClass.getSimpleName}"
 
   /* Finally this is the object picked up by the Logger methodes. */
   given LogData(data)

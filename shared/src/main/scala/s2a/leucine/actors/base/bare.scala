@@ -75,6 +75,13 @@ abstract class BareActor[ML <: Actor.Letter, AS <: Actor.State](using context: A
   /** See if this actor is completely terminated. */
   def isTerminated: Boolean = synchronized { phase == Phase.Done }
 
+  /**
+   * Generates an unique name of the structure ClassName#Hash. This can be used instead of
+   * self invented names. It is given inside the actor constructor.  */
+  protected def uniqueName: String =
+    val hash: Long = ##.toLong & 0xFFFFFFFFL
+    s"${getClass.getSimpleName}#$hash"
+
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorActor.Bare] =
     val result = MonitorActor.Bare(phase,mailbox.sum,mailbox.max,excepts,userLoad)

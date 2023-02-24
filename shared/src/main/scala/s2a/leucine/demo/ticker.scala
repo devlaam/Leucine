@@ -31,8 +31,8 @@ import s2a.leucine.actors.*
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
 class Ticker extends StateActor[Ticker.Letter,Ticker.State], LogInfo :
 
-  /* There is only one actor of Ticker, we can fix the name */
-  val name = "ticker"
+  /* Lets be lazy in choosing a name. */
+  val name = uniqueName
 
   /* The inital state of of a state actor must be defined. */
   def initial = Ticker.Tick(0)

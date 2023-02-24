@@ -162,7 +162,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
     case Server.Connect(socket) =>
       Logger.info("Accepted a connection.")
       /* We see the providers as workers and generate automatic names for them. */
-      val provider = new Provider(autoname,socket,this)
+      val provider = new Provider(workerName,socket,this)
       /* Integrate this provider into the family */
       adopt(provider)
       /* Be ready for a new connection. */

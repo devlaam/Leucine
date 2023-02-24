@@ -141,12 +141,14 @@ private trait FamilyMain extends ActorDefs :
 
   /**
    * Generates a unique name for a new child actor within its siblings of the structure #<nr>.
-   * Every name is quaranteed to be unique for this actor during its entire lifetime. Names that
+   * The name is generated in the parent and given to the child (contrary to uniqueName),
+   * Every name is quaranteed to be unique for this actor during its entire lifetime, where the
+   * nr represents the number of workers created this way. Names that
    * start with a # are expected never to be reused, and thus the number of incarnations of this
    * named actor is not stored. This is ideal for worker actors. However, worker actors can have
    * stable names as well, as long as you know they are created/destroyed sequentially. If you just
-   * need a bunch of actors on the fly to solve some tasks and then they are gone, autoname is great. */
-  protected def autoname: String =
+   * need a bunch of actors on the fly to solve some tasks and then they are gone use workerName. */
+  protected def workerName: String =
     _workersCounter = _workersCounter + 1
     s"$workerPrefix${_workersCounter}"
 
