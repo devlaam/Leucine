@@ -4,15 +4,18 @@
 ![onJS](https://github.com/devlaam/Leucine/actions/workflows/onJS.yml/badge.svg?event=push)
 ![onNative](https://github.com/devlaam/Leucine/actions/workflows/onNative.yml/badge.svg?event=push)
 
+Leucine is a small cross platform actor framework without any dependencies. The idea is that is should provide just enough
+to be of good use, but nothing more.
+
 Above the results of the tests on different platforms. Note that tests on Native fail because of an "Error during tests".
-As soon as i found out why, this will be updated.
+As soon it is clear why, this will be updated. Leucine on Native just runs, within the current limitations of Native of course.
 
 ## Motivation
 
 The project is motivated by the recent [change of license](https://www.lightbend.com/akka/license-faq) of [Akka](https://akka.io) and the
 not so recent inactivity of the nice port of Akka to JavaScript: [Akka.JS](https://github.com/akka-js/akka.js).
-Please note i used Akka with much pleasure and it is very high quality. It is also very large, probably i did not even use 10% of all its
-possibilities. What i however do need  is cross platform abilities and an open source license. If you are on the same page, maybe
+Please note O used Akka with much pleasure and it is very high quality. It is also very large, probably I did not even use 10% of all its
+possibilities. What I however do need  is cross platform abilities and an open source license. If you are on the same page, maybe
 Leucine is useful for you as well.
 
 
@@ -112,8 +115,9 @@ On projectJS the `ticker` runs by default. If you want to see the `server` in ac
 changed, for JavaScript does not allow arguments at startup.
 
 ## Future
-This library will be a replacement for my other projects that use Akka at the moment. I will not try
-to copy Akka in any way, but changes in the design may still happen. I take feature requests as well, if
-motivated, and of course, bug reports. Please do not send a PR without consultation.
+This library will be a replacement for my other projects that use Akka at the moment, so expect a steady grow
+for a while. But Leucine will not try to copy all of Akka or follow its conventions. Changes in the design may
+still happen, at least until release 1.0 is reached.
+Feature requests are welcome if motivated, and of course, bug reports. Please do not send a PR without consultation.
 
 
