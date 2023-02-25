@@ -1,28 +1,34 @@
 # Leucine
-
 ![onJVM](https://github.com/devlaam/Leucine/actions/workflows/onJVM.yml/badge.svg?event=push)
 ![onJS](https://github.com/devlaam/Leucine/actions/workflows/onJS.yml/badge.svg?event=push)
 ![onNative](https://github.com/devlaam/Leucine/actions/workflows/onNative.yml/badge.svg?event=push)
 
-Leucine is a small cross platform actor framework without any dependencies. The idea is that is should provide just enough
+Leucine is a small cross platform actor framework without any dependencies. The idea is that it should provide just enough
 to be of good use, but nothing more.
 
 Above the results of the tests on different platforms. Note that tests on Native fail because of an "Error during tests".
-As soon it is clear why, this will be updated. Leucine on Native just runs, within the current limitations of Native of course.
+As soon it [is clear why](https://github.com/com-lihaoyi/utest/issues/282), this will be updated.
+Leucine on Native just runs, within the current limitations of Native of course.
 
 ## Motivation
-
 The project is motivated by the recent [change of license](https://www.lightbend.com/akka/license-faq) of [Akka](https://akka.io) and the
 not so recent inactivity of the nice port of Akka to JavaScript: [Akka.JS](https://github.com/akka-js/akka.js).
-Please note O used Akka with much pleasure and it is very high quality. It is also very large, probably I did not even use 10% of all its
+Please note that I used Akka with much pleasure and it is very high quality. It is also very large, probably I did not even use 10% of all its
 possibilities. What I however do need  is cross platform abilities and an open source license. If you are on the same page, maybe
 Leucine is useful for you as well.
 
 
-## Features
-Leucine is typed actor system, where all letters to be received by an actor have to
-be derived from a base type, best defined in the companion object of the actor.
-It runs on JVM, JS and Native.
+## Basic features
+Leucine is typed actor system, with the following properties:
+* Actors represent a single unit of computation within one thread.
+* Actors are named instances of classes defined by you and derived from one of the base types, depending on your needs.
+* Messages (letters) can be send between actors, or from the outside to each actor, to get work done.
+* Messages accepted by the actor are put into the mailbox and are processed in the order of arrival.
+* Messages send between two actors are guaranteed to keep their order.
+* Actors can be told to stop directly, or after the current mailbox is depleted.
+* Exceptions (and termination) generate callbacks wich you can handle separately from the main line of code, or ignore.
+* There is a monitor class which enables you to get insight in the inner working of your code for debugging or system supervision.
+* It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
 
 ### Getting started
 It could look something like this:
@@ -44,19 +50,18 @@ object MyActor :
   /* Letter that indicates we are done. */
   case object Terminated extends Letter
 ```
-And of course you can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
-short form `receiver ! letter` from within the `sender`.
-There are three actor types where to derive from: `BasicActor`, `StandardActor` and `StateActor`.
+You can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
+short form `receiver ! letter` from within the `sender`. The three actor base types are: `BasicActor`, `StandardActor` and `StateActor`.
 
 ### Advanced features
 The functionality of actors can be extended with mixin's. There are:
-* `Family` mixin's, so you can set up a tree of actors that are accessible through their children. There can be multiple family root's so the cleanup is done in an orderly manner.
+* `Family` mixin's, so you can set up a tree of actors that are accessible through their parents. There can be multiple family root's. An actor family has a
+deterministic buildup and teardown sequence.
 * `Stash` mixin, so you can put away a letter for handling later.
 * `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place
-* `Monitor` mixin, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see the time spend in an actor, number of children or worker actors etc.
+* `Monitor` mixin and related class, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see: the time spend in each actor, number of children or worker actors, the messages being send around etc.
 
 ### Demos
-
 The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/master/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
 There are three demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
@@ -67,7 +72,6 @@ All implementations (JVM,JS,Native) have their own Execution Context so you are 
 In an actor you may never block of course, but with `expect` you can handle waiting for external events in your actor.
 
 ## Status
-
 The project is in its infancy, so to explore what the possibilities are the best is to clone the repro:
 ```
 $ git clone https://github.com/devlaam/Leucine
@@ -105,7 +109,6 @@ At the moment there are two demo's available: ticker and server. So you can try 
 sbt run ticker
 sbt run server
 ```
-
 If you switch to `projectNative` the ticker runs, but the server does not, due to
 [a bug in the ServerSocket implementation](https://github.com/scala-native/scala-native/issues/3131).
 Hopefully that will be solved soon.
