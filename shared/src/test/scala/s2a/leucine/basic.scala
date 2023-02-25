@@ -27,6 +27,8 @@ package s2a.manual
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
+import scala.collection.immutable.{Map, SortedSet}
+
 import s2a.leucine.actors.*
 import s2a.leucine.extensions.*
 
@@ -34,8 +36,18 @@ import s2a.leucine.extensions.*
 given actorContext: ActorContext = ActorContext.system
 
 val monitor = new ActorMonitor {
-  override def change(path: String, action: MonitorActor.Action, actors: Map[String,ActorMonitor.Record]): Unit =
-    actors.get(path).foreach(record => println(s"$action: '$path'; ${record.show}")) }
+  import MonitorActor.{Trace, Action}
+  import ActorMonitor.Record
+
+  def added(path: String, actors: Map[String,Record]): Unit = ()
+  def removed(path: String, actors: Map[String,Record]): Unit = ()
+  def sampled(path: String, actors: Map[String,Record]): Unit = ()
+  def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit = ()
+  def show(path: String): Unit = ()
+
+
+
+}
 
 class Logger extends BasicActor[Logger.Letter] :
 

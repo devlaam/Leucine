@@ -42,7 +42,7 @@ private[actors] trait MonitorDefs :
 
 /** Extend your actor with this mixin to put it under monitoring */
 trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
-  import MonitorActor.{Action,Trace}
+  import MonitorActor.{Action, Trace, Tracing}
 
   /** The prefix used in actornames for actors that are workers */
   protected def workerPrefix: String
@@ -56,20 +56,29 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   private var threadPlayTime: Long = 0
   private var treadPauseTime: Long = 0
 
-  /* Variable that is true is traching is active */
-  private var tracing: Boolean = false
-
   /* Temporary fast storage for the trace objects. */
   private var traces: List[Trace] = Nil
+
+  /**
+   * This is the personal setting of tracing. These is a public setting as well.
+   * If tracing is active for this actor depends on both settings, in a symmetric manner.
+   * If both are Enabled or one is Enabled and the other is Default, the tracing is
+   * active. In all other cases it is not. This implies that you can enable/disable
+   * the tracing here as long as the global tracing is Default or Enabled. Setting this
+   * setting to Disabled will always prohibit tracing of this actor, and setting it to
+   * Default/Enabled leaves the fate in the hands of the global setting. */
+  @volatile protected var tracing: Tracing = Tracing.Default
+
+  /**
+   * See if we may trace this actor now. This is the case if one of them is Enabled
+   * and the other Default or Enabled. */
+  private var mayTrace: Boolean = tracing.ordinal + monitor.tracing.ordinal > 2
 
   /* Provisional way to regain the letters/senders from the envelope. */
   private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender]
 
   /** Method called from the actor store its activity */
   private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
-
-  /** Method for the user to activate/deactivate the tracing on this actor. */
-  protected def trace(active: Boolean): Unit = tracing = active
 
   /** Calculate the gain in time since the last visit. */
   private def gain(newClockTime: Long): Long =
@@ -125,19 +134,19 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     val time = System.nanoTime
     threadStartMoment = gain(time)
     monitor.addActor(storePath)
-    if tracing then addTrace(Trace(time,path,Action.Created))
+    if mayTrace then addTrace(Trace(time,path,Action.Created))
     probeNow(true)
 
   /** Method called from the actor to indicate that it receives a new letter */
   private[actors] override def monitorSend(isActive: Boolean, envelope: Env): Unit =
     /* Trace if requested, the letter is received or rejected. */
-    if tracing then addTrace(Trace(System.nanoTime,path,isActive,repack(envelope)))
+    if mayTrace then addTrace(Trace(System.nanoTime,path,isActive,repack(envelope)))
 
   /** Method called from the actor to indicate that it starts processing a letter. */
   private[actors] override def monitorEnter(envelope: Env): Unit =
     val time = System.nanoTime
     /* Trace if requested, the letter processing is initiated */
-    if tracing then addTrace(Trace(time,path,Action.Initiated,repack(envelope)))
+    if mayTrace then addTrace(Trace(time,path,Action.Initiated,repack(envelope)))
     /* The time past since has to be added to the total time in pause. */
     treadPauseTime += gain(time)
 
@@ -147,7 +156,7 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     /* The time past since has to be added to the total time in play. */
     threadPlayTime += gain(time)
     /* Trace if requested, the letter processing is completed */
-    if tracing then addTrace(Trace(time,path,Action.Completed,repack(envelope)))
+    if mayTrace then addTrace(Trace(time,path,Action.Completed,repack(envelope)))
 
   /** Method called from the actor to indicate that we are done in this actor. */
   private[actors] override def monitorStop(): Unit  =
@@ -161,7 +170,7 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
     probeCancel()
     /* Trace if requested, the actor is terminated */
-    if tracing then addTrace(Trace(time,path,Action.Terminated))
+    if mayTrace then addTrace(Trace(time,path,Action.Terminated))
 
   /** Calculate the relative time this actor spend performing processing letters. */
   private[actors] override def userLoad: Double =
@@ -175,15 +184,20 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
 object MonitorActor:
 
   enum Action :
-    case Created, Terminated, Accepted, Refused, Initiated, Completed, Updated
+    case Created, Terminated, Accepted, Refused, Initiated, Completed
+
+  enum Tracing :
+    case Disabled, Default, Enabled
 
   case class Trace(time: Long, actor: String, action: Action, letter: String, sender: String) extends Ordered[Trace] :
     def compare(that: Trace): Int =
       if      this.time < that.time then -1
       else if this.time > that.time then  1
       else                                0
+    def show = s"time=$time, actor=$actor, action=$action, letter=$letter, sender=$sender"
 
   object Trace :
+    def empty(time: Long) = new Trace(time,"",Action.Created,"","")
     def apply[L,S <: Actor[?]](time: Long, actor: String, accept: Boolean, env: BareActor.Envelope[L,S]): Trace =
       apply(time,actor,if accept then Action.Accepted else Action.Refused,env)
     def apply[L,S <: Actor[?]](time: Long, actor: String, action: Action, env: BareActor.Envelope[L,S]): Trace =

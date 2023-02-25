@@ -28,54 +28,100 @@ package s2a.leucine.actors
 import java.io.PrintWriter
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
-import scala.collection.SortedSet
+import scala.collection.immutable.{Map, SortedSet}
 
 
 /** Extend and Instantiate this class to get a custom made monitor */
-class ActorMonitor :
-  import MonitorActor.{Action, Sample, Trace}
+abstract class ActorMonitor :
+  import MonitorActor.{Action, Sample, Trace, Tracing}
   import ActorMonitor.Record
 
   /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
-  private var actors = Map[String,Record]()
+  private var samples: Map[String,Record] = Map.empty
 
   /** Holds all trace entries. This can grow very fast. Purge when needed. */
   private var traces: SortedSet[Trace] = SortedSet.empty
 
   /** Add one actor to the actors map to be monitored. */
   private[actors] def addActor(path: String): Unit =
-    synchronized { actors = actors.updatedWith(path)(_.map(_.inc).orElse(Record.start)) }
-    change(path,Action.Created,actors)
+    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.inc).orElse(Record.start)); samples }
+    added(path,result)
 
   /** Delete one actor to the actors map, will not be monitored any longer */
   private[actors] def delActor(path: String): Unit =
-    synchronized { actors = actors.updatedWith(path)(_.map(_.off)) }
-    change(path,Action.Terminated,actors)
+    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.off)); samples }
+    removed(path,result)
 
   /** Update the samples gathered from the specific actor. */
-  private[actors] def setSamples(path: String, samples: List[Sample]): Unit =
-    synchronized { actors = actors.updatedWith(path)(_.map(_.probe(samples))) }
-    change(path,Action.Updated,actors)
+  private[actors] def setSamples(path: String, gathered: List[Sample]): Unit =
+    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.probe(gathered))); samples }
+    sampled(path,result)
 
   /** Integrate the traces gathered from the specific actor. */
-  private[actors] def setTraces(path: String, traces: Iterable[Trace]): Unit =
-    synchronized { this.traces = this.traces ++ traces }
-    change(path,Action.Updated,actors)
-
-  /** Take a snapshot of the current actor map in the monitor. */
-  def snapshot: Map[String,Record] = actors
+  private[actors] def setTraces(path: String, gathered: Iterable[Trace]): Unit =
+    var minTime = Long.MaxValue
+    def add(col: SortedSet[Trace], trace: Trace): SortedSet[Trace] =
+      minTime = minTime min trace.time
+      col + trace
+    val result = synchronized { traces = gathered.foldLeft(traces)(add); traces }
+    traced(path,minTime,result)
 
   /**
-   * Callback function that reports each change in state of the actors.
-   * Implement this to make these visible. */
-  def change(path: String, action: Action, actors: Map[String,Record]): Unit = ()
+   * This is the public setting of tracing. Every actor has it personal setting as well.
+   * If tracing is active for the actor depends on both settings, in a symmetric manner.
+   * If both are Enabled or one is Enabled and the other is Default, the tracing is
+   * active. In all other cases it is not. This implies that you can enable/disable
+   * the tracing locally as long as this is Default or Enabled. Setting this setting
+   * to Disabled, disables all tracing on all actors. */
+  @volatile var tracing: Tracing = Tracing.Default
 
-  /** Create a basic report to a given string writer */
+  /** Clear the actor samples table. */
+  def clearSamples(): Unit = synchronized { samples = Map.empty }
+
+  /** Remove all the non active actors from the samples table. */
+  def purgeSamples(): Unit = synchronized { samples = samples.filter( (_,r) => r.active) }
+
+  /** Clear the traces log. */
+  def clearTraces(): Unit = synchronized { traces = SortedSet.empty }
+
+  /** Remove the traces up to the given time index from the traces log. */
+  def purgeTraces(time: Long): Unit = synchronized { traces = traces.rangeFrom(Trace.empty(time)) }
+
+  /**
+   * Callback function that reports that a new actor was added to the table. Returns a snapshot
+   * of the table, directly after this event. Implement this method to make this event visible. */
+  def added(path: String, samples: Map[String,Record]): Unit
+
+  /**
+   * Callback function that reports that an actor was removed from the table. Returns a snapshot
+   * of the table, directly after this event. Implement this method to make this event visible. */
+  def removed(path: String, samples: Map[String,Record]): Unit
+
+  /**
+   * Callback function that reports that new samples of an actor were added to the table. Returns a snapshot
+   * of the table, directly after this event. Implement this method to make this event visible. */
+  def sampled(path: String, samples: Map[String,Record]): Unit
+
+  /**
+   * Callback function that reports that new traces of an actor were integrated to the traces log. They
+   * do not need to be consequtive. minTime is the lowest timeindex fo change. Returns a snapshot
+   * of the whole tracelog, directly after this event. Below minTime, there will be no changes.
+   * Implement this method to make this event visible. */
+  def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit
+
+  /** Create a full report to a given string writer */
   def report(target: PrintWriter): Unit =
-    /* Take a snapshot*/
-    val actors = this.actors
+    /* Take snapshot */
+    val (samples,traces) = synchronized { (this.samples,this.traces) }
+    /* Construct a basic String representation from the samples */
+    target.println("All Samples:")
+    samples.foreach((path,record) => target.println(s"'$path': ${record.show}"))
     /* Construct a basic String representation */
-    actors.foreach((path,record) => target.println(s"'$path': ${record.show}"))
+    target.println("All Traces:")
+    traces.foreach(trace => target.println(trace.show))
+
+  /** Use this method to extract dynamical information contained here called from your actor. */
+  def show(path: String): Unit
 
   /** Default probe interval. Override for other value. */
   def probeInterval = 5.seconds

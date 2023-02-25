@@ -52,7 +52,10 @@ object Main extends LogInfo:
     ActorGuard.add(server)
 
   def startCrawler(): Unit =
-    println("To be implemented!")
+    val tree = Tree("F0",None)
+    tree ! Tree.Create(2,3)
+    tree ! Tree.Forward
+    ActorGuard.add(tree)
 
   def runtimeDef(args: Array[String]): Unit =
     args.map(_.toLowerCase) match
