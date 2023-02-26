@@ -42,6 +42,9 @@ abstract class ActorMonitor :
   /** Holds all trace entries. This can grow very fast. Purge when needed. */
   private var traces: SortedSet[Trace] = SortedSet.empty
 
+  /** Start of this monitor. To be used as the time baseline for tracing. */
+  private[actors] val baseline = System.nanoTime
+
   /** Add one actor to the actors map to be monitored. */
   private[actors] def addActor(path: String): Unit =
     val result = synchronized { samples = samples.updatedWith(path)(_.map(_.inc).orElse(Record.start)); samples }
@@ -78,14 +81,16 @@ abstract class ActorMonitor :
   /** Clear the actor samples table. */
   def clearSamples(): Unit = synchronized { samples = Map.empty }
 
-  /** Remove all the non active actors from the samples table. */
+  /** Keep only active actors in the samples table, i.e. all inactive actors are removed. */
   def purgeSamples(): Unit = synchronized { samples = samples.filter( (_,r) => r.active) }
 
   /** Clear the traces log. */
   def clearTraces(): Unit = synchronized { traces = SortedSet.empty }
 
-  /** Remove the traces up to the given time index from the traces log. */
-  def purgeTraces(time: Long): Unit = synchronized { traces = traces.rangeFrom(Trace.empty(time)) }
+  /** Keep only the given last 'period' of traces, i.e. all older traces are removed. */
+  def purgeTraces(time: FiniteDuration): Unit =
+    val past = System.nanoTime - baseline - time.toNanos
+    synchronized { traces = traces.rangeFrom(Trace.empty(past)) }
 
   /**
    * Callback function that reports that a new actor was added to the table. Returns a snapshot

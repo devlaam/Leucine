@@ -134,19 +134,19 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     val time = System.nanoTime
     threadStartMoment = gain(time)
     monitor.addActor(storePath)
-    if mayTrace then addTrace(Trace(time,path,Action.Created))
+    if mayTrace then addTrace(Trace(time-monitor.baseline,path,Action.Created))
     probeNow(true)
 
   /** Method called from the actor to indicate that it receives a new letter */
   private[actors] override def monitorSend(isActive: Boolean, envelope: Env): Unit =
     /* Trace if requested, the letter is received or rejected. */
-    if mayTrace then addTrace(Trace(System.nanoTime,path,isActive,repack(envelope)))
+    if mayTrace then addTrace(Trace(System.nanoTime-monitor.baseline,path,isActive,repack(envelope)))
 
   /** Method called from the actor to indicate that it starts processing a letter. */
   private[actors] override def monitorEnter(envelope: Env): Unit =
     val time = System.nanoTime
     /* Trace if requested, the letter processing is initiated */
-    if mayTrace then addTrace(Trace(time,path,Action.Initiated,repack(envelope)))
+    if mayTrace then addTrace(Trace(time-monitor.baseline,path,Action.Initiated,repack(envelope)))
     /* The time past since has to be added to the total time in pause. */
     treadPauseTime += gain(time)
 
@@ -156,7 +156,7 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     /* The time past since has to be added to the total time in play. */
     threadPlayTime += gain(time)
     /* Trace if requested, the letter processing is completed */
-    if mayTrace then addTrace(Trace(time,path,Action.Completed,repack(envelope)))
+    if mayTrace then addTrace(Trace(time-monitor.baseline,path,Action.Completed,repack(envelope)))
 
   /** Method called from the actor to indicate that we are done in this actor. */
   private[actors] override def monitorStop(): Unit  =
@@ -170,7 +170,7 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
     probeCancel()
     /* Trace if requested, the actor is terminated */
-    if mayTrace then addTrace(Trace(time,path,Action.Terminated))
+    if mayTrace then addTrace(Trace(time-monitor.baseline,path,Action.Terminated))
 
   /** Calculate the relative time this actor spend performing processing letters. */
   private[actors] override def userLoad: Double =
