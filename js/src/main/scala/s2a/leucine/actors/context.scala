@@ -72,16 +72,13 @@ abstract class ContextImplementation extends PlatformContext :
   def shutdown(force: Boolean): Unit = _active = false
 
   /**
-   * This method enters an endless loop until the application finishes. Every timeout, it will probe a shutdownrequest.
-   * There may be other reasons for shutdown as well. After all thread have completed (by force or not) the method
-   * returns. Call in the main thread as last action there. In JavaScript it is not possible to block, so this uses a
-   * schedule timer to see if we may stop.
-   * After return some other tasks may still be runnning. This will usually not be a problem, since
-   * when they complete the application will exit, just as intented, or, inside a webapp, keeps running,
-   * needed to be able to continue to respond on other events. */
-  def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean): Unit =
+   * This method enters an endless loop but immedeately returns. Every timeout, it will probe a shutdownrequest.
+   * There may be other reasons for shutdown as well. After all threads have completed (by force or not) the method
+   * calls complete(). Call in the main thread as last action there. In JavaScript it is not possible to block,
+   * so this uses a schedule timer to see if we are complete. */
+  def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     def delay: Callable[Unit] = new Callable[Unit] { def call(): Unit = tryExit() }
-    def tryExit() = if active then
+    def tryExit() = if !active then complete() else
       if shutdownRequest then shutdown(force)
       schedule(delay,time)
     tryExit()

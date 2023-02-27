@@ -70,12 +70,14 @@ trait PlatformContext:
 
   /**
    * This method waits until the application finishes. Every timeout, it will probe a shutdownrequest.
-   * There may be other reasons for shutdown as well. After all threads have completed (by force or not) the method
-   * returns. Call in the main thread as last action there.
+   * There may be other reasons for shutdown as well. After all threads have completed (by force or not)
+   * the method calls complete(). Call waitForExit in the main thread as last action there.
    * After return some other tasks may still be runnning. This will usually not be a problem, since
    * when they complete the application will exit, just as intented, or, inside a webapp, keeps running,
-   * needed to be able to continue to respond on other events. */
-  def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean): Unit
+   * needed to be able to continue to respond on other events. The method may also directly return, if
+   * blocking is not supported by the platform (JS). In that case the callback complete provides the
+   * correct information. */
+  def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit
 
 
 object PlatformContext :

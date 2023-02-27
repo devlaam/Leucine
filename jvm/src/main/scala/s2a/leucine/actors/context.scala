@@ -75,11 +75,13 @@ abstract class ContextImplementation extends PlatformContext :
   /**
    * This method enters an endless loop until the application finishes. Every timeout, it will probe a shutdownrequest.
    * There may be other reasons for shutdown as well. After all thread have completed (by force or not) the method
-   * returns. Call in the main thread as last action there. */
-  def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean): Unit =
+   * returns. Call in the main thread as last action there. This method blocks until finished, after which complete()
+   * is called. */
+  def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     while active || !terminated do
       if active && shutdownRequest then shutdown(force)
       threadPool.awaitTermination(time.toSeconds, TimeUnit.SECONDS)
+    complete()
 
 
 object ContextImplementation :

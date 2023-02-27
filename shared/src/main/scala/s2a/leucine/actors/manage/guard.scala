@@ -69,6 +69,6 @@ object ActorGuard :
    * is platform dependent. In that case you may need to call context.showdown(true/false) somewhere
    * manually. Calling the watch method may be needed to start the actor system  depening on the
    * platform. */
-  def watch(force: Boolean, pollInterval: FiniteDuration = 10.seconds)(using context: ActorContext): Unit =
+  def watch(force: Boolean, complete: () => Unit = () => (), pollInterval: FiniteDuration = 10.seconds)(using context: ActorContext): Unit =
     /* Make sure we wait at least one second. */
-    context.waitForExit(force,pollInterval min 1.second)(allTerminated)
+    context.waitForExit(force,pollInterval min 1.second)(allTerminated,complete)
