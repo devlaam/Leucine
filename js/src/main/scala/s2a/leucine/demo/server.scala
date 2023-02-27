@@ -26,39 +26,11 @@ package s2a.leucine.demo
 
 import java.io.{IOException, PrintWriter, InputStreamReader, BufferedReader}
 
-import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
-import scala.scalajs.js.Dynamic.{global => g}
-
-
-/* Holder for the Java Script facades for Node JS objects. */
-object JS :
-
-  @JSImport("net", JSImport.Default)
-  @js.native
-  class Socket extends js.Object :
-    def write(data: String): Unit = js.native
-    def destroy(): Unit = js.native
-    def localPort: Int = js.native
-    def remotePort: Int = js.native
-    def on(event: String, callback: js.Function1[String, Unit]): Unit = js.native
-
-  @JSImport("net", JSImport.Default)
-  @js.native
-  class Server extends js.Object :
-    def listen(port: Int, host: String): Unit = js.native
-    def close(): Unit = js.native
-
-  @JSImport("net", JSImport.Default)
-  @js.native
-  object Net extends js.Object :
-    def createServer(cb: js.Function1[Socket, Unit]): Server = js.native
-
 
 /** JS platform specific implementation of the ServerSocket */
 class ServerSocketImplementation extends ServerSocket:
 
-  private var jsServer: Option[JS.Server] = None
+  private var jsServer: Option[Node.Server] = None
 
   /* Here we keep the last error for checking. If empty, no error occurred. */
   private var _error: String = ""
@@ -69,7 +41,7 @@ class ServerSocketImplementation extends ServerSocket:
   /* Holder for the custom callback function on connect. */
   private var callback: Option[ClientSocket => Unit] = None
 
-  private val connect = (socket: JS.Socket) =>
+  private val connect = (socket: Node.Socket) =>
     /* Store the new connection for later use */
     _client = Some(ClientSocketImplementation(socket))
     /* Call the custom callback function. */
@@ -80,7 +52,7 @@ class ServerSocketImplementation extends ServerSocket:
     _error = ""
     try
       /* Create a JS Server Socket with a callback function for the connection */
-      jsServer = Some(JS.Net.createServer(connect))
+      jsServer = Some(Node.Net.createServer(connect))
       /* Make sure it listens on the specified port on the localhost. */
       jsServer.map(_.listen(port,"127.0.0.1"))
     catch
@@ -116,7 +88,7 @@ class ServerSocketImplementation extends ServerSocket:
 
 
 /** JS platform specific implementation of the ClientSocket */
-class ClientSocketImplementation(jsSocket: JS.Socket) extends ClientSocket :
+class ClientSocketImplementation(jsSocket: Node.Socket) extends ClientSocket :
 
   private val data: StringBuilder = StringBuilder()
 
