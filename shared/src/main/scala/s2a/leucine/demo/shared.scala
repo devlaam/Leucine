@@ -37,53 +37,48 @@ import s2a.leucine.actors.*
 given actorContext: ActorContext = ActorContext.system
 
 
-object Main extends LogInfo:
+
+private class Console(val name: String) extends BasicActor[Console.Letter] :
+
+  CLI.talk("Please state the demo you want to run (ticker, server or crawler): ",answer => this ! Console.Read(answer))
+
+  def stop(goodbye: String = ""): Unit =
+    if !goodbye.isEmpty then println(goodbye)
+    CLI.close()
+    stopDirect()
+
+  def start(actor: Actor[?]): Unit =
+    ActorGuard.add(actor)
+    stop()
+
+  def receive(letter: Console.Letter) = letter match
+    case Console.Read("ticker")  =>  start(new Ticker)
+    case Console.Read("server")  =>  start(new Server)
+    case Console.Read("crawler") =>  start(new Tree("F0",None))
+    case Console.Read(unknown)   =>  stop(s"Unknown demo '$unknown', closing ...")
+
+
+object Console :
+  sealed trait Letter extends Actor.Letter
+  case class Read(text: String) extends Letter
+
+
+
+object Init extends LogInfo:
   import PlatformContext.Platform
 
-  def startTicker(): Unit =
-    val ticker = new Ticker
-    /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
-    ActorGuard.add(ticker)
+  /* When you arrive here, you can be certain all actors are done */
+  def complete(): Unit = println("Demo complete")
 
-  def startServer(): Unit =
-    /* Create the root of the family */
-    val server = new Server
-    /* Put it under guard. Since the Provider actors are in the Server family we do not need a guard for these. */
-    ActorGuard.add(server)
-
-  def startCrawler(): Unit =
-    val tree = Tree("F0",None)
-    tree ! Tree.Create(2,3)
-    tree ! Tree.Forward
-    ActorGuard.add(tree)
-
-  def runtimeDef(args: Array[String]): Unit =
-    args.map(_.toLowerCase) match
-     case Array("ticker")  => startTicker()
-     case Array("server")  => startServer()
-     case Array("crawler") => startCrawler()
-     case _                => println("Please specify 'ticker', 'server' or 'crawler' as argument at startup.")
-
-  def compiletimeDef(): Unit =
-    println("Platform does not support command line parameters.")
-    println("If you want an other demo, change the source.")
-    /* Choose your demo here. */
-    startTicker()
-
-  def main(args: Array[String]): Unit =
-    val welcome = s"Started Actor examples on the ${actorContext.platform} platform."
-    Logger.info(welcome)
-    println(welcome)
-    /* See on which platform we are. */
-    actorContext.platform match
-      /* On the JVM you can specify the demo at runtime */
-      case Platform.JVM    => runtimeDef(args)
-      /* On JS, no command line parameters are possible, specify at compile time. */
-      case Platform.JS     => compiletimeDef()
-      /* On the JVM you can specify the demo at runtime */
-      case Platform.Native => runtimeDef(args)
-
-    /* Let the user choose one of the demo's. */
-    /* Wait until the actor system stops it activity. The application closes after this. */
-    ActorGuard.watch(false,10.seconds)
+  @main
+  def main(): Unit =
+    println(s"Started Actor examples on the ${actorContext.platform} platform.")
+    val console = Console("Console")
+    ActorGuard.add(console)
+    /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
+     * but not on JS. There blocking is not possible and this call returns immedeately. Normally
+     * you do not call watch on JS, for this does have not much added value. */
+    ActorGuard.watch(false,complete,10.seconds)
+    /* The application should exit, but sometimes on the JVM this is needed, i do not no why */
+    //System.exit(0)
 
