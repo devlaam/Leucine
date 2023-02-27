@@ -20,6 +20,7 @@ val sharedSettings = Seq(
   )
 
 val jvmSettings = Seq(
+  assembly / assemblyJarName := "main.jar"
   )
 
 val jsSettings = Seq(
@@ -28,7 +29,8 @@ val jsSettings = Seq(
   )
 
 val nativeSettings = Seq(
-  nativeLinkStubs := true
+  nativeLinkStubs := true,
+  nativeMode      := "release-full"
   )
 
 lazy val leucine = crossProject(JSPlatform, JVMPlatform, NativePlatform)
