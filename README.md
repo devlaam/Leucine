@@ -61,61 +61,85 @@ deterministic buildup and teardown sequence.
 * `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place
 * `Monitor` mixin and related class, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see: the time spend in each actor, number of children or worker actors, the messages being send around etc.
 
+## Status
+The project is in its infancy, so to explore what the possibilities are the best is to clone the repro:
+```
+$ git clone https://github.com/devlaam/Leucine
+$ cd leucine
+```
+and use `publishLocal` for the moment to turn this into a library.
+
 ### Demos
 The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/master/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
 There are three demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
 * Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
-* Crawler: Yet to be implemented
+* Crawler: Spawns some actors in a hyarchical fashion and sends messages up and down the pyramid.
 
 All implementations (JVM,JS,Native) have their own Execution Context so you are isolated from the underlying threading model.
-In an actor you may never block of course, but with `expect` you can handle waiting for external events in your actor.
+In an actor you may never block of course, but with `expect` you can handle waiting for external events.
 
-## Status
-The project is in its infancy, so to explore what the possibilities are the best is to clone the repro:
+It turned out not to be possible to run all demos from within SBT on equal footing.
+Therefore these are best tested from the command line. We discuss the three different options one by one.
+
+#### Demos on JVM
+Compile and package the demo as follows:
 ```
-$ git clone https://github.com/devlaam/Leucine
+leucine $ sbt leucineJVM/assembly
+[info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
+[info] ...
 ```
-and compile & run the demo in sbt (in leucine/):
+Now you should be able to run the demo's:
 ```
-sbt:leucine> projects
-[info] In file: /.../leucine/
-[info]   * leucine
-[info]     leucineJS
-[info]     leucineJVM
-[info]     leucineNative
-```
-select a project
-```
-sbt:leucine> project leucineJVM
-[info] set current project to leucine (in build file: /.../leucine/)
-```
-compile
-```
-sbt:leucine> compile
-[info] compiling 25 Scala sources to /.../leucine/jvm/target/scala-3.2.1/classes ...
-[success] Total time: 2 s, completed ...
-```
-and run
-```
-sbt:leucine> run
-[info] running s2a.leucine.demo.Main
-Started Logger
+leucine $ java -jar jvm/target/scala-3.2.1/main.jar
 Started Actor examples on the JVM platform.
-Please specify 'ticker', 'server' or 'crawler' as argument at startup.
+Please state the demo you want to run (ticker, server or crawler):
 ```
-At the moment there are two demo's available: ticker and server. So you can try one of those:
+and then choose one of them. The `ticker` and `crawler` are stand alone demo's, the `server` requires an application
+that is able to connect with raw TCP sockets on the localhost, port 8180.
+It may be needed on the JVM to exit with ^C in some situations, after the demo is complete.
+
+#### Demos on NodeJS
+
+Compile and package the demo as follows:
 ```
-sbt run ticker
-sbt run server
+leucine $ sbt leucineJS/fullLinkJS
+[info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
+[info] ...
 ```
-If you switch to `projectNative` the ticker runs, but the server does not, due to
+Now you should be able to run the demo's:
+```
+leucine $ node js/target/scala-3.2.1/leucine-opt/main.js
+Started Actor examples on the JS platform.
+Please state the demo you want to run (ticker, server or crawler):
+```
+and then choose one of them. The `ticker` and `crawler` are stand alone demo's, the `server` requires an application
+that is able to connect with raw TCP sockets on the localhost, port 8180.
+And although projectJS is single threaded, the Actor implementation runs as if it is
+working in parallel.
+
+#### Demos as native executables
+Compile and package the demo as follows:
+```
+leucine $ sbt leucineNative/nativeLink
+[info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
+[info] ...
+```
+Now you should be able to run the demo's:
+```
+leucine $ native/target/scala-3.2.1/leucine-out
+Started Actor examples on the Native platform.
+Please state the demo you want to run (ticker, server or crawler):
+```
+and then choose one of them.  The `ticker` and `crawler` are stand alone demo's, the `server`  does not run, due to
 [a bug in the ServerSocket implementation](https://github.com/scala-native/scala-native/issues/3131).
 Hopefully that will be solved soon.
-And although projectNative is still single threaded, the Actor implementation runs as if it is working in parallel.
+And although projectNative is still single threaded,
+the Actor implementation runs as if it is working in parallel.
 
-On projectJS the `ticker` runs by default. If you want to see the `server` in action, the source code has to be
-changed, for JavaScript does not allow arguments at startup.
+Although compilation takes a lot longer on Native the run times are amazing.
+The crawler demo on Native runned in 0.7ms on my laptop, whereas the java
+version needed around 48ms!
 
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment, so expect a steady grow
