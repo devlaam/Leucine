@@ -1,7 +1,5 @@
 package s2a.leucine.actors
 
-import s2a.leucine.actors.Actor.Anonymous
-
 /**
  * MIT License
  *
