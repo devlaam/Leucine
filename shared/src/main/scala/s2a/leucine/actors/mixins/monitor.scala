@@ -60,14 +60,14 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   private var traces: List[Trace] = Nil
 
   /**
-   * This is the personal setting of tracing. These is a public setting as well.
+   * This is the personal setting of tracing. There is a public setting as well.
    * If tracing is active for this actor depends on both settings, in a symmetric manner.
    * If both are Enabled or one is Enabled and the other is Default, the tracing is
    * active. In all other cases it is not. This implies that you can enable/disable
    * the tracing here as long as the global tracing is Default or Enabled. Setting this
    * setting to Disabled will always prohibit tracing of this actor, and setting it to
    * Default/Enabled leaves the fate in the hands of the global setting. */
-  @volatile protected var tracing: Tracing = Tracing.Default
+  protected def tracing: Tracing = Tracing.Default
 
   /**
    * See if we may trace this actor now. This is the case if one of them is Enabled

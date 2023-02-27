@@ -74,9 +74,12 @@ abstract class ActorMonitor :
    * If tracing is active for the actor depends on both settings, in a symmetric manner.
    * If both are Enabled or one is Enabled and the other is Default, the tracing is
    * active. In all other cases it is not. This implies that you can enable/disable
-   * the tracing locally as long as this is Default or Enabled. Setting this setting
+   * the tracing locally as long as this is Default or Enabled. Setting this
    * to Disabled, disables all tracing on all actors. */
-  @volatile var tracing: Tracing = Tracing.Default
+  def tracing: Tracing = Tracing.Default
+
+  /** Default probe interval. Override for other value. */
+  def probeInterval: FiniteDuration = 5.seconds
 
   /** Clear the actor samples table. */
   def clearSamples(): Unit = synchronized { samples = Map.empty }
@@ -127,9 +130,6 @@ abstract class ActorMonitor :
 
   /** Use this method to extract dynamical information contained here called from your actor. */
   def show(path: String): Unit
-
-  /** Default probe interval. Override for other value. */
-  def probeInterval = 5.seconds
 
 
 /** Use this Object to directly start monitoring with default functionality. */
