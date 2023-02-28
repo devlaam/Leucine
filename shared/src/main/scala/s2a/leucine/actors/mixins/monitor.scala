@@ -181,7 +181,11 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   monitorStart()
 
 
-object MonitorActor:
+object MonitorActor :
+
+  /* All trace entries are counted, so you can see none is failing. */
+  private var _tracer: Int = 0
+  private def tracer: Int = synchronized { _tracer += 1; _tracer }
 
   enum Action :
     case Created, Terminated, Accepted, Refused, Initiated, Completed
@@ -189,12 +193,19 @@ object MonitorActor:
   enum Tracing :
     case Disabled, Default, Enabled
 
-  case class Trace(time: Long, actor: String, action: Action, letter: String, sender: String) extends Ordered[Trace] :
+  class Trace(val time: Long, val actor: String, val action: Action, val letter: String, val sender: String) extends Ordered[Trace] :
+    var nr = tracer
+    /* Sorting is first on action time and subsequently on trace number. This should be suffient to be unique in
+     * all circumstances. */
     def compare(that: Trace): Int =
       if      this.time < that.time then -1
       else if this.time > that.time then  1
+      else if this.nr   < that.nr   then -1
+      else if this.nr   > that.nr   then  1
+      else if this.##   < that.##   then -1
+      else if this.##   > that.##   then  1
       else                                0
-    def show = s"time=$time, actor=$actor, action=$action, letter=$letter, sender=$sender"
+    def show = s"time=$time, nr=$nr, actor=$actor, action=$action, letter=$letter, sender=$sender"
 
   object Trace :
     def empty(time: Long) = new Trace(time,"",Action.Created,"","")
