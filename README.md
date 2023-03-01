@@ -4,11 +4,7 @@
 ![onNative](https://github.com/devlaam/Leucine/actions/workflows/onNative.yml/badge.svg?event=push)
 
 Leucine is a small cross platform actor framework without any dependencies. The idea is that it should provide just enough
-to be of good use, but nothing more.
-
-Above the results of the tests on different platforms. Note that tests on Native fail because of an "Error during tests".
-As soon it [is clear why](https://github.com/com-lihaoyi/utest/issues/282), this will be updated.
-Leucine on Native just runs, within the current limitations of Native of course.
+to be of good use, but nothing more. Above the results of the tests on different platforms for this branch.
 
 ## Motivation
 The project is motivated by the recent [change of license](https://www.lightbend.com/akka/license-faq) of [Akka](https://akka.io) and the
@@ -70,7 +66,7 @@ $ cd leucine
 and use `publishLocal` for the moment to turn this into a library.
 
 ### Demos
-The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/master/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
+The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/develop/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
 There are three demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
 * Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
@@ -89,7 +85,7 @@ leucine $ sbt leucineJVM/assembly
 [info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
 [info] ...
 ```
-Now you should be able to run the demo's:
+Now you should be able to run the demo's (requires Java to run):
 ```
 leucine $ java -jar jvm/target/scala-3.2.1/main.jar
 Started Actor examples on the JVM platform.
@@ -107,7 +103,7 @@ leucine $ sbt leucineJS/fullLinkJS
 [info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
 [info] ...
 ```
-Now you should be able to run the demo's:
+Now you should be able to run the demo's (requires Node JS to run):
 ```
 leucine $ node js/target/scala-3.2.1/leucine-opt/main.js
 Started Actor examples on the JS platform.
@@ -125,7 +121,7 @@ leucine $ sbt leucineNative/nativeLink
 [info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
 [info] ...
 ```
-Now you should be able to run the demo's:
+Now you should be able to run the demo's (runs directly):
 ```
 leucine $ native/target/scala-3.2.1/leucine-out
 Started Actor examples on the Native platform.
@@ -138,8 +134,9 @@ And although projectNative is still single threaded,
 the Actor implementation runs as if it is working in parallel.
 
 Although compilation takes a lot longer on Native the run times are amazing.
-The crawler demo on Native runned in 0.7ms on my laptop, whereas the java
-version needed around 48ms!
+The crawler demo on Native runned in 0.7ms on my laptop (compiled with 'release-full', see the file
+[build.sbt](https://github.com/devlaam/Leucine/blob/develop/build.sbt)),
+whereas the java version needed around 48ms!
 
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment, so expect a steady grow

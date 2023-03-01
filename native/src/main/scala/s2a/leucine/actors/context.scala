@@ -155,7 +155,7 @@ abstract class ContextImplementation  extends PlatformContext :
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
    * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks
-   * will be accepted. */
+   * will be accepted. Once you have called shutdown, it is no longer possible to restart the mainloop. */
   def shutdown(force: Boolean): Unit =
     _active = false
     if force then continue = false
@@ -163,9 +163,12 @@ abstract class ContextImplementation  extends PlatformContext :
   /**
    * This method enters an endless loop until the application finishes. Every timeout, it will probe a shutdownrequest.
    * There may be other reasons for shutdown as well. After all threads have completed (by force or not) the method
-   * calls complete() and returns. Call in the main thread as last action there. In Native it this also starts the mainloop. */
+   * calls complete() and returns. Call in the main thread as last action there. In Native it this also starts the
+   * mainloop. Normally you only call this once, but in certain situations (tests) it may be needed to call it
+   * multible times. In that case, make sure shutdownRequest is always false. */
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     def hook(): Unit = { if shutdownRequest then shutdown(force) }
+    continue = _active
     mainLoop(hook,time.toNanos)
     complete()
 

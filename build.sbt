@@ -29,8 +29,14 @@ val jsSettings = Seq(
   )
 
 val nativeSettings = Seq(
+  /* The default mode is 'debug', to get smaller/faster code use: */
+  //nativeMode      := "release-full"
+  /* This setting is a requirement for uTest on Native */
   nativeLinkStubs := true,
-  nativeMode      := "release-full"
+  /* To ensure to tasks are put in determistic way on the custom main loop. */
+  Test / parallelExecution := false,
+  /* Remove test which cannot run Native platform.*/
+  Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN")))
   )
 
 lazy val leucine = crossProject(JSPlatform, JVMPlatform, NativePlatform)

@@ -71,7 +71,8 @@ object TimingActorTest extends TestSuite :
       val deferred = Deferred(buffer.readlns)
       val clock = new Clock(true,buffer.writeln,deferred.done)
       clock ! Clock.Twice(1)
-      deferred.result.map(list =>
+      deferred.await()
+      deferred.compare(list =>
         /* End should not be  mixed with arrived numbers */
         list.takeRight(2) ==> List("stop","stopped:true")
         /* List should only contain odd numbers. */
@@ -80,14 +81,16 @@ object TimingActorTest extends TestSuite :
       val deferred = Deferred(buffer.readlns)
       val clock = new Clock(false,buffer.writeln,deferred.done)
       clock ! Clock.Twice(1)
+      deferred.await()
       /* Here we are only interested that there are no numbers between stop and stopped.*/
-      deferred.result.map(_.takeRight(2) ==> List("stop","stopped:true")) }
+      deferred.compare(_.takeRight(2) ==> List("stop","stopped:true")) }
     test("Timing with expectation"){
       val deferred = Deferred(buffer.readlns)
       val promise = Promise[Unit]()
       ac.delayed(promise.tryComplete(Try(())), 67.millis)
       val expect = new Expect(promise.isCompleted,buffer.writeln,deferred.done)
-      deferred.result.map(list =>
+      deferred.await()
+      deferred.compare(list =>
         /* End should only contain succeeded event and end. */
         list.takeRight(2) ==> List("tada!","stopped:true")
         /* List should only contain missed events */

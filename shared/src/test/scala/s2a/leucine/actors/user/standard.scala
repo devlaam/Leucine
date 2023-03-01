@@ -91,5 +91,6 @@ object StandardActorTest extends TestSuite :
       joni ! Joni.Text("",0)
       mary ! Mary.Text("",0)
       sara ! Sara.Text("",0)
-      deferred.result.map(_.toSet ==> expect) }
+      deferred.await()
+      deferred.compare(_.toSet ==> expect) }
    }

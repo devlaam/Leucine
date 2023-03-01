@@ -50,5 +50,6 @@ object StateActorTest extends TestSuite :
       clock ! Clock.Tick(22222)
       clock ! Clock.PrintTime
       clock.stopFinish()
-      deferred.result.map(_ ==> expect) } }
+      deferred.await()
+      deferred.compare(_ ==> expect) } }
 

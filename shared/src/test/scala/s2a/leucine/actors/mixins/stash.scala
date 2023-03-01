@@ -6,6 +6,7 @@ import scala.concurrent.duration.DurationInt
 import utest.*
 
 import s2a.control.{Buffer, Deferred}
+import s2a.leucine.actors.PlatformContext.Platform
 
 object StashActorTest extends TestSuite :
 
@@ -32,6 +33,7 @@ object StashActorTest extends TestSuite :
 
     case class State(values: List[Int], block: Boolean) extends Actor.State
 
+
   val tests = Tests {
     val buffer = Buffer[String]
     test("sending letters, mix by pausing."){
@@ -47,4 +49,6 @@ object StashActorTest extends TestSuite :
       (21 to 24).foreach(i => stack.send(Stack.Write(i)))
       stack.send(Stack.Print)
       stack.stopFinish()
-      deferred.result.map(_ ==> expect) } }
+      deferred.await()
+      deferred.compare(_ ==> expect) } }
+
