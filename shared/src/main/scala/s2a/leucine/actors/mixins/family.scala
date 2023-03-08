@@ -42,8 +42,14 @@ private trait FamilyChild extends ActorDefs :
   /* Local type */
   private[actors] type CL <: Actor.Letter
 
+  /** The type for all Senders for messages that can be relayed between parent and child. */
+  type RelaySender <: Actor[?]
+
   /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
+
+  /** The actor type of the children. */
+  type ChildActor = BareActor[ChildLetter, ? >: RelaySender <: Actor[?],?]
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
@@ -60,12 +66,12 @@ private trait FamilyChild extends ActorDefs :
   private[actors] def processTerminate(complete: Boolean): Unit
 
   /** Variable that holds all the children of this actor. */
-  private var _children: Map[String,BareActor[ChildLetter,?]] = Map.empty
+  private var _children: Map[String,ChildActor] = Map.empty
 
   /**
    * Save access to the children of this actor. Note, this is temporary copy,
    * so it may already have changed after being read. */
-  protected def children: Map[String,BareActor[ChildLetter,?]] = _children
+  protected def children: Map[String,ChildActor] = _children
 
   /** Get the current number of children. For internal use, not synchronized. */
   private[actors] override def familySize: Int = _children.size
@@ -92,9 +98,9 @@ private trait FamilyChild extends ActorDefs :
    * prohibiting multiple adoptions per actor yourself. If an actor under this name already
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
    * working. This is automatic.  */
-  protected def adopt(children: Actor[ChildLetter] *): Unit = synchronized {
+  protected def adopt(children: ChildActor *): Unit = synchronized {
     if context.trace then println(s"In actor=$path:  adopting: ${children.map(_.path)}")
-    children.collect{ case child: BareActor[ChildLetter,?] => _children += child.name -> child } }
+    children.foreach(child  => _children += child.name -> child ) }
 
   /**
    * Reject a child with a given name. For internal use. Normally, there should not be a reason
@@ -109,20 +115,47 @@ private trait FamilyChild extends ActorDefs :
     /* If we are terminating, and this is the last child, call the deferred termination steps. */
     termination.foreach(complete => if _children.isEmpty then deferred(processTerminate(complete))) }
 
+
+/** Contains methods to pass messages from the actor to one or more of the children in a typed manner. */
+private trait FamilyPass extends ActorDefs :
+
+  /* Local types */
+  private[actors] type CL <: Actor.Letter
+  private[actors] type RS <: Actor[?]
+
+  /** The type for all Senders for messages that can be relayed between parent and child. */
+  type RelaySender = RS
+
+  /** The super type for the letters the childeren may receive. */
+  type ChildLetter = CL
+
+  /** The actor type of the children. */
+  type ChildActor = BareActor[ChildLetter, ? >: RelaySender <: Actor[?],?]
+
+  /** Access to the children from FamilyChild */
+  protected def children: Map[String,ChildActor]
+
+ /** Reference to the actor context. */
+  private[actors] def context: ActorContext
+
+  /**
+   * Sends a letter from sender on the a specific child. Results true if the letter
+   * was accepted by the child. */
+  private def passOn(letter: ChildLetter, sender: RelaySender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
+
   /**
    * Forward a message to all children, or children of which the name pass the test 'include'.
    * Returns the number of children that accepted the letter. */
-  protected def relay(letter: ChildLetter, sender: Sender, include: String => Boolean): Int =
-    val selected = children.filter((key,_) => include(key))
+  protected def relay(letter: ChildLetter, sender: RelaySender, include: String => Boolean): Int =
+    val selected = children.filter((key,_) => include(key)).values
     if context.trace then println(s"In actor=$path: relay: children.size=${children.size}, selected.size=${selected.size}")
-    def send(name: String, child: BareActor[ChildLetter,?]) = child.sendEnvelope(child.pack(letter,sender))
-    selected.map(send).count(identity)
+    selected.map(passOn(letter,sender)).count(identity)
 
   /**
    * Forward a message to one specific child on the basis of its name. Returns true if successful and
    * false if that child is not present or does not accept the letter. */
-  protected def pass(letter: ChildLetter, sender: Sender, name: String): Boolean =
-    children.get(name).map(child => child.sendEnvelope(child.pack(letter,sender))).getOrElse(false)
+  protected def pass(letter: ChildLetter, sender: RelaySender, name: String): Boolean =
+    children.get(name).map(passOn(letter,sender)).getOrElse(false)
 
 
 /**
@@ -206,12 +239,20 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   private[actors] type PA = Parent
 
 
+/** Mixin you need to be able to relay messages from the present actor to one or more of the
+ * children. These childeren, and parent, must all accept messages from a common set of sender
+ * actors, with the type RelaySender. Mixin only possible for FamilyRoot and FamilyBranch. */
+trait FamilyRelay[RelaySender <: Actor[?]] :
+  private[actors] type RS = RelaySender
+
+
 /**
  * Mixin to construct a family tree where all levels accept the same letters, and which may be build dynamically/recursively.
  * The field 'parent' is an option in this case and the root of the tree should not have a parent. The type of the parent equals
  * the type of the FamilyTree and all letters are derived from one common ancestor. */
-trait FamilyTree[Parent <: Actor.Parent] extends FamilyChild, FamilyMain :
+trait FamilyTree[Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyPass :
   private[actors] type CL = MyLetter
+  private[actors] type RS = Sender
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the

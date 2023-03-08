@@ -27,7 +27,6 @@ object BasicActorTest extends TestSuite :
     case class Number(int: Int) extends Letter
     case object Except extends Letter
 
-
   val tests = Tests {
     val buffer = Buffer[String]
     test("sending letters, stop at the end"){

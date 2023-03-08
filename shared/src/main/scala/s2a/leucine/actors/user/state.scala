@@ -28,7 +28,7 @@ package s2a.leucine.actors
 /**
  * The StateActor is able to respond to messages, and keeps state between all calls. You are obliged to return the same
  * or a new state upon every call. This is better than using vars.  */
-abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](using val context: ActorContext) extends BareActor[ML,AS] :
+abstract class StateActor[ML <: Actor.Letter, SD <: Actor[?], AS <: Actor.State](using val context: ActorContext) extends BareActor[ML,SD,AS] :
 
   /* The Env type now holds the Letter as well as the Sender type */
   private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
@@ -77,7 +77,7 @@ abstract class StateActor[ML <: Actor.Letter, AS <: Actor.State](using val conte
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context of an actor
    * and to self inside an actor. Returns if the letter was accepted for delivery. Note, this does not mean it also
    * processed. In the mean time the actor may stop. */
-  def send(letter: MyLetter)(using sender: Sender = Actor.Anonymous): Boolean = sendEnvelope(pack(letter,sender))
+  def send(letter: MyLetter, sender: Sender): Boolean = sendEnvelope(pack(letter,sender))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
-  def ! (letter: MyLetter)(using sender: Sender = Actor.Anonymous): Unit = sendEnvelope(pack(letter,sender))
+  def ! (letter: MyLetter)(using sender: Sender): Unit = sendEnvelope(pack(letter,sender))

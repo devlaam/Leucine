@@ -204,7 +204,7 @@ object Server :
  * we could have chosen the BasicActor as well. This actor is part of a family but does not have childeren of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the childeren. But less is more. */
-class Provider(val name: String, protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter], TimingActor, FamilyLeaf[Server], LogInfo :
+class Provider(val name: String, protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter,Actor[?]], TimingActor, FamilyLeaf[Server], LogInfo :
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */

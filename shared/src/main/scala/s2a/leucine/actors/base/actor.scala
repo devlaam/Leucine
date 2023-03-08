@@ -38,7 +38,7 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Monit
   /** The character that will be used in the full name definitions of the actors.*/
   protected def familyPathSeparator: Char = '.'
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
-  type Sender = Actor[? <: Actor.Letter]
+  type Sender <: Actor[?]
   /** The name of this actor. */
   def name: String
   /** The fullname of this actor, contains the full path to the first ancestor.*/

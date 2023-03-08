@@ -11,7 +11,7 @@ object StateActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor[Clock.Letter,Clock.State] :
+  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor[Clock.Letter,Actor[Actor.Anonymous],Clock.State] :
    val name = "clock"
    override protected def stopped(complete: Boolean) = done()
    protected def initial = Clock.State(0,0,0)
@@ -34,6 +34,7 @@ object StateActorTest extends TestSuite :
         State(hour,min,sec)
       def show: String = s"$hour:$min:$sec"
 
+  given Actor[Actor.Anonymous] = Actor.Anonymous
 
   val tests = Tests {
     val buffer = Buffer[String]

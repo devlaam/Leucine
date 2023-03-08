@@ -46,7 +46,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
   def isActive: Boolean
 
   /** Actor dependend packing of letter and sender into one enveloppe. */
-  private[actors] def pack(letter: MyLetter, sender: Sender): Env
+  private[actors] def pack(letter: MyLetter, sender: Sender | Actor[MyLetter]): Env
 
   /** Triggers the processLoop into execution, depending on the phase. */
   private[actors] def processTrigger(): Unit

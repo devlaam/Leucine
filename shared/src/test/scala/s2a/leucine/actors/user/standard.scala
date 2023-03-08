@@ -12,7 +12,7 @@ object StandardActorTest extends TestSuite :
   implicit val ac: ActorContext = ActorContext.system
 
 
-  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter] :
+  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Actor[?]] :
     val name = "Joni"
     var mary: Option[Mary] = None
     var sara: Option[Sara] = None
@@ -34,7 +34,7 @@ object StandardActorTest extends TestSuite :
 
 
 
-  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter] :
+  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Actor[?]] :
     val name = "Mary"
     var joni: Option[Joni] = None
     var sara: Option[Sara] = None
@@ -56,7 +56,7 @@ object StandardActorTest extends TestSuite :
     case class Config(joni: Joni, sara: Sara) extends Letter
 
 
-  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter] :
+  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Actor[?]] :
     val name = "Sara"
     var joni: Option[Joni] = None
     var mary: Option[Mary] = None
@@ -76,6 +76,8 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(joni: Joni, mary: Mary) extends Letter
+
+  given Actor[?] = Actor.Anonymous
 
   val tests = Tests {
     val expect = Set("*JMSJMS6", "*MJSMJS6", "*JSMJSM6", "*MSJMSJ6", "*SMJSMJ6", "*SJMSJM6")
