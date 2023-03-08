@@ -12,7 +12,7 @@ object StandardActorTest extends TestSuite :
   implicit val ac: ActorContext = ActorContext.system
 
 
-  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Actor.Any] :
+  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Joni.Accept] :
     val name = "Joni"
     var mary: Option[Mary] = None
     var sara: Option[Sara] = None
@@ -31,10 +31,11 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(mary: Mary, sara: Sara) extends Letter
+    type Accept = Mary | Sara | Actor.Anonymous
 
 
 
-  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Actor.Any] :
+  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Mary.Accept] :
     val name = "Mary"
     var joni: Option[Joni] = None
     var sara: Option[Sara] = None
@@ -54,9 +55,10 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(joni: Joni, sara: Sara) extends Letter
+    type Accept = Joni | Sara | Actor.Anonymous
 
 
-  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Actor.Any] :
+  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Sara.Accept] :
     val name = "Sara"
     var joni: Option[Joni] = None
     var mary: Option[Mary] = None
@@ -76,11 +78,12 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(joni: Joni, mary: Mary) extends Letter
+    type Accept = Joni | Mary | Actor.Anonymous
 
-  given Actor[?] = Actor.Anonymous
 
   val tests = Tests {
     val expect = Set("*JMSJMS6", "*MJSMJS6", "*JSMJSM6", "*MSJMSJ6", "*SMJSMJ6", "*SJMSJM6")
+    given Actor.Anonymous = Actor.Anonymous
     test("sending looped letters"){
       val buffer = Buffer[String]
       val deferred = Deferred(buffer.readlns,6)
