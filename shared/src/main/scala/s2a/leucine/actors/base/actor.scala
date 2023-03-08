@@ -43,8 +43,6 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Monit
   def name: String
   /** The fullname of this actor, contains the full path to the first ancestor.*/
   def path: String
-  /** Public reference to this actor instance. */
-  def self: Actor[MyLetter]
 
 
 /**
@@ -125,7 +123,6 @@ object Actor :
    * It is not possible to return an answer to the Anonymous sender. Also, trying to stop it will fail. */
   object Anonymous extends Actor[Letter] :
     private[actors] type MyLetter = Letter
-    def self: Actor[MyLetter] = this
     /** How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"
     /** Anonymous actor is not part of a familty. */

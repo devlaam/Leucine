@@ -40,6 +40,7 @@ private[actors] trait TimingDefs :
 
 
 trait TimingActor(using context: ActorContext) extends ActorDefs :
+  self: Actor[MyLetter] =>
   import TimingActor.Event
 
   /* See if this actor is still active. */

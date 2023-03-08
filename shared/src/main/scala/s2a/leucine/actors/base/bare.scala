@@ -279,10 +279,8 @@ abstract class BareActor[ML <: Actor.Letter, SD <: Actor[?], AS <: Actor.State](
   /** In the base actor the path and name are equal. */
   def path: String = name
 
-  /**
-   * To be able to refer to this as an Actor, which is also used as sender for all messages
-   * send from this actor without explicit sender. */
-  given self: Actor[MyLetter] = this
+  /** Used as sender for all messages send from this actor without explicit sender. */
+  given this.type = this
 
 
 object BareActor :
