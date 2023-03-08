@@ -12,7 +12,7 @@ object StandardActorTest extends TestSuite :
   implicit val ac: ActorContext = ActorContext.system
 
 
-  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Actor[?]] :
+  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Actor.Any] :
     val name = "Joni"
     var mary: Option[Mary] = None
     var sara: Option[Sara] = None
@@ -34,7 +34,7 @@ object StandardActorTest extends TestSuite :
 
 
 
-  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Actor[?]] :
+  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Actor.Any] :
     val name = "Mary"
     var joni: Option[Joni] = None
     var sara: Option[Sara] = None
@@ -56,7 +56,7 @@ object StandardActorTest extends TestSuite :
     case class Config(joni: Joni, sara: Sara) extends Letter
 
 
-  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Actor[?]] :
+  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Actor.Any] :
     val name = "Sara"
     var joni: Option[Joni] = None
     var mary: Option[Mary] = None

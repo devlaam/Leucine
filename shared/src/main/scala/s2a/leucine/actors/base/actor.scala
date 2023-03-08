@@ -104,6 +104,9 @@ object Actor :
   /** Having children defines the parent */
   type Parent = Actor[?] with FamilyChild
 
+  /** If you want somewhere to accept any actor, use All */
+  type Any = Actor[?]
+
   /** This is the base type for all your mail. */
   trait Letter
 
@@ -114,14 +117,14 @@ object Actor :
     /** The Default state is the state that is used internally if you do not need states yourself. */
     case object Default extends State
 
-  /** The Letter type used by the Anonymous sender. It will however not accept mails of this type */
-  trait Anonymous extends Letter
+  /** The Anonymous Actor type used by the Anonymous sender. */
+  type Anonymous = Anonymous.type
 
   /**
    * Use the Anonymous Actor as a sender if you do not have a context or do want to reveal yourself.
    * It is not possible to return an answer to the Anonymous sender. Also, trying to stop it will fail. */
-  object Anonymous extends Actor[Anonymous] :
-    private[actors] type MyLetter = Anonymous
+  object Anonymous extends Actor[Letter] :
+    private[actors] type MyLetter = Letter
     def self: Actor[MyLetter] = this
     /** How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"

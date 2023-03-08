@@ -12,7 +12,7 @@ object StashActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor[?],Stack.State], StashActor :
+  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor.Any,Stack.State], StashActor :
     val name = "Stack"
     override protected def stopped(complete: Boolean) =
       writeln(s"stop:$complete")
@@ -33,6 +33,7 @@ object StashActorTest extends TestSuite :
 
     case class State(values: List[Int], block: Boolean) extends Actor.State
 
+  given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
     val buffer = Buffer[String]
@@ -40,7 +41,6 @@ object StashActorTest extends TestSuite :
       val expect = List(List(24,23,22,21,20,18,16,15,14,13,12,10,8,7,6,5,4,2,19,17,11,9,3,1).toString,"stop:true")
       val deferred = Deferred(buffer.readlns)
       val stack = new Stack(buffer.writeln,deferred.done)
-      given aa: Actor[?] = Actor.Anonymous
       (1 to 4).foreach(i => stack ! Stack.Write(i))
       (5 to 8).foreach(i => stack ! Stack.Push(i))
       (9 to 12).foreach(i => stack ! Stack.Write(i))

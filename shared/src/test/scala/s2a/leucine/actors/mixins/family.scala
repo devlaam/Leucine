@@ -25,7 +25,7 @@ extension (value: Int)
 trait ActorTreeSupply :
   implicit val ac: ActorContext = ActorContext.system
 
-  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor[?]], FamilyTree[Tree], FamilyChildExtra :
+  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor.Any], FamilyTree[Tree], FamilyChildExtra :
 
     private def write(kind: String) = writeln(s"$kind$path")
 
@@ -68,13 +68,13 @@ trait ActorFamilySupply :
   object Root :
     sealed trait Letter extends Actor.Letter
 
-  class Branch(val name: String, protected val parent: Root) extends StandardActor[Branch.Letter,Actor[?]], FamilyBranch[Leaf.Letter,Root] :
+  class Branch(val name: String, protected val parent: Root) extends StandardActor[Branch.Letter,Actor.Any], FamilyBranch[Leaf.Letter,Root] :
     def receive(letter: Branch.Letter, sender: Sender) = ???
 
   object Branch :
     sealed trait Letter extends Actor.Letter
 
-  class Leaf(val name: String, protected val parent: Branch)  extends StandardActor[Leaf.Letter,Actor[?]], FamilyLeaf[Branch] :
+  class Leaf(val name: String, protected val parent: Branch)  extends StandardActor[Leaf.Letter,Actor.Any], FamilyLeaf[Branch] :
     def receive(letter: Leaf.Letter, sender: Sender) = ???
 
   object Leaf :
@@ -94,7 +94,7 @@ object TestMethods :
 
 object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   import TestMethods.*
-  given aa: Actor[?] = Actor.Anonymous
+  given Actor.Anonymous = Actor.Anonymous
   val buffer = Buffer[String]
   val width = 3
   val level = 4
@@ -122,7 +122,7 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
 
 object TreeActorTestFree extends TestSuite, ActorTreeSupply :
   import TestMethods.*
-  given aa: Actor[?] = Actor.Anonymous
+  given Actor.Anonymous = Actor.Anonymous
   val buffer = Buffer[String]
   val width = 3
   val level = 4

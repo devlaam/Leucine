@@ -29,7 +29,7 @@ import s2a.leucine.actors.*
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Statefull actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker extends StateActor[Ticker.Letter,Actor[?],Ticker.State], LogInfo :
+class Ticker extends StateActor[Ticker.Letter,Actor.Any,Ticker.State], LogInfo :
 
   /* Lets be lazy in choosing a name. */
   val name = uniqueName
