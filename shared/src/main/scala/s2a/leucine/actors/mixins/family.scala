@@ -41,15 +41,16 @@ private trait FamilyChild extends ActorDefs :
 
   /* Local type */
   private[actors] type CL <: Actor.Letter
+  private[actors] type RS <: Actor[?]
 
   /** The type for all Senders for messages that can be relayed between parent and child. */
-  type RelaySender <: Actor[?]
+  type RelaySender = RS
 
   /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
 
   /** The actor type of the children. */
-  type ChildActor = BareActor[ChildLetter, ? >: RelaySender <: Actor[?],?]
+  type ChildActor = BareActor[ChildLetter, RelaySender, ?]
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
@@ -114,29 +115,6 @@ private trait FamilyChild extends ActorDefs :
     _children -= name
     /* If we are terminating, and this is the last child, call the deferred termination steps. */
     termination.foreach(complete => if _children.isEmpty then deferred(processTerminate(complete))) }
-
-
-/** Contains methods to pass messages from the actor to one or more of the children in a typed manner. */
-private trait FamilyPass extends ActorDefs :
-
-  /* Local types */
-  private[actors] type CL <: Actor.Letter
-  private[actors] type RS <: Actor[?]
-
-  /** The type for all Senders for messages that can be relayed between parent and child. */
-  type RelaySender = RS
-
-  /** The super type for the letters the childeren may receive. */
-  type ChildLetter = CL
-
-  /** The actor type of the children. */
-  type ChildActor = BareActor[ChildLetter, ? >: RelaySender <: Actor[?],?]
-
-  /** Access to the children from FamilyChild */
-  protected def children: Map[String,ChildActor]
-
- /** Reference to the actor context. */
-  private[actors] def context: ActorContext
 
   /**
    * Sends a letter from sender on the a specific child. Results true if the letter
@@ -215,8 +193,10 @@ private trait FamilyParent extends ActorDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyChild, FamilyMain :
+trait FamilyRoot[ChildLetter <: Actor.Letter, RelaySender <: Actor[?]] extends FamilyChild, FamilyMain :
   private[actors] type CL = ChildLetter
+  private[actors] type RS = RelaySender
+
   override def path: String = name
 
 
@@ -227,9 +207,10 @@ trait FamilyRoot[ChildLetter <: Actor.Letter] extends FamilyChild, FamilyMain :
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
+trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor.Parent, RelaySender <: Actor[?]] extends FamilyChild, FamilyMain, FamilyParent :
   private[actors] type CL = ChildLetter
   private[actors] type PA = Parent
+  private[actors] type RS = RelaySender
 
 
 /**
@@ -239,18 +220,11 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   private[actors] type PA = Parent
 
 
-/** Mixin you need to be able to relay messages from the present actor to one or more of the
- * children. These childeren, and parent, must all accept messages from a common set of sender
- * actors, with the type RelaySender. Mixin only possible for FamilyRoot and FamilyBranch. */
-trait FamilyRelay[RelaySender <: Actor[?]] :
-  private[actors] type RS = RelaySender
-
-
 /**
  * Mixin to construct a family tree where all levels accept the same letters, and which may be build dynamically/recursively.
  * The field 'parent' is an option in this case and the root of the tree should not have a parent. The type of the parent equals
  * the type of the FamilyTree and all letters are derived from one common ancestor. */
-trait FamilyTree[Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyPass :
+trait FamilyTree[Parent <: Actor.Parent] extends FamilyChild, FamilyMain :
   private[actors] type CL = MyLetter
   private[actors] type RS = Sender
 

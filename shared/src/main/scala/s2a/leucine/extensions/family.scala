@@ -39,7 +39,7 @@ trait FamilyChildExtra :
   type ChildLetter <: Actor.Letter
 
   /**The actor type of the children. */
-  type ChildActor = BareActor[ChildLetter, ? >: RelaySender <: Actor[?],?]
+  type ChildActor = BareActor[ChildLetter, RelaySender,?]
 
 
   /* Methods to extend. */
