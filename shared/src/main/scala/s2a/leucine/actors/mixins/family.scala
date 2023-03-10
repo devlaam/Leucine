@@ -36,7 +36,7 @@ private[actors] trait FamilyDefs :
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
-private trait FamilyChild extends ActorDefs :
+transparent private trait FamilyChild extends ActorDefs :
 
   /* Local type */
   private[actors] type CL
@@ -138,7 +138,7 @@ private trait FamilyChild extends ActorDefs :
 /**
  * Holds all the general methods needed for managing the family actor.
  * For internal use. This is always mixed in. */
-private trait FamilyMain extends ActorDefs :
+transparent private trait FamilyMain extends ActorDefs :
 
   /** Counter to generate a unique name for the childeren/workers of this actor. */
   private var _workersCounter: Long = 0L
@@ -166,7 +166,7 @@ private trait FamilyMain extends ActorDefs :
 /**
  * Holds all the methods needed for accessing the parent of this family. For internal use.
  * Not all actors have a parent, so this is not mixed in for the root of the family. */
-private trait FamilyParent extends ActorDefs :
+transparent private trait FamilyParent extends ActorDefs :
 
   /* Local type */
   private[actors] type PA <: Actor.Parent

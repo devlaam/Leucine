@@ -47,10 +47,8 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Monit
 
 /**
  * The actor (reference) can be used for some general handling, but not to send a message to the
- * actor. You need a reference to the full object for that. This is needed for proper type
- * checking (due to type erasure you cannot check the Actor itself). This can be obtained using
- * matching. ML is the super type for the letters you may receive, YL is the super type for the
- * letters you may send. The latter usually is the union of two or more type hyrarchies.  */
+ * actor. You need a reference to the original instance for that. This is needed for proper type
+ * checking  */
 trait Actor :
 
   /**
@@ -97,6 +95,7 @@ trait Actor :
    * Note that in an asynchronous system, the answer may already have changed after the read. Once it
    * turns to false however, it will never return to true again. */
   def isTerminated: Boolean
+
 
 object Actor :
   /** Having children defines the parent */

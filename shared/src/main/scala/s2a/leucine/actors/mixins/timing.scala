@@ -43,11 +43,13 @@ private[actors] trait TimingDefs :
 
 
 trait TimingActor(using context: ActorContext) extends ActorDefs :
-  self: Actor =>
   import TimingActor.Event
 
+  /** See if this actor is still active. */
+  def isActive: Boolean
+
   /** Actor dependend packing of letter and sender into one enveloppe. */
-  private[actors] def pack(letter: MyLetter, sender: Sender | self.type): Env
+  private[actors] def pack(letter: MyLetter, sender: Sender | this.type): Env
 
   /** Triggers the processLoop into execution, depending on the phase. */
   private[actors] def processTrigger(): Unit
@@ -100,7 +102,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
 
   /** Obtain a single event from the eventqueu, get the letter and put it in an envelope. */
   private[actors] override def eventsDequeue(tail: List[Env]): List[Env] = synchronized {
-    val event = events.dequeue.map(event => pack(event.letter,self))
+    val event = events.dequeue.map(event => pack(event.letter,this))
     if       tail.isEmpty  then event
     else if  event.isEmpty then tail
     else                        event.head :: tail }

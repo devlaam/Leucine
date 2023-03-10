@@ -90,7 +90,7 @@ trait StashActor extends ActorDefs :
 
 
   /** Object Stash for user to manipulate the Stash */
-  protected object Stash:
+  protected object Stash :
 
     /**
      * Automatically stores the current letter (and sender) that is processed on the stash. If the
