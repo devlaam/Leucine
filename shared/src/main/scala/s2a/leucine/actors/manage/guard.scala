@@ -40,7 +40,7 @@ import scala.concurrent.duration.DurationInt
 object ActorGuard :
 
   /** Collection of all actors that are relevant for keeping the threadpool alive. */
-  private var actors: Set[Actor[?]] = Set.empty
+  private var actors: Set[Actor] = Set.empty
 
   /**
    * See if all the actors that are running have completed. We do not put synchronized
@@ -57,7 +57,7 @@ object ActorGuard :
    * normally since it is mostly done at the start of the application. Synchronization is
    * needed if called concurrently from within an other actor threads.  */
   /** Put an actor under guard. */
-  def add(actor: Actor[?]): Unit = synchronized { actors = actors + actor }
+  def add(actor: Actor): Unit = synchronized { actors = actors + actor }
 
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are

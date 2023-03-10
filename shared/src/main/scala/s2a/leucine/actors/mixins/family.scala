@@ -32,7 +32,6 @@ private[actors] trait FamilyDefs :
   private[actors] def familyTerminate(complete: Boolean) = ()
   private[actors] def familyAbandon(name: String) = ()
 
-
 /**
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
@@ -40,17 +39,17 @@ private[actors] trait FamilyDefs :
 private trait FamilyChild extends ActorDefs :
 
   /* Local type */
-  private[actors] type CL <: Actor.Letter
-  private[actors] type RS <: Actor[?]
+  private[actors] type CL
+  private[actors] type RS
 
   /** The type for all Senders for messages that can be relayed between parent and child. */
-  type RelaySender = RS
+  type ChildSender = RS
 
   /** The super type for the letters the childeren may receive. */
   type ChildLetter = CL
 
-  /** The actor type of the children. */
-  type ChildActor = BareActor[ChildLetter, RelaySender, ?]
+  /** The actor type of the combined children. */
+  type ChildActor = BareActor { type MyLetter >: ChildLetter ; type Sender >: ChildSender }
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
@@ -119,12 +118,12 @@ private trait FamilyChild extends ActorDefs :
   /**
    * Sends a letter from sender on the a specific child. Results true if the letter
    * was accepted by the child. */
-  private def passOn(letter: ChildLetter, sender: RelaySender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
+  private[actors] def passOn(letter: ChildLetter, sender: ChildSender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
 
   /**
    * Forward a message to all children, or children of which the name pass the test 'include'.
    * Returns the number of children that accepted the letter. */
-  protected def relay(letter: ChildLetter, sender: RelaySender, include: String => Boolean): Int =
+  protected def relay(letter: ChildLetter, sender: ChildSender, include: String => Boolean): Int =
     val selected = children.filter((key,_) => include(key)).values
     if context.trace then println(s"In actor=$path: relay: children.size=${children.size}, selected.size=${selected.size}")
     selected.map(passOn(letter,sender)).count(identity)
@@ -132,7 +131,7 @@ private trait FamilyChild extends ActorDefs :
   /**
    * Forward a message to one specific child on the basis of its name. Returns true if successful and
    * false if that child is not present or does not accept the letter. */
-  protected def pass(letter: ChildLetter, sender: RelaySender, name: String): Boolean =
+  protected def pass(letter: ChildLetter, sender: ChildSender, name: String): Boolean =
     children.get(name).map(passOn(letter,sender)).getOrElse(false)
 
 
@@ -193,9 +192,9 @@ private trait FamilyParent extends ActorDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[ChildLetter <: Actor.Letter, RelaySender <: Actor[?]] extends FamilyChild, FamilyMain :
+trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends FamilyChild, FamilyMain :
   private[actors] type CL = ChildLetter
-  private[actors] type RS = RelaySender
+  private[actors] type RS = ChildSender
 
   override def path: String = name
 
@@ -207,10 +206,10 @@ trait FamilyRoot[ChildLetter <: Actor.Letter, RelaySender <: Actor[?]] extends F
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[ChildLetter <: Actor.Letter, Parent <: Actor.Parent, RelaySender <: Actor[?]] extends FamilyChild, FamilyMain, FamilyParent :
+trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
   private[actors] type CL = ChildLetter
   private[actors] type PA = Parent
-  private[actors] type RS = RelaySender
+  private[actors] type RS = ChildSender
 
 
 /**

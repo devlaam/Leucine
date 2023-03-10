@@ -47,7 +47,7 @@ private class Console(val name: String) extends BasicActor[Console.Letter] :
     CLI.close()
     stopDirect()
 
-  def start(actor: Actor.Any): Unit =
+  def start(actor: Actor): Unit =
     ActorGuard.add(actor)
     stop()
 

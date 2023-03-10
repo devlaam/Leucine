@@ -96,7 +96,7 @@ trait ClientSocket() :
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Null,Null], LogInfo :
+class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider.Letter,Actor], LogInfo :
 
   /* There is only one 'Server' so we may fix the name here. */
   val name = "server"
@@ -204,7 +204,7 @@ object Server :
  * we could have chosen the BasicActor as well. This actor is part of a family but does not have childeren of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the childeren. But less is more. */
-class Provider(val name: String, protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter,Actor.Any], TimingActor, FamilyLeaf[Server], LogInfo :
+class Provider(val name: String, protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter,Actor], TimingActor, FamilyLeaf[Server], LogInfo :
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */

@@ -38,7 +38,7 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Monit
   /** The character that will be used in the full name definitions of the actors.*/
   protected def familyPathSeparator: Char = '.'
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
-  type Sender <: Actor[?]
+  type Sender <: Actor
   /** The name of this actor. */
   def name: String
   /** The fullname of this actor, contains the full path to the first ancestor.*/
@@ -51,7 +51,7 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Monit
  * checking (due to type erasure you cannot check the Actor itself). This can be obtained using
  * matching. ML is the super type for the letters you may receive, YL is the super type for the
  * letters you may send. The latter usually is the union of two or more type hyrarchies.  */
-trait Actor[ML <: Actor.Letter] :
+trait Actor :
 
   /**
    * Name of this actor. Note: this is user defined should be unique in a within family among its siblings.
@@ -100,10 +100,7 @@ trait Actor[ML <: Actor.Letter] :
 
 object Actor :
   /** Having children defines the parent */
-  type Parent = Actor[?] with FamilyChild
-
-  /** If you want somewhere to accept any actor, use All */
-  type Any = Actor[?]
+  type Parent = Actor with FamilyChild
 
   /** This is the base type for all your mail. */
   trait Letter
@@ -121,8 +118,7 @@ object Actor :
   /**
    * Use the Anonymous Actor as a sender if you do not have a context or do want to reveal yourself.
    * It is not possible to return an answer to the Anonymous sender. Also, trying to stop it will fail. */
-  object Anonymous extends Actor[Letter] :
-    private[actors] type MyLetter = Letter
+  object Anonymous extends Actor :
     /** How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"
     /** Anonymous actor is not part of a familty. */

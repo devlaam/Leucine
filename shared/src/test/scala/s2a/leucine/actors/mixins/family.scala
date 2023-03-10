@@ -25,7 +25,7 @@ extension (value: Int)
 trait ActorTreeSupply :
   implicit val ac: ActorContext = ActorContext.system
 
-  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor.Any], FamilyTree[Tree], FamilyChildExtra :
+  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor], FamilyTree[Tree], FamilyChildExtra :
 
     private def write(kind: String) = writeln(s"$kind$path")
 
@@ -63,78 +63,117 @@ trait ActorFamilySupply :
   implicit val ac: ActorContext = ActorContext.system
 
 
-  class Outside(val name: String) extends StandardActor[Outside.Letter,Outside.Accept]:
+  class Outside(val name: String) extends StandardActor[OutsideX.Letter,OutsideX.Accept], TimingActor:
+    post(OutsideX.Bell,1.seconds)
 
-    def receive(letter: Outside.Letter, sender: Sender) = ???
+    def receive(letter: OutsideX.Letter, sender: Sender) = (letter,sender) match
+      case(OutsideX.Text(msg), s: Anonymous) => {}
+      case(OutsideX.Text(msg), s: Outside) => {}
+      case(OutsideX.Bell,_) => {}
 
-  object Outside :
+
+
+  object OutsideX :
     sealed trait Letter extends Actor.Letter
     case class Text(msg: String) extends Letter
-    type Accept = Actor.Anonymous
+    case object Bell extends Letter
+    type Accept = Actor.Anonymous | Outside
 
+  val outside = new Outside("boo")
 
   object Level :
-    sealed trait Letter extends Actor.Letter
-    case class Common(msg: String) extends Letter
+    sealed trait LetterX extends Actor.Letter
+    case object Common extends Level0.LetterY, Level1A.LetterZ, Level1B.LetterW
 
-  class Level0(val name: String) extends StandardActor[Level0.Letter,Level0.Accept], FamilyRoot[Level.Letter,Outside] :
-    adopt(Level1A("1a",this))
-    //adopt(Level1B("1b",this))
+  class Level0(val name: String) extends StandardActor[Level0.LetterY,Level0.Accept], FamilyRoot[Level1A.LetterZ & Level1B.LetterW, Level1A.Accept & Level1B.Accept] :
+  //class Level0(val name: String) extends StandardActor[Level0.LetterY,Level0.Accept], FamilyRoot[Level1A.LetterZ, Level1A.Accept] :
+    val level1A = Level1A("1a",this)
+    val level1B = Level1B("1b",this)
+    adopt(level1A)
+    adopt(level1B)
+    level1A.send(Level1A.Test1A,Actor.Anonymous)
+    level1A.send(Level1A.Test1A,outside)
+    level1A.send(Level1A.Test1A,this)
+
+    level1B.send(Level1B.Test1B,Actor.Anonymous)
+    level1B.send(Level1B.Test1B,outside)
+    //level1B.send(Level1B.Test1B,this) // Dit kan niet en dat klopt.
+
     //adopt(Level1C("1c",this))
 
-    def receive(letter: Level0.Letter, sender: Sender) = ???
+    def receive(letter: MyLetter, sender: Sender) = (letter,sender) match
+      case (Level0.Test0, s: Actor.Anonymous) =>
+      case (Level0.Test0, s: Outside) =>
+      //case (Level0.Test0, s: Level0) => // Dit kan niet en dat klopt.
+      //case (Level.Common, s: Actor.Anonymous) =>
+      //case (Level.Common, s: Outside) =>
+      //case (Level.Common, s: Level0) => // Dit kan niet en dat klopt.
+
+      //case (cl: ChildLetter, rs: ChildSender) => relay(cl,rs,_ => true)
+      case (Level.Common, rs: ChildSender) => relay(Level.Common,rs,_ => true)
+      //case (Level1A.Test1A, rs: ChildSender) => relay(cl,rs,_ => true) // Dit kan niet en dat klopt.
+      //case (Level1B.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) // Dit kan niet en dat klopt.
 
 
   object Level0 :
-    sealed trait Letter extends Level.Letter
-    case class Text(msg: String) extends Letter
+    sealed trait LetterY extends Actor.Letter
+    case object Test0 extends LetterY
     type Accept = Actor.Anonymous | Outside
 
 
-  class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A.Letter,Level1A.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
-    def receive(letter: Level1A.Letter, sender: Sender) = ???
+  //class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A.LetterZ,Level1A.Accept], FamilyBranch[Level.LetterX,Level0,Null] :
+  class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A.LetterZ,Level1A.Accept], FamilyLeaf[Level0] :
+    def receive(letter: Level1A.LetterZ, sender: Sender) = ???
 
   object Level1A :
-    sealed trait Letter extends Level.Letter
-    case class Text(msg: String) extends Letter
-    type Accept = Actor.Anonymous | Outside
+    sealed trait LetterZ extends Actor.Letter
+    case object Test1A extends LetterZ
+    type Accept = Actor.Anonymous | Outside | Level0
 
 
-  class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B.Letter,Level1B.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
-    def receive(letter: Level1B.Letter, sender: Sender) = ???
+  //class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B.LetterW,Level1B.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
+  class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B.LetterW,Level1B.Accept], FamilyLeaf[Level0] :
+    def receive(letter: Level1B.LetterW, sender: Sender) = ???
 
   object Level1B :
-    sealed trait Letter extends Level.Letter
-    case class Text(msg: String) extends Letter
+    sealed trait LetterW extends Actor.Letter
+    case object Test1B extends LetterW
     type Accept = Actor.Anonymous | Outside
 
 
-  class Level1C(val name: String, protected val parent: Level0) extends StandardActor[Level1C.Letter,Level1C.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
-    def receive(letter: Level1C.Letter, sender: Sender) = ???
-
-  object Level1C :
-    sealed trait Letter extends Level.Letter
-    case class Text(msg: String) extends Letter
-    type Accept = Actor.Anonymous | Outside
+  val level0 = new Level0("l0")
+  level0.send(Level0.Test0,Actor.Anonymous)
+  level0.send(Level0.Test0,outside)
+  level0.send(Level.Common,outside)
 
 
 
-  class Level2(val name: String, protected val parent: Level1A) extends StandardActor[Level2.Letter,Level2.Accept], FamilyBranch[Level3.Letter,Level1A,Null] :
-    def receive(letter: Level2.Letter, sender: Sender) = ???
+  // class Level1C(val name: String, protected val parent: Level0) extends StandardActor[Level1C.Letter,Level1C.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
+  //   def receive(letter: Level1C.Letter, sender: Sender) = ???
 
-  object Level2 :
-    sealed trait Letter extends Actor.Letter
-    case class Text(msg: String) extends Letter
-    type Accept = Actor.Anonymous
+  // object Level1C :
+  //   sealed trait Letter extends Level.LetterX
+  //   case class Text(msg: String) extends Letter
+  //   type Accept = Actor.Anonymous | Outside
 
 
-  class Level3(val name: String, protected val parent: Level2) extends StandardActor[Level3.Letter,Level3.Accept], FamilyLeaf[Level2] :
-    def receive(letter: Level3.Letter, sender: Sender) = ???
 
-  object Level3 :
-    sealed trait Letter extends Actor.Letter
-    case class Text(msg: String) extends Letter
-    type Accept = Actor.Anonymous
+  // class Level2(val name: String, protected val parent: Level1A) extends StandardActor[Level2.Letter,Level2.Accept], FamilyBranch[Level3.Letter,Level1A,Null] :
+  //   def receive(letter: Level2.Letter, sender: Sender) = ???
+
+  // object Level2 :
+  //   sealed trait Letter extends Actor.Letter
+  //   case class Text(msg: String) extends Letter
+  //   type Accept = Actor.Anonymous
+
+
+  // class Level3(val name: String, protected val parent: Level2) extends StandardActor[Level3.Letter,Level3.Accept], FamilyLeaf[Level2] :
+  //   def receive(letter: Level3.Letter, sender: Sender) = ???
+
+  // object Level3 :
+  //   sealed trait Letter extends Actor.Letter
+  //   case class Text(msg: String) extends Letter
+  //   type Accept = Actor.Anonymous
 
 
 

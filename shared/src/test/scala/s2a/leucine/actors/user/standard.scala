@@ -31,7 +31,7 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(mary: Mary, sara: Sara) extends Letter
-    type Accept = Mary | Sara | Actor.Anonymous
+    type Accept = Joni | Mary | Sara | Actor.Anonymous
 
 
 
@@ -55,7 +55,7 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(joni: Joni, sara: Sara) extends Letter
-    type Accept = Joni | Sara | Actor.Anonymous
+    type Accept = Joni | Mary | Sara | Actor.Anonymous
 
 
   class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Sara.Accept] :
@@ -78,7 +78,7 @@ object StandardActorTest extends TestSuite :
     sealed trait Letter extends Actor.Letter
     case class Text(text: String, depth: Int) extends Letter
     case class Config(joni: Joni, mary: Mary) extends Letter
-    type Accept = Joni | Mary | Actor.Anonymous
+    type Accept = Joni | Mary | Sara |Actor.Anonymous
 
 
   val tests = Tests {

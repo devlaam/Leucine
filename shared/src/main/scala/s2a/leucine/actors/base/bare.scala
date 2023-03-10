@@ -26,29 +26,15 @@ package s2a.leucine.actors
 
 
 /** The BareActor implements all methods needed for basic actor operation. It should not be instantiated by the user. */
-abstract class BareActor[ML <: Actor.Letter, SD <: Actor[?], AS <: Actor.State](using context: ActorContext) extends Actor[ML], ActorDefs:
+abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
   import BareActor.Phase
 
   if context.trace then println(s"In actor=$path: Constructed")
 
-  /* MyLetter and ActState implement the bounded types for every mixin. */
-
-  /** This is the base type for all letters that this actor can receive. */
-  private[actors] type MyLetter = ML
-
-  /** This is the base type for all states that this actor can be in. */
-  private[actors] type ActState = AS
-
-  /** This is the envelope type. It may be just a letter or letter+sender. */
-  private[actors] type Env
-
-  /** The Sender type contains a collection of all actors that may send messages to this actor. */
-  type Sender = SD | Actor[MyLetter]
-
   /** Use this inside the actor to test for an anonymous sender */
   type Anonymous = Actor.Anonymous.type
 
-  /** Actor dependend packing of letter and sender into one enveloppe. */
+  /* Pack the letter with the sender. Here the sender is ignored. */
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
 
   /**

@@ -12,7 +12,7 @@ object StashActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor.Any,Stack.State], StashActor :
+  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor,Stack.State], StashActor :
     val name = "Stack"
     override protected def stopped(complete: Boolean) =
       writeln(s"stop:$complete")

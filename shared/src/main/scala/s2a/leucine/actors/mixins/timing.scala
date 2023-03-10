@@ -29,6 +29,9 @@ import java.util.concurrent.Callable
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
+trait SS1
+trait SS2 extends SS1
+trait SS3 extends SS1
 
 /* Methods stub for when there is no timing mixin used. */
 private[actors] trait TimingDefs :
@@ -40,14 +43,11 @@ private[actors] trait TimingDefs :
 
 
 trait TimingActor(using context: ActorContext) extends ActorDefs :
-  self: Actor[MyLetter] =>
+  self: Actor =>
   import TimingActor.Event
 
-  /* See if this actor is still active. */
-  def isActive: Boolean
-
   /** Actor dependend packing of letter and sender into one enveloppe. */
-  private[actors] def pack(letter: MyLetter, sender: Sender | Actor[MyLetter]): Env
+  private[actors] def pack(letter: MyLetter, sender: Sender | self.type): Env
 
   /** Triggers the processLoop into execution, depending on the phase. */
   private[actors] def processTrigger(): Unit

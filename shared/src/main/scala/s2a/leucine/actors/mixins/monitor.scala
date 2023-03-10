@@ -209,11 +209,11 @@ object MonitorActor :
 
   object Trace :
     def empty(time: Long) = new Trace(time,"",Action.Created,"","")
-    def apply[L,S <: Actor[?]](time: Long, actor: String, accept: Boolean, env: BareActor.Envelope[L,S]): Trace =
+    def apply[L,S <: Actor](time: Long, actor: String, accept: Boolean, env: BareActor.Envelope[L,S]): Trace =
       apply(time,actor,if accept then Action.Accepted else Action.Refused,env)
-    def apply[L,S <: Actor[?]](time: Long, actor: String, action: Action, env: BareActor.Envelope[L,S]): Trace =
+    def apply[L,S <: Actor](time: Long, actor: String, action: Action, env: BareActor.Envelope[L,S]): Trace =
       new Trace(time,actor,action,env.letter.toString,env.sender.path)
-    def apply[L,S <: Actor[?]](time: Long, actor: String, action: Action): Trace =
+    def apply[L,S <: Actor](time: Long, actor: String, action: Action): Trace =
       new Trace(time,actor,action,"","")
 
   /** Class to return the results on a monitor probe. */
