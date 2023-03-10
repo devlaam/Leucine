@@ -3,6 +3,7 @@ package s2a.leucine.actors
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
+import scala.annotation.nowarn
 import utest.*
 
 import s2a.control.{Buffer, Deferred}
@@ -59,122 +60,130 @@ trait ActorTreeSupply :
 
 
 /* Hetrogeneous hierarchy */
-trait ActorFamilySupply :
+object ActorFamilySupply extends TestSuite :
+  import TestMethods.*
   implicit val ac: ActorContext = ActorContext.system
 
+  /* Due to a bug in uTest we must define all nested objects out of the Tests macro.
+   * Not the most beautiful design.
+   * This generates an macro expansion error??
+   *   val tests = Tests {
+   *     object X :
+   *       object Y }
+   */
 
-  class Outside(val name: String) extends StandardActor[OutsideX.Letter,OutsideX.Accept], TimingActor:
-    post(OutsideX.Bell,1.seconds)
-
-    def receive(letter: OutsideX.Letter, sender: Sender) = (letter,sender) match
-      case(OutsideX.Text(msg), s: Anonymous) => {}
-      case(OutsideX.Text(msg), s: Outside) => {}
-      case(OutsideX.Bell,_) => {}
-
-
-
-  object OutsideX :
+  object Outside_ :
     sealed trait Letter extends Actor.Letter
     case class Text(msg: String) extends Letter
     case object Bell extends Letter
-    type Accept = Actor.Anonymous | Outside
+    //type Accept = Actor.Anonymous | Outside
 
-  val outside = new Outside("boo")
+  object Level_ :
+    sealed trait Letter extends Actor.Letter
+    case object Common extends Level0_.Letter, Level1A_.Letter, Level1B_.Letter, Level1C_.Letter
 
-  object Level :
-    sealed trait LetterX extends Actor.Letter
-    case object Common extends Level0.LetterY, Level1A.LetterZ, Level1B.LetterW
+  object Level0_ :
+    sealed trait Letter extends Actor.Letter
+    case object Test0 extends Letter
+    //type Accept = Actor.Anonymous | Outside
 
-  class Level0(val name: String) extends StandardActor[Level0.LetterY,Level0.Accept], FamilyRoot[Level1A.LetterZ & Level1B.LetterW, Level1A.Accept & Level1B.Accept] :
-  //class Level0(val name: String) extends StandardActor[Level0.LetterY,Level0.Accept], FamilyRoot[Level1A.LetterZ, Level1A.Accept] :
-    val level1A = Level1A("1a",this)
-    val level1B = Level1B("1b",this)
-    adopt(level1A)
-    adopt(level1B)
-    level1A.send(Level1A.Test1A,Actor.Anonymous)
-    level1A.send(Level1A.Test1A,outside)
-    level1A.send(Level1A.Test1A,this)
+  object Level1A_ :
+    sealed trait Letter extends Actor.Letter
+    case object Test1A extends Letter
+    //type Accept = Actor.Anonymous | Outside | Level0
 
-    level1B.send(Level1B.Test1B,Actor.Anonymous)
-    level1B.send(Level1B.Test1B,outside)
-    //level1B.send(Level1B.Test1B,this) // Dit kan niet en dat klopt.
+  object Level1B_ :
+    sealed trait Letter extends Actor.Letter
+    case object Test1B extends Letter
+    //type Accept = Actor.Anonymous | Outside
 
-    //adopt(Level1C("1c",this))
+  object Level1C_ :
+    sealed trait Letter extends Actor.Letter
+    case class Text(msg: String) extends Letter
+    //type Accept = Actor.Anonymous | Outside | Level1A
 
-    def receive(letter: MyLetter, sender: Sender) = (letter,sender) match
-      case (Level0.Test0, s: Actor.Anonymous) =>
-      case (Level0.Test0, s: Outside) =>
-      //case (Level0.Test0, s: Level0) => // Dit kan niet en dat klopt.
-      //case (Level.Common, s: Actor.Anonymous) =>
-      //case (Level.Common, s: Outside) =>
-      //case (Level.Common, s: Level0) => // Dit kan niet en dat klopt.
+  object Level2A_ :
+    sealed trait Letter extends Actor.Letter
+    case class Text(msg: String) extends Letter
 
-      //case (cl: ChildLetter, rs: ChildSender) => relay(cl,rs,_ => true)
-      case (Level.Common, rs: ChildSender) => relay(Level.Common,rs,_ => true)
-      //case (Level1A.Test1A, rs: ChildSender) => relay(cl,rs,_ => true) // Dit kan niet en dat klopt.
-      //case (Level1B.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) // Dit kan niet en dat klopt.
+  val tests = Tests {
 
+    type Outside_Accept = Actor.Anonymous | Outside
+    type Level0_Accept = Actor.Anonymous | Outside
+    type Level0_ChildrenLetters = Level1A_.Letter & Level1B_.Letter & Level1C_.Letter
+    type Level0_ChildrenAccept  = Level1A_Accept & Level1B_Accept & Level1C_Accept
+    type Level1A_Accept = Actor.Anonymous | Outside | Level0
+    type Level1B_Accept = Actor.Anonymous | Outside
+    type Level1C_Accept = Actor.Anonymous | Outside | Level1A
 
-  object Level0 :
-    sealed trait LetterY extends Actor.Letter
-    case object Test0 extends LetterY
-    type Accept = Actor.Anonymous | Outside
+    class Outside(val name: String) extends StandardActor[Outside_.Letter,Outside_Accept], TimingActor :
+      post(Outside_.Bell,1.seconds)
 
+      @nowarn /* This method does not generate a warning outside of the tests macro expansion */
+      def receive(letter: Outside_.Letter, sender: Sender) = (letter,sender) match
+        case(Outside_.Text(msg), s: Anonymous) => ()
+        case(Outside_.Text(msg), s: Outside) => ()
+        case(Outside_.Bell,_) => ()
 
-  //class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A.LetterZ,Level1A.Accept], FamilyBranch[Level.LetterX,Level0,Null] :
-  class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A.LetterZ,Level1A.Accept], FamilyLeaf[Level0] :
-    def receive(letter: Level1A.LetterZ, sender: Sender) = ???
-
-  object Level1A :
-    sealed trait LetterZ extends Actor.Letter
-    case object Test1A extends LetterZ
-    type Accept = Actor.Anonymous | Outside | Level0
+    val outside = new Outside("boo")
 
 
-  //class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B.LetterW,Level1B.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
-  class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B.LetterW,Level1B.Accept], FamilyLeaf[Level0] :
-    def receive(letter: Level1B.LetterW, sender: Sender) = ???
+    class Level0(val name: String) extends StandardActor[Level0_.Letter,Level0_Accept], FamilyRoot[Level0_ChildrenLetters, Level0_ChildrenAccept] :
+      val level1A = Level1A("1a",this)
+      val level1B = Level1B("1b",this)
+      val level1C = Level1C("1c",this)
+      adopt(level1A,level1B,level1C)
+      level1A.send(Level1A_.Test1A,Actor.Anonymous)
+      level1A.send(Level1A_.Test1A,outside)
+      level1A.send(Level1A_.Test1A,this)
+      level1B.send(Level1B_.Test1B,Actor.Anonymous)
+      level1B.send(Level1B_.Test1B,outside)
+      level1C.send(Level1C_.Text("ba"),level1A)
+      compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.replaceAll("\\s","") ==> "Found:(Level0.this.level1B:Level1B)Required:Level0.this.level1C.Sender"
+      compileError("level1B.send(Level1B_.Test1B,this)").msg.replaceAll("\\s","") ==> "Found:(Level0.this:Level0)Required:Level0.this.level1B.Sender"
 
-  object Level1B :
-    sealed trait LetterW extends Actor.Letter
-    case object Test1B extends LetterW
-    type Accept = Actor.Anonymous | Outside
+      relay(Level_.Common,outside,_ => true)
+      compileError("relay(Level_.Common,this,_ => true)").msg.replaceAll("\\s","") ==> "Found:(Level0.this:Level0)Required:Level0.this.ChildSender"
+      compileError("relay(Level1A_.Test1A,outside,_ => true)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level1A_.Test1A.typeRequired:Level0.this.ChildLetter"
+      compileError("relay(Level1B_.Test1B,outside,_ => true)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level1B_.Test1B.typeRequired:Level0.this.ChildLetter"
 
-
-  val level0 = new Level0("l0")
-  level0.send(Level0.Test0,Actor.Anonymous)
-  level0.send(Level0.Test0,outside)
-  level0.send(Level.Common,outside)
-
-
-
-  // class Level1C(val name: String, protected val parent: Level0) extends StandardActor[Level1C.Letter,Level1C.Accept], FamilyBranch[Level2.Letter,Level0,Null] :
-  //   def receive(letter: Level1C.Letter, sender: Sender) = ???
-
-  // object Level1C :
-  //   sealed trait Letter extends Level.LetterX
-  //   case class Text(msg: String) extends Letter
-  //   type Accept = Actor.Anonymous | Outside
-
-
-
-  // class Level2(val name: String, protected val parent: Level1A) extends StandardActor[Level2.Letter,Level2.Accept], FamilyBranch[Level3.Letter,Level1A,Null] :
-  //   def receive(letter: Level2.Letter, sender: Sender) = ???
-
-  // object Level2 :
-  //   sealed trait Letter extends Actor.Letter
-  //   case class Text(msg: String) extends Letter
-  //   type Accept = Actor.Anonymous
+      @nowarn /* This method does not generate match warnings outside of the tests macro expansion */
+      def receive(letter: MyLetter, sender: Sender) = (letter,sender) match
+        case (Level0_.Test0, s: Actor.Anonymous) => ()
+        case (Level0_.Test0, s: Outside) => ()
+        case (Level_.Common, rs: ChildSender) => relay(Level_.Common,rs,_ => true)
+        case (Level0_.Test0, s: Level0) => ()
+        case (Level_.Common, s: Level0) => ()
+        /* Testing these hit a compiler bug. */
+        //compileError("case (Level0_.Test0, s: Level0) => ()").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level_.Common, s: Level0) => ()").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level1A_.Test1A, rs: ChildSender) => relay(cl,rs,_ => true)").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level1B_.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) ").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
 
 
-  // class Level3(val name: String, protected val parent: Level2) extends StandardActor[Level3.Letter,Level3.Accept], FamilyLeaf[Level2] :
-  //   def receive(letter: Level3.Letter, sender: Sender) = ???
+    class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A_.Letter,Level1A_Accept], FamilyBranch[Level2A_.Letter,Actor,Level0] :
+      val level2A = Level2A("2A",this)
+      adopt(level2A)
+      level2A.send(Level2A_.Text("hi"),this)
+      level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
+      compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level1A_.Test1A.typeRequired:Level1A.this.level2A.MyLetter"
+      compileError("level2A.send(Level_.Common,Actor.Anonymous)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level_.Common.typeRequired:Level1A.this.level2A.MyLetter"
 
-  // object Level3 :
-  //   sealed trait Letter extends Actor.Letter
-  //   case class Text(msg: String) extends Letter
-  //   type Accept = Actor.Anonymous
+      def receive(letter: Level1A_.Letter, sender: Sender) = ()
 
+    class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B_.Letter,Level1B_Accept], FamilyLeaf[Level0] :
+      def receive(letter: Level1B_.Letter, sender: Sender) = ()
+
+    class Level1C(val name: String, protected val parent: Level0) extends StandardActor[Level1C_.Letter,Level1C_Accept], FamilyLeaf[Level0] :
+      def receive(letter: Level1C_.Letter, sender: Sender) = ()
+
+    class Level2A(val name: String, protected val parent: Level1A) extends StandardActor[Level2A_.Letter,Actor], FamilyLeaf[Level1A] :
+      def receive(letter: Level2A_.Letter, sender: Sender) = ()
+
+    val level0 = Level0("l0")
+    level0.send(Level0_.Test0,Actor.Anonymous)
+    level0.send(Level0_.Test0,outside)
+    level0.send(Level_.Common,outside) }
 
 
 object TestMethods :
@@ -202,6 +211,7 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   deferred.await()
 
   val tests = Tests {
+
     /* This tests if the forward (=>>) recursive buildup of children completes, has the correct buildup and
      * the backward (<==) does not start after a finish command (strict message sequence). Also tests if the
      * teardown is deterministic (ie. parents only stop after all there children stopped) */
