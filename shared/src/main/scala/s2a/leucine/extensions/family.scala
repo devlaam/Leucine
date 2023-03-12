@@ -42,11 +42,6 @@ trait FamilyChildExtra :
 
   /* Methods to extend. */
   protected def children: Map[String,ChildActor]
-  protected def relay(letter: ChildLetter, sender: ChildSender, include: String => Boolean): Int
-  protected def pass(letter: ChildLetter, sender: ChildSender, name: String): Boolean
-
-  /** Forward a message to all children */
-  protected def relay(letter: ChildLetter, sender: ChildSender): Int = relay(letter,sender,_ => true)
 
   /** Test if the actor has a child with this name. */
   protected def has(name: String): Boolean = children.contains(name)

@@ -36,6 +36,8 @@ private[actors] trait StashDefs :
   private[actors] def stashDequeue(tail: List[Env]): List[Env] = tail
   private[actors] def stashEmpty: Boolean = true
   private[actors] def stashClear(): Unit = ()
+  trait StashOps :
+    private[actors] def storeEnv(envelope: Env): Unit
 
 
 /** Mixin if you need to store letters away.  */
@@ -90,18 +92,18 @@ trait StashActor extends ActorDefs :
 
 
   /** Object Stash for user to manipulate the Stash */
-  protected object Stash :
-
-    /**
-     * Automatically stores the current letter (and sender) that is processed on the stash. If the
-     * actor was asked to finish, store will still work, since the letter was from before that request. */
-    def store(): Unit = storeRequest = true
+  protected object Stash extends StashOps :
 
     /**
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
-    def store(letter: MyLetter, sender: Sender): Unit = stashbox.enqueue(pack(letter,sender))
+    private[actors] def storeEnv(envelope: Env): Unit = stashbox.enqueue(envelope)
+
+    /**
+     * Automatically stores the current letter (and sender) that is processed on the stash. If the
+     * actor was asked to finish, store will still work, since the letter was from before that request. */
+    def store(): Unit = storeRequest = true
 
     /** Clear the stash instantly. */
     def clear(): Unit = stashClear()

@@ -71,7 +71,7 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Save access to the children of this actor. Note, this is temporary copy,
    * so it may already have changed after being read. */
-  protected def children: Map[String,ChildActor] = _children
+  protected[actors] def children: Map[String,ChildActor] = _children
 
   /** Get the current number of children. For internal use, not synchronized. */
   private[actors] override def familySize: Int = _children.size
@@ -98,7 +98,7 @@ transparent private trait FamilyChild extends ActorDefs :
    * prohibiting multiple adoptions per actor yourself. If an actor under this name already
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
    * working. This is automatic.  */
-  protected def adopt(children: ChildActor *): Unit = synchronized {
+  protected[actors] def adopt(children: ChildActor *): Unit = synchronized {
     if context.trace then println(s"In actor=$path:  adopting: ${children.map(_.path)}")
     children.foreach(child  => _children += child.name -> child ) }
 
@@ -123,7 +123,7 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Forward a message to all children, or children of which the name pass the test 'include'.
    * Returns the number of children that accepted the letter. */
-  protected def relay(letter: ChildLetter, sender: ChildSender, include: String => Boolean): Int =
+  private[actors] def relayEnv(letter: ChildLetter, sender: ChildSender, include: String => Boolean): Int =
     val selected = children.filter((key,_) => include(key)).values
     if context.trace then println(s"In actor=$path: relay: children.size=${children.size}, selected.size=${selected.size}")
     selected.map(passOn(letter,sender)).count(identity)
@@ -131,7 +131,7 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Forward a message to one specific child on the basis of its name. Returns true if successful and
    * false if that child is not present or does not accept the letter. */
-  protected def pass(letter: ChildLetter, sender: ChildSender, name: String): Boolean =
+  private[actors] def passEnv(letter: ChildLetter, sender: ChildSender, name: String): Boolean =
     children.get(name).map(passOn(letter,sender)).getOrElse(false)
 
 

@@ -57,6 +57,26 @@ abstract class BasicActor[ML <: Actor.Letter](using val context: ActorContext) e
   /* Defines the initialState to be the Default state, the user does not need to implement this. */
   private[actors] final def initialState: ActState = Actor.State.Default
 
+  /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
+  extension (fc: FamilyChild {type ChildLetter <: Actor.Letter; type ChildSender = Actor} )
+    /**
+     * Forward a message to all children, or children of which the name pass the test 'include'.
+     * Returns the number of children that accepted the letter. */
+    protected def relay(letter: fc.ChildLetter, include: String => Boolean = _ => true): Int = fc.relayEnv(letter,Actor.Anonymous,include)
+    /**
+     * Forward a message to one specific child on the basis of its name. Returns true if successful and
+     * false if that child is not present or does not accept the letter. */
+    protected def pass(letter: fc.ChildLetter, name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
+
+
+  /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
+  extension (stash: StashOps)
+    /**
+     * Store a letter manually on the stash. With this method, you may replace one
+     * letter with an other and reprocess later. If the actor was asked to
+     * finish, store will still work, since the letter was from before that request. */
+    protected def store(letter: MyLetter): Unit = stash.storeEnv(letter)
+
   /**
    * Implement this method in your actor to process the letters send to you. There is no sender, so it is not
    * possible to see who send the letter, except from the content of the letter itself. Likewise it is not

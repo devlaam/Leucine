@@ -21,6 +21,9 @@ extension (value: Int)
     else if  exp == 0     then 1
     else                  pow(value,exp)
 
+extension (value: String)
+  def clean(n: Int = 200) = value.replaceAll("\\s","").replaceAll("s2a.leucine.actors.","").take(n)
+
 
 /* Homogeneous hierarchy */
 trait ActorTreeSupply :
@@ -139,13 +142,13 @@ object ActorFamilySupply extends TestSuite :
       level1B.send(Level1B_.Test1B,Actor.Anonymous)
       level1B.send(Level1B_.Test1B,outside)
       level1C.send(Level1C_.Text("ba"),level1A)
-      compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.replaceAll("\\s","") ==> "Found:(Level0.this.level1B:Level1B)Required:Level0.this.level1C.Sender"
-      compileError("level1B.send(Level1B_.Test1B,this)").msg.replaceAll("\\s","") ==> "Found:(Level0.this:Level0)Required:Level0.this.level1B.Sender"
+      compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.clean() ==> "Found:(Level0.this.level1B:Level1B)Required:Level0.this.level1C.Sender"
+      compileError("level1B.send(Level1B_.Test1B,this)").msg.clean() ==> "Found:(Level0.this:Level0)Required:Level0.this.level1B.Sender"
 
       relay(Level_.Common,outside,_ => true)
-      compileError("relay(Level_.Common,this,_ => true)").msg.replaceAll("\\s","") ==> "Found:(Level0.this:Level0)Required:Level0.this.ChildSender"
-      compileError("relay(Level1A_.Test1A,outside,_ => true)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level1A_.Test1A.typeRequired:Level0.this.ChildLetter"
-      compileError("relay(Level1B_.Test1B,outside,_ => true)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level1B_.Test1B.typeRequired:Level0.this.ChildLetter"
+      compileError("relay(Level_.Common,this,_ => true)").msg.clean(75) ==> "Found:(ActorFamilySupply.Level_.Common.type,Level0,Any)Required:FamilyChild"
+      compileError("relay(Level1A_.Test1A,outside,_ => true)").msg.clean(78) ==> "Found:(ActorFamilySupply.Level1A_.Test1A.type,Outside,Any)Required:FamilyChild"
+      compileError("relay(Level1B_.Test1B,outside,_ => true)").msg.clean(78) ==> "Found:(ActorFamilySupply.Level1B_.Test1B.type,Outside,Any)Required:FamilyChild"
 
       @nowarn /* This method does not generate match warnings outside of the tests macro expansion */
       def receive(letter: MyLetter, sender: Sender) = (letter,sender) match
@@ -155,10 +158,10 @@ object ActorFamilySupply extends TestSuite :
         case (Level0_.Test0, s: Level0) => ()
         case (Level_.Common, s: Level0) => ()
         /* Testing these hit a compiler bug. */
-        //compileError("case (Level0_.Test0, s: Level0) => ()").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
-        //compileError("case (Level_.Common, s: Level0) => ()").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
-        //compileError("case (Level1A_.Test1A, rs: ChildSender) => relay(cl,rs,_ => true)").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
-        //compileError("case (Level1B_.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) ").msg.replaceAll("\\s","") ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level0_.Test0, s: Level0) => ()").msg.clean() ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level_.Common, s: Level0) => ()").msg.clean() ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level1A_.Test1A, rs: ChildSender) => relay(cl,rs,_ => true)").msg.clean() ==> "Dit kan niet en dat klopt."
+        //compileError("case (Level1B_.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) ").msg.clean() ==> "Dit kan niet en dat klopt."
 
 
     class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A_.Letter,Level1A_Accept], FamilyBranch[Level2A_.Letter,Actor,Level0] :
@@ -166,8 +169,8 @@ object ActorFamilySupply extends TestSuite :
       adopt(level2A)
       level2A.send(Level2A_.Text("hi"),this)
       level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
-      compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level1A_.Test1A.typeRequired:Level1A.this.level2A.MyLetter"
-      compileError("level2A.send(Level_.Common,Actor.Anonymous)").msg.replaceAll("\\s","") ==> "Found:s2a.leucine.actors.ActorFamilySupply.Level_.Common.typeRequired:Level1A.this.level2A.MyLetter"
+      compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.clean() ==> "Found:ActorFamilySupply.Level1A_.Test1A.typeRequired:Level1A.this.level2A.MyLetter"
+      compileError("level2A.send(Level_.Common,Actor.Anonymous)").msg.clean() ==> "Found:ActorFamilySupply.Level_.Common.typeRequired:Level1A.this.level2A.MyLetter"
 
       def receive(letter: Level1A_.Letter, sender: Sender) = ()
 

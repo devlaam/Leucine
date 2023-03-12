@@ -29,9 +29,6 @@ import java.util.concurrent.Callable
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
-trait SS1
-trait SS2 extends SS1
-trait SS3 extends SS1
 
 /* Methods stub for when there is no timing mixin used. */
 private[actors] trait TimingDefs :

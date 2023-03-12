@@ -57,6 +57,24 @@ abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](us
   /** Implement this method in your actor to define the first state when calling receive. Can also be implemented by a val. */
   protected def initial: ActState
 
+  /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
+  extension (fc: FamilyChild {type ChildLetter <: Actor.Letter; type ChildSender <: Actor} )
+    /**
+     * Forward a message to all children, or children of which the name pass the test 'include'.
+     * Returns the number of children that accepted the letter. */
+    protected def relay(letter: fc.ChildLetter, sender: fc.ChildSender, include: String => Boolean = _ => true): Int = fc.relayEnv(letter,sender,include)
+    /**
+     * Forward a message to one specific child on the basis of its name. Returns true if successful and
+     * false if that child is not present or does not accept the letter. */
+    protected def pass(letter: fc.ChildLetter, sender: fc.ChildSender, name: String): Boolean = fc.passEnv(letter,sender,name)
+
+  extension (stash: StashOps)
+    /**
+     * Store a letter and sender manually on the stash. With this method, you may replace one
+     * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
+     * finish, store will still work, since the letter was from before that request. */
+    protected def store(letter: MyLetter, sender: Sender): Unit = stash.storeEnv(pack(letter,sender))
+
   /**
    * Implement this method in your actor to process the letters send to you. There sender contains a reference
    * to the actor that send the message. To be able to return an answer, you must know the original actor type.
