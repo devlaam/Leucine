@@ -38,10 +38,14 @@ import scala.concurrent.duration.DurationInt
  * outstanding tasks or log the actor message sends for debugging purposes */
 trait ActorContext extends PlatformContext with ExecutionContext :
 
-  /**
-   * Helper value to switch on/off tracing for debugging. Start your debug lines with
-   * if trace then ... */
-  val trace = false
+  /** Helper value to switch on/off tracing for debugging. Start your debug lines with if actorTracing then ... */
+  def actorTracing: Boolean
+
+  /** The prefix used in actornames for actors that are workers */
+  def workerPrefix: String
+
+  /** The character that will be used in the full name definitions of the actors.*/
+  def familyPathSeparator: Char
 
   /** Future to be executed on the ActorContext. */
   def future[T](task: => T): Future[T] =
@@ -61,7 +65,8 @@ trait ActorContext extends PlatformContext with ExecutionContext :
 
 object ActorContext :
   /** The default ActorImplementation for the users. */
-  private class ActorImplementation(val pause: FiniteDuration) extends ContextImplementation with ActorContext
+  private class ActorImplementation(val parameters: SystemParameters) extends ContextImplementation, ActorContext, SystemParameters :
+    export parameters.*
   /** Provide a default actor implementation with a pause time of 10ms.*/
-  val system: ActorContext = new ActorImplementation(10.millis)
+  val system: ActorContext = new ActorImplementation(DefaultSystem)
 

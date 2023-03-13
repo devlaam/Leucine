@@ -33,10 +33,6 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Monit
   private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Sender (Enveloppe).*/
   private[actors] type Env
-  /** The prefix used in actornames for actors that are workers */
-  protected def workerPrefix: String = "#"
-  /** The character that will be used in the full name definitions of the actors.*/
-  protected def familyPathSeparator: Char = '.'
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
   type Sender <: Actor
   /** The name of this actor. */

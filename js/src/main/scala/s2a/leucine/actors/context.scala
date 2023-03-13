@@ -64,7 +64,7 @@ abstract class ContextImplementation extends PlatformContext :
    * it arrives it may produce an result of some type. This result is subsequently passed to the
   * digestable process. As longs as there is no result yet, the attempt should produce None */
   def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
-    new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,pause)
+    new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,idleThreadPause)
 
   /**
    * In JavaScript it is not possible to shutdown the only executer, so this just makes sure that no new

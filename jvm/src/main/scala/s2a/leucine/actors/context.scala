@@ -64,7 +64,7 @@ abstract class ContextImplementation extends PlatformContext :
    * it arrives it may produce an result of some type. This result is subsequently passed to the
    * digestable process. As longs as there is no result yet, the attempt should produce None */
   def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
-    new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,pause,scheduler)
+    new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,idleThreadPause,scheduler)
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed

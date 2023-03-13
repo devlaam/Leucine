@@ -99,7 +99,7 @@ transparent private trait FamilyChild extends ActorDefs :
    * exists, it is overwritten. Once adopted, the actor is only removed after it stopped
    * working. This is automatic.  */
   protected[actors] def adopt(children: ChildActor *): Unit = synchronized {
-    if context.trace then println(s"In actor=$path:  adopting: ${children.map(_.path)}")
+    if context.actorTracing then println(s"In actor=$path:  adopting: ${children.map(_.path)}")
     children.foreach(child  => _children += child.name -> child ) }
 
   /**
@@ -117,7 +117,7 @@ transparent private trait FamilyChild extends ActorDefs :
 
   /** Get the first actor from the path, and the rest of the path, is any */
   private[actors] def splitPath(path: String): (String,String) =
-    val index = path.indexOf(familyPathSeparator)
+    val index = path.indexOf(context.familyPathSeparator)
     if index < 0 then (path,"") else (path.substring(0,index), path.substring(index+1))
 
   /**
@@ -139,7 +139,7 @@ transparent private trait FamilyChild extends ActorDefs :
    * Returns the number of children that accepted the letter. */
   private[actors] def relayEnv(letter: ChildLetter, sender: ChildSender, include: String => Boolean): Int =
     val selected = children.filter((key,_) => include(key)).values
-    if context.trace then println(s"In actor=$path: relay: children.size=${children.size}, selected.size=${selected.size}")
+    if context.actorTracing then println(s"In actor=$path: relay: children.size=${children.size}, selected.size=${selected.size}")
     selected.map(passOn(letter,sender)).count(identity)
 
   /**
@@ -153,6 +153,9 @@ transparent private trait FamilyChild extends ActorDefs :
  * Holds all the general methods needed for managing the family actor.
  * For internal use. This is always mixed in. */
 transparent private trait FamilyMain extends ActorDefs :
+
+  /** Reference to the actor context. */
+  private[actors] def context: ActorContext
 
   /** Counter to generate a unique name for the childeren/workers of this actor. */
   private var _workersCounter: Long = 0L
@@ -174,7 +177,7 @@ transparent private trait FamilyMain extends ActorDefs :
    * need a bunch of actors on the fly to solve some tasks and then they are gone use workerName. */
   protected def workerName: String =
     _workersCounter = _workersCounter + 1
-    s"$workerPrefix${_workersCounter}"
+    s"${context.workerPrefix}${_workersCounter}"
 
 
 /**
@@ -188,6 +191,9 @@ transparent private trait FamilyParent extends ActorDefs :
   /** The type of the parent for this actor. */
   type Parent = PA
 
+  /** Reference to the actor context. */
+  private[actors] def context: ActorContext
+
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
    * class definition of this actor. That way the parent is an stable reference. */
@@ -199,7 +205,7 @@ transparent private trait FamilyParent extends ActorDefs :
   /**
    * The path returns the full lineage of this actor: dot separated names of all parents.
    * The dot can be replaced by your own char by overriding the familySepChar. */
-  override def path: String = s"${parent.path}$familyPathSeparator$name"
+  override def path: String = s"${parent.path}${context.familyPathSeparator}$name"
 
 
 /**
@@ -254,7 +260,7 @@ trait FamilyTree[Parent <: Actor.Parent] extends FamilyChild, FamilyMain :
    * The path returns the full lineage of this actor: dot separated names of all parents.
    * The dot can be replaced by your own char by overriding the familySepChar. */
   override def path: String = parent match
-    case Some(p) => s"${p.path}$familyPathSeparator$name"
+    case Some(p) => s"${p.path}${context.familyPathSeparator}$name"
     case None    => name
 
 

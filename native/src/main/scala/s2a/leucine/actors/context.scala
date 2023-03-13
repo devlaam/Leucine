@@ -103,7 +103,7 @@ abstract class ContextImplementation  extends PlatformContext :
         /* In this situation we must also pause after each round of attempts so that we do
          * not hammer the attempt methods, or consume too much time on this loop when there
          * are none. */
-        Thread.sleep(pause.toMillis)
+        Thread.sleep(idleThreadPause.toMillis)
       /* See if we must call the hook. */
       /* If there are no tasks, timers or attempts left, where is nothing to continue. */
       continue = continue && !(tasks.isEmpty && timers.isEmpty && attempts.isEmpty)

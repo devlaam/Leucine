@@ -44,12 +44,6 @@ private[actors] trait MonitorDefs :
 trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
   import MonitorActor.{Action, Trace, Tracing}
 
-  /** The prefix used in actornames for actors that are workers */
-  protected def workerPrefix: String
-
-  /** The character that will be used in the full name definitions of the actors.*/
-  protected def familyPathSeparator: Char
-
   /* Fields to measure the time spend inside the thread and outside the thread */
   private var lastClockTime: Long = 0
   private var threadStartMoment: Long = 0
@@ -120,12 +114,12 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
     probeNow(false) }
 
   /** Values contains if this actor is a worker based on its name prefix (# per default) */
-  private val isWorker = name.startsWith(workerPrefix)
+  private val isWorker = name.startsWith(context.workerPrefix)
 
   /* For workers we do not want to use the full name, but a one name for all workers in this family. So
    * we only use the path up to and including the worker prefix. The rest is dropped. */
   /** path under which we store the data for this actor. Its the full family name or a shorten version in case of a worker. */
-  private val storePath = if isWorker then path.substring(0,path.length()-name.length()+workerPrefix.length()) else path
+  private val storePath = if isWorker then path.substring(0,path.length()-name.length()+context.workerPrefix.length()) else path
 
   /**
    * Method called from the actor to indicate that operations have commenced. Since the actor mixes in this trait,

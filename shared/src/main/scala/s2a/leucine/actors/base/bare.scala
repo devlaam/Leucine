@@ -29,7 +29,7 @@ package s2a.leucine.actors
 abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
   import BareActor.Phase
 
-  if context.trace then println(s"In actor=$path: Constructed")
+  if context.actorTracing then println(s"In actor=$path: Constructed")
 
   /** Use this inside the actor to test for an anonymous sender */
   type Anonymous = Actor.Anonymous.type
@@ -84,7 +84,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /** Call processPlay to continue the processLoop. */
   private def processPlay(): Unit =
-    if context.trace then println(s"In actor=$path: processPlay() called in phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: processPlay() called in phase=${phase}")
     deferred(processLoop())
 
   /**
@@ -92,7 +92,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
    * of letters that could not be completed due to a forced stop. If finish is true
    * the stop was not forced, but the current queue was allowed to be completed. */
   private def processStop(dropped: Boolean, finish: Boolean): Unit = synchronized {
-    if context.trace then println(s"In actor=$path: processStop() called in phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: processStop() called in phase=${phase}")
     /* Stop all scheduled timers. */
     eventsCancel()
     /* Stop/finish the family tree recursively. */
@@ -147,7 +147,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
    * Primairy process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queues are exhausted. */
   private def processLoop(): Unit =
-    if context.trace then println(s"In actor=$path: enter processLoop() in phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: enter processLoop() in phase=${phase}")
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
      * destashed evenlopes if any and possibly one event. Since the eventsDequeue and the
      * mailbox.dequeue both need synchronization we do that on once. */
@@ -165,7 +165,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
   private def processExit(dropped: Boolean): Unit = synchronized {
-    if context.trace then println(s"In actor=$path: exit processLoop() in phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
@@ -184,7 +184,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /** Triggers the processLoop into execution, depending on the phase. */
   final private[actors] def processTrigger(): Unit = synchronized {
-    if context.trace then println(s"In actor=$path: Trigger message, phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: Trigger message, phase=${phase}")
     phase = phase match
       /* If this is the very first trigger, we must also call beforeStart() */
       case Phase.Start  => processPlay(); Phase.Play
@@ -229,7 +229,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
    * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may stop. */
   final private[actors] def sendEnvelope(envelope: Env): Boolean = synchronized {
-    if context.trace then println(s"In actor=$path: Enqueue message $envelope, phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: Enqueue message $envelope, phase=${phase}")
     /* Trace if we have to, we accepted (active) or refused (inactive) the letter processing */
     monitorSend(phase.active,envelope)
     /* See if we may accept the letter, if so, enqueue it and trigger the processLoop. */
@@ -240,7 +240,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /** Stop this actor asap, but complete the running letter. */
   private[actors] def stopWith(finish: Boolean): Unit = synchronized {
-    if context.trace then println(s"In actor=$path: Before stopInternal($finish) message, phase=${phase}")
+    if context.actorTracing then println(s"In actor=$path: Before stopInternal($finish) message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
       case Phase.Start  => deferred(processStop(false,finish)); Phase.Stop

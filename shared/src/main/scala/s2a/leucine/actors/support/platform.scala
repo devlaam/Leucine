@@ -39,7 +39,7 @@ trait PlatformContext:
   def load: Int = 4
 
   /** The natural pause time for this context. Its meaning and use is platform dependant. */
-  def pause: FiniteDuration
+  def idleThreadPause: FiniteDuration
 
   /** True as long as there has been no Shutdown request. */
   def active: Boolean
