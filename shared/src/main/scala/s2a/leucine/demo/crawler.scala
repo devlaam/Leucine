@@ -26,7 +26,7 @@ package s2a.leucine.demo
 
 import java.io.PrintWriter
 
-import scala.collection.immutable.{Map, SortedSet}
+import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 import s2a.leucine.actors.*
 import s2a.leucine.extensions.*
@@ -37,14 +37,16 @@ import s2a.leucine.actors.Actor.Anonymous
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
 val monitor = new ActorMonitor {
-  import MonitorActor.{Trace, Action, Tracing}
+  import MonitorActor.{Trace, Post, Action, Tracing}
   import ActorMonitor.Record
   /* This callback is directly called in case an actor is added. Not used in this example. */
   def added(path: String, actors: Map[String,Record]): Unit = ()
   /* This callback is directly called in case an actor is removed. Not used in this example. */
   def removed(path: String, actors: Map[String,Record]): Unit = ()
   /* This callback is periodically called on the actor to update the actor matrics. Not used in this example. */
-  def sampled(path: String, actors: Map[String,Record]): Unit = ()
+  def sampled(path: String, actors: SortedMap[String,Record]): Unit = ()
+  /* This callback is periodically called on the actor collect all posts. Not used in this example. */
+  def posted(path: String, posts: SortedMap[Post,Long]): Unit = ()
   /* This callback is periodically called on the actor collect all tracing. Not used in this example. */
   def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit = ()
   /* Method you can implement to show the results obtained sofar. Since this example only has one short
@@ -53,7 +55,8 @@ val monitor = new ActorMonitor {
     val writer: PrintWriter = new PrintWriter(System.out)
     report(writer)
     writer.flush()
-  /* Global setting of tracing. Here we enable is for all actors. */
+  /* Global setting of tracing. Here we enable is for all actors. Since the personal setting is Default
+   * this should activate TraceCount and TraceFull. */
   override def tracing = Tracing.Enabled }
 
 
