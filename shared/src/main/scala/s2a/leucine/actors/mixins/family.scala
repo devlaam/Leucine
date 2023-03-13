@@ -115,19 +115,8 @@ transparent private trait FamilyChild extends ActorDefs :
     /* If we are terminating, and this is the last child, call the deferred termination steps. */
     termination.foreach(complete => if _children.isEmpty then deferred(processTerminate(complete))) }
 
-  /** Get the first actor from the path, and the rest of the path, is any */
-  private[actors] def splitPath(path: String): (String,String) =
-    val index = path.indexOf(context.familyPathSeparator)
-    if index < 0 then (path,"") else (path.substring(0,index), path.substring(index+1))
-
-  /**
-   * Get the actor with this path/name if it exists. It will recurse into the tree if needed. Test for
-   * its existance gy using isDefined on the result. */
-  protected def get(path: String): Option[Actor] = splitPath(path) match
-    case (name,"")   => children.get(name)
-    case (name,rest) => children.get(name) match
-      case Some(fc: FamilyChild) => fc.get(rest)
-      case _                     => None
+  /** Get the actor with this path/name if it exists. It will recurse into the family tree if needed. */
+  protected[actors] def get(path: String): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,children)
 
   /**
    * Sends a letter from sender on the a specific child. Results true if the letter
@@ -147,6 +136,25 @@ transparent private trait FamilyChild extends ActorDefs :
    * false if that child is not present or does not accept the letter. */
   private[actors] def passEnv(letter: ChildLetter, sender: ChildSender, name: String): Boolean =
     children.get(name).map(passOn(letter,sender)).getOrElse(false)
+
+
+/* Contains method specific to the FamilyChild. */
+private[actors] object FamilyChild :
+  /** General method to search a the family tree. */
+  def searchFor(path: String, separator: Char, actors: Map[String,Actor]): Option[Actor] =
+    Auxiliary.splitAt(path,separator) match
+      /* In case there is no rest path available, the actor with this name should now be present at this level. */
+      case (name,"")   => Left(actors.get(name))
+      /* If there is some more to the path, that must be a child of the actor with the prior name. */
+      case (name,rest) => actors.get(name) match
+        /* So it must be of the type FamilyChild to be able to have children. */
+        case Some(fc: FamilyChild) => Right(fc: FamilyChild,rest)
+        /* If not, this actor does not exists. */
+        case _                     => Left(None)
+    /* In order to make sure we get no nested stackframes we must end with the drill down call on the child. */
+    match
+      case Left(actorOpt) => actorOpt
+      case Right(fc,rest) => fc.get(rest)
 
 
 /**

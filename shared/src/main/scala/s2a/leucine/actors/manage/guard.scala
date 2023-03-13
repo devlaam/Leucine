@@ -33,14 +33,14 @@ import scala.concurrent.duration.DurationInt
 /**
  * This object is meant to be run in the main thread and enables you to exit the application
  * when all actors have finished. Put all the actors you create under guard by calling add
- * on them direcly after creation. For families only the root actor needs to be added. Note
+ * on them direcly after creation. For families only the root actor should to be added. Note
  * that if you create actors within other actors which are not a adopted by a family you must
  * add them as well, or call watch(force = true), if you want to properly close the application
  * at termination. */
 object ActorGuard :
 
   /** Collection of all actors that are relevant for keeping the threadpool alive. */
-  private var actors: Set[Actor] = Set.empty
+  private var actors: Map[String,Actor] = Map.empty
 
   /**
    * See if all the actors that are running have completed. We do not put synchronized
@@ -51,13 +51,20 @@ object ActorGuard :
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
-  private def allTerminated = actors.forall(_.isTerminated)
+  private def allTerminated = actors.values.forall(_.isTerminated)
 
   /* This method is synchronized for it modifies the actors set. This is not a big problem
    * normally since it is mostly done at the start of the application. Synchronization is
    * needed if called concurrently from within an other actor threads.  */
-  /** Put an actor under guard. */
-  def add(actor: Actor): Unit = synchronized { actors = actors + actor }
+  /** Put an actor under guard. Make sure its name is unique */
+  def add(actor: Actor): Unit = synchronized { actors += actor.name -> actor }
+
+  /**
+   * Get the actor with this path/name if it exists. It will recurse into the family tree if required
+   * Since normally all stand alone actors are registered in the ActorGuard, you may obtain any
+   * actor in the system using this method. If you are already inside a family actor, it is more
+   * efficient to search just that tree. */
+  def get(path: String)(using context: ActorContext): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,actors)
 
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are
