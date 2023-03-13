@@ -115,6 +115,20 @@ transparent private trait FamilyChild extends ActorDefs :
     /* If we are terminating, and this is the last child, call the deferred termination steps. */
     termination.foreach(complete => if _children.isEmpty then deferred(processTerminate(complete))) }
 
+  /** Get the first actor from the path, and the rest of the path, is any */
+  private[actors] def splitPath(path: String): (String,String) =
+    val index = path.indexOf(familyPathSeparator)
+    if index < 0 then (path,"") else (path.substring(0,index), path.substring(index+1))
+
+  /**
+   * Get the actor with this path/name if it exists. It will recurse into the tree if needed. Test for
+   * its existance gy using isDefined on the result. */
+  protected def get(path: String): Option[Actor] = splitPath(path) match
+    case (name,"")   => children.get(name)
+    case (name,rest) => children.get(name) match
+      case Some(fc: FamilyChild) => fc.get(rest)
+      case _                     => None
+
   /**
    * Sends a letter from sender on the a specific child. Results true if the letter
    * was accepted by the child. */

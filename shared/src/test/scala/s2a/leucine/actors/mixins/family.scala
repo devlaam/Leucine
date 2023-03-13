@@ -29,7 +29,7 @@ extension (value: String)
 trait ActorTreeSupply :
   implicit val ac: ActorContext = ActorContext.system
 
-  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor], FamilyTree[Tree], FamilyChildExtra :
+  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor], FamilyTree[Tree] :
 
     private def write(kind: String) = writeln(s"$kind$path")
 
@@ -150,6 +150,13 @@ object ActorFamilySupply extends TestSuite :
       compileError("relay(Level1A_.Test1A,outside,_ => true)").msg.clean(78) ==> "Found:(ActorFamilySupply.Level1A_.Test1A.type,Outside,Any)Required:FamilyChild"
       compileError("relay(Level1B_.Test1B,outside,_ => true)").msg.clean(78) ==> "Found:(ActorFamilySupply.Level1B_.Test1B.type,Outside,Any)Required:FamilyChild"
 
+      get("1a").isDefined    ==> true
+      get("1a.2a").isDefined ==> true
+      get("1b.2a").isDefined ==> false
+
+      get("1a")    ==> Some(level1A)
+      get("1b.2a") ==> None
+
       @nowarn /* This method does not generate match warnings outside of the tests macro expansion */
       def receive(letter: MyLetter, sender: Sender) = (letter,sender) match
         case (Level0_.Test0, s: Actor.Anonymous) => ()
@@ -165,7 +172,7 @@ object ActorFamilySupply extends TestSuite :
 
 
     class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A_.Letter,Level1A_Accept], FamilyBranch[Level2A_.Letter,Actor,Level0] :
-      val level2A = Level2A("2A",this)
+      val level2A = Level2A("2a",this)
       adopt(level2A)
       level2A.send(Level2A_.Text("hi"),this)
       level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
@@ -186,7 +193,9 @@ object ActorFamilySupply extends TestSuite :
     val level0 = Level0("l0")
     level0.send(Level0_.Test0,Actor.Anonymous)
     level0.send(Level0_.Test0,outside)
-    level0.send(Level_.Common,outside) }
+    level0.send(Level_.Common,outside)
+
+}
 
 
 object TestMethods :

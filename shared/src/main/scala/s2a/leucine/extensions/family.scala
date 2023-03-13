@@ -42,9 +42,3 @@ trait FamilyChildExtra :
 
   /* Methods to extend. */
   protected def children: Map[String,ChildActor]
-
-  /** Test if the actor has a child with this name. */
-  protected def has(name: String): Boolean = children.contains(name)
-
-  /** Get the child actor with this name. if it exists. */
-  protected def get(name: String): Option[ChildActor] = children.get(name)
