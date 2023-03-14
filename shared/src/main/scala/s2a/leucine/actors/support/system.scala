@@ -39,6 +39,8 @@ trait SystemParameters :
   def workerPrefix: String
   /** The character that will be used in the full name definitions of the actors. */
   def familyPathSeparator: Char
+  /** Global maximum number of letters per mailbox. */
+  def maxMailboxSize: Int
 
 
 /**
@@ -50,3 +52,4 @@ object DefaultSystem extends SystemParameters :
   val idleThreadPause: FiniteDuration = 10.millis
   val workerPrefix: String            = "#"
   val familyPathSeparator: Char       = '.'
+  val maxMailboxSize: Int             = Int.MaxValue

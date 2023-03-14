@@ -47,6 +47,9 @@ trait ActorContext extends PlatformContext with ExecutionContext :
   /** The character that will be used in the full name definitions of the actors.*/
   def familyPathSeparator: Char
 
+  /** Global maximum number of letters per mailbox. */
+  def maxMailboxSize: Int
+
   /** Future to be executed on the ActorContext. */
   def future[T](task: => T): Future[T] =
     val promise = Promise[T]()

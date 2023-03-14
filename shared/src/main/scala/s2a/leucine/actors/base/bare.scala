@@ -64,6 +64,9 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
   /** See if this actor is completely terminated. */
   def isTerminated: Boolean = synchronized { phase == Phase.Done }
 
+  /** The maximum number of letters this actor accepts. Override to change its value. */
+  protected def maxMailboxSize: Int = context.maxMailboxSize
+
   /**
    * Generates an unique name of the structure ClassName#Hash. This can be used instead of
    * self invented names. It is given inside the actor constructor.  */
@@ -170,8 +173,8 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
       case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
-      /* If there are no more letters on the queue or stashed, wait for new ones, otherwise continue */
-      case Phase.Play   => if !eventsPresent && !stashFlush && mailbox.isEmpty then Phase.Pause else { processPlay(); Phase.Play }
+      /* If there are no more letters on the queue or stashed, report it and wait for new ones, otherwise continue */
+      case Phase.Play   => if !eventsPresent && !stashFlush && mailbox.isEmpty then { protectEmpty(); Phase.Pause } else { processPlay(); Phase.Play }
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
       /* If we got an Finish letter, we must complete the queue or stop.  */
@@ -227,14 +230,21 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /**
    * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
-   * for delivery. Note, this does not mean it also processed. In the mean time the actor may stop. */
+   * for delivery. Note, this does not mean it also processed. In the mean time the actor may have stopped.
+   * A letter is accepted if the actor is still active and if there is room in the mailbox to store it. */
   final private[actors] def sendEnvelope(envelope: Env): Boolean = synchronized {
     if context.actorTracing then println(s"In actor=$path: Enqueue message $envelope, phase=${phase}")
-    /* Trace if we have to, we accepted (active) or refused (inactive) the letter processing */
-    monitorSend(phase.active,envelope)
-    /* See if we may accept the letter, if so, enqueue it and trigger the processLoop. */
-    if !phase.active then false else
+    /* A letter is only accepted as long as we are active and the mailbox is not too full. */
+    val accept = phase.active && mailbox.size < maxMailboxSize
+    /* Trace if we have to, we accepted or refused the letter processing */
+    monitorSend(accept,envelope)
+    /* If the message is not accepted say so, else do ... */
+    if !accept then false else
+      /* ... test the current mailbox size for the high level water mark. */
+      protectHigh(mailbox.size)
+      /* ... put the mail in the box */
       mailbox.enqueue(envelope)
+      /* ... trigger the processLoop, so execution starts, if currenly in Pause. */
       processTrigger()
       true }
 

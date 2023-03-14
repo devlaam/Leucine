@@ -39,6 +39,7 @@ private[actors] trait TimingDefs :
   private[actors] def eventsDequeue(tail: List[Env]): List[Env] = tail
 
 
+/** Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events. */
 trait TimingActor(using context: ActorContext) extends ActorDefs :
   import TimingActor.Event
 
