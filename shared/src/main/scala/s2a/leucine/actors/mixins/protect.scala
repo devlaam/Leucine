@@ -27,40 +27,48 @@ package s2a.leucine.actors
 
 /* Methods stub for when there is no timing mixin used. */
 private[actors] trait ProtectDefs :
-  private[actors] def protectHigh(size: Int): Unit = ()
-  private[actors] def protectEmpty(): Unit = ()
+  private[actors] def protectRaise(size: Int): Unit = ()
+  private[actors] def protectReset(): Unit = ()
+  private[actors] def protectAlarm(): Unit = ()
+  private[actors] def protectIdle: Boolean = true
 
 
 /** Mixin which guards the level of the mailbox and generates events when it gets to full. */
 trait ProtectActor(using context: ActorContext) extends ActorDefs :
+  import ProtectActor.Alarm
 
   /* This variable makes sure the alarm calls are never repeated.
    * Once an alarm is issued (sizeAlarm(true) called) it will not
    * happen again, unless the mailbox was completely empty at least
    * once before, which will trigger the call sizeAlarm(false) */
-  private var alarmIssued: Boolean = false
-
-  /** Execute an action later on the context. */
-  private[actors] def deferred(action: => Unit): Unit
+  private var alarm: Alarm = Alarm.Idle
 
   /** Test the current mailbox size for the high water mark. */
-  private[actors] override def protectHigh(size: Int): Unit =
+  private[actors] override def protectRaise(size: Int): Unit = synchronized {
     /* We only need to raise an alarm if we did not already do so and if the size exceeds the limit. */
-    if !alarmIssued && size >= alarmSize then
-      /* Make sure we do not raise the alarm for each message. */
-      alarmIssued = true
-      /* Call the event handler and report that we have too many mails. Note this is in a separate thread,
-       * since we are currently in a synchronized environment. */
-      deferred(sizeAlarm(true))
+    if (alarm == Alarm.Idle) && (size >= alarmSize) then alarm = Alarm.Raised }
 
-  /** Report that the mailbox is empty again and the actor becomes idle. */
-  private[actors] override def protectEmpty(): Unit =
-    /* We do not report an empty mailbox when we did not report a full one before. */
-    if alarmIssued then
-      /* Reset the alarm */
-      alarmIssued = false
-      /* Call the event handler and report that the mailbox is empty and we are ready for new work. */
-      deferred(sizeAlarm(false))
+  /** See if we must issue an alarm and do so only if an alarm was raised before. */
+  private[actors] override def protectAlarm(): Unit =
+    val call = synchronized { alarm match
+      case Alarm.Idle    => false
+      case Alarm.Raised  => alarm = Alarm.Issued; true
+      case Alarm.Issued  => false }
+    if call then sizeAlarm(true)
+
+
+  /**
+   * See if we must reset an alarm and do so only if an alarm was issued before.
+   * A raised but not yet issued alarm is cleared. */
+  private[actors] override def protectReset(): Unit =
+    val call = synchronized { alarm match
+      case Alarm.Idle    => false
+      case Alarm.Raised  => alarm = Alarm.Idle; false
+      case Alarm.Issued  => alarm = Alarm.Idle; true }
+    if call then sizeAlarm(false)
+
+  /** See if an alarm was raised of issued. If neigher is the case this returns true. */
+  private[actors] override def protectIdle: Boolean = synchronized { alarm == Alarm.Idle }
 
   /**
    * The number of letters in the mailbox that issues an alarm. This must be a constant, since
@@ -70,6 +78,22 @@ trait ProtectActor(using context: ActorContext) extends ActorDefs :
   /**
    * Implement an event handler for the situation the mailbox exceeds the limit set in alarmSize,
    * (full = true) and for when mailbox, stash and event queues are all depleted (full = false).
-   * Each call happens only once, and you only receive an call signalling empty queues after a
-   * a call with full=true was made.  */
+   * Each call happens only once, and you always receive an call signalling empty queues after a
+   * a call with full=true was made and before the next call with full=true is made. When stopFinish()
+   * is called the call sizeAlarm(false) will come after the last letter is processed and but before
+   * stopped() is called. When stopDirect() is called, the sizeAlarm(true/false) may not come at all. */
   protected def sizeAlarm(full: Boolean): Unit
+
+
+object ProtectActor :
+
+  /* Possible states of the alarm. */
+  enum Alarm :
+    /* There was no alarm, or all alarms are handled and reported. */
+    case Idle
+    /* The mailbox got to full at least once. This has not yet been reported. */
+    case Raised
+    /* The mailbox got to full at least once and this was reported to the user. */
+    case Issued
+
+

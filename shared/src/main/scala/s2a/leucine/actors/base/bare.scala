@@ -155,6 +155,8 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
      * destashed evenlopes if any and possibly one event. Since the eventsDequeue and the
      * mailbox.dequeue both need synchronization we do that on once. */
     var envs: List[Env] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
+    /* Test if must report an empty mailbox */
+    if envs.isEmpty then protectReset()
     /* Loop through all envelopes. We try to process as many as we can within this timeslice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
@@ -163,22 +165,27 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
        * events possible then there is no need to synchronize. The stash is always filled within the
        * letter handling. */
       envs = if eventsPossible then synchronized { eventsDequeue(stashDequeue(envs.tail)) } else stashDequeue(envs.tail)
+      /* In case we have mailbox protection we may have to take action, since the queue may have grown */
+      protectAlarm()
     /* The loop is done, we must exit. If this due to a stop, we may have dropped envelopes. */
     processExit(!envs.isEmpty)
 
   /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
   private def processExit(dropped: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
+    /* When there are no more letters on the queue or stash, and we do not need to report the the mailbox is empty
+     * there are no active tasks present  */
+     def noTasks =  !stashFlush && mailbox.isEmpty && protectIdle
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
       case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
-      /* If there are no more letters on the queue or stashed, report it and wait for new ones, otherwise continue */
-      case Phase.Play   => if !eventsPresent && !stashFlush && mailbox.isEmpty then { protectEmpty(); Phase.Pause } else { processPlay(); Phase.Play }
+      /* If there are no tasks we may pause, otherwise continue */
+      case Phase.Play   => if !eventsPresent && noTasks then Phase.Pause else { processPlay(); Phase.Play }
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
-      /* If we got an Finish letter, we must complete the queue or stop.  */
-      case Phase.Finish => if mailbox.isEmpty then { processStop(dropped,true); Phase.Stop } else { processPlay(); Phase.Finish }
+      /* If we got an Finish letter, we must complete avaible tasks or stop. Events, even when expired, are dropped. */
+      case Phase.Finish => if noTasks then { processStop(dropped,true); Phase.Stop } else { processPlay(); Phase.Finish }
       /* If we got an exteral stop request, make an end to this. */
       case Phase.Stop   => processStop(dropped,false); Phase.Stop
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
@@ -241,7 +248,7 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
     /* If the message is not accepted say so, else do ... */
     if !accept then false else
       /* ... test the current mailbox size for the high level water mark. */
-      protectHigh(mailbox.size)
+      protectRaise(mailbox.size)
       /* ... put the mail in the box */
       mailbox.enqueue(envelope)
       /* ... trigger the processLoop, so execution starts, if currenly in Pause. */

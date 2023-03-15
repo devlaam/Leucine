@@ -57,6 +57,7 @@ The functionality of actors can be extended with mixin's. There are:
 deterministic buildup and teardown sequence.
 * `Stash` mixin, so you can put away a letter for handling later.
 * `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place
+* `Protect` minix, to create backpressure when the mailbox reaches some threshold.
 * `Monitor` mixin and related class, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see: the time spend in each actor, number of children or worker actors, the messages being send around etc.
 
 ## Status
