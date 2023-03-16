@@ -130,11 +130,12 @@ leucine $ native/target/scala-3.2.1/leucine-out
 Started Actor examples on the Native platform.
 Please state the demo you want to run (ticker, server or crawler):
 ```
-and then choose one of them.  The `ticker` and `crawler` are stand alone demo's, the `server`  does not run, due to
-[a bug in the ServerSocket implementation](https://github.com/scala-native/scala-native/issues/3131).
-Hopefully that will be solved soon.
-And although projectNative is still single threaded,
-the Actor implementation runs as if it is working in parallel.
+and then choose one of them.  The `ticker` and `crawler` are stand alone demo's,  the `server` requires an application
+that is able to connect with raw TCP sockets on the localhost, port 8180.
+And although projectNative (currently 0.4.11) is still single threaded, the Actor implementation runs as if it is
+working in parallel. When 0.5.0 comes out, we should have multithreading, but from the user of the actors point
+of view, you will not notice the difference, except a higher execution speed.
+
 
 Although compilation takes a lot longer on Native the run times are amazing.
 The crawler demo on Native runned in 0.7ms on my laptop (compiled with 'release-full', see the file
