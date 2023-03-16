@@ -305,7 +305,7 @@ object TreeActorChildStops extends TestSuite, ActorTreeSupply :
       test("Start with parent")                    - { deferred.compare(list => list.take(1) ==> List("=>>F0")) }
       test("Follows with new children")            - { deferred.compare(list => forward(list).drop(1).distinct.size ==> width)  }
       test("Follows (or mix) with stop children")  - { deferred.compare(list => stop(list).distinct.size ==> width+1)  }
-      test("Follows with abandon children")        - { deferred.compare(list => backward(list.drop(11)).distinct.size ==> width)  }
+      test("Follows with abandon children")        - { deferred.compare(list => backward(list).distinct.size ==> width)  }
       test("All start before  stop children")      - { deferred.compare(list => (1 to width).forall(forwBeforeStop(list)) ==> true)  }
       test("All stop before backward children")    - { deferred.compare(list => (1 to width).forall(stopBeforeBack(list)) ==> true)  }
       test("Follows with parent stop")             - { deferred.compare(list => list.drop(1 + 3*width) ==> List("stopF0"))  }
