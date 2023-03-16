@@ -28,9 +28,12 @@ package s2a.leucine.actors
 /* Methods stub for when there is no family mixin used. */
 private[actors] trait FamilyDefs :
   private[actors] def familySize: Int = 0
-  private[actors] def familyStop(finish: Boolean) = ()
-  private[actors] def familyTerminate(complete: Boolean) = ()
-  private[actors] def familyAbandon(name: String) = ()
+  private[actors] def familyRemoved: Boolean = false
+  private[actors] def familyStop(finish: Boolean): Unit = ()
+  private[actors] def familyTerminate(complete: Boolean): Unit = ()
+  private[actors] def familyAbandon(name: String): Unit = ()
+  private[actors] def familyReport(): Unit = ()
+
 
 /**
  * Holds all the methods needed for managing the children of the family actor member.
@@ -59,14 +62,29 @@ transparent private trait FamilyChild extends ActorDefs :
    * we have to wait for the children to finish */
   private var termination: Option[Boolean] = None
 
+  /** Stop on barren flag. If this is true the actor will stopFinish when all children are gone. */
+  private var stopOnBarren: Boolean = false
+
+  /** See if this actor is still active. */
+  def isActive: Boolean
+
+  /** The mailbox is processed, but no more letters are accepted. Terminate afterwards. */
+  def stopFinish(): Unit
+
   /** Execute an action later on the context. */
   private[actors] def deferred(action: => Unit): Unit
+
+  /** Triggers the processLoop into execution, depending on the phase. */
+  private[actors] def processTrigger(): Unit
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit
 
   /** Variable that holds all the children of this actor. */
   private var _children: Map[String,ChildActor] = Map.empty
+
+  /** Variable that holds all names of the children that are removed */
+  private var removed: List[String] = Nil
 
   /**
    * Save access to the children of this actor. Note, this is temporary copy,
@@ -105,15 +123,61 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Reject a child with a given name. For internal use. Normally, there should not be a reason
    * for the user to do so, but when you want to prohibit the termination of an actor when the
-   * parent stops, this could be one. The parent cannot be removed. Note: children that leave the
-   * parent do not generate an event, for it cannot be guaranteed to run in the same thread as
-   * the letter processing. This might lead to race conditions. So, the child must inform the
-   * parent with a goodbye letter manually if needed. */
+   * parent stops, this could be one. The parent cannot be removed from the child you reject,
+   * so the parent may stop, but will be disposed off only after the child has stopped as well.
+   * A manual call to reject while active also issues a callback 'abandoned' with the childs
+   * name lateron.  */
   protected[actors] def reject(name: String): Unit = synchronized {
-    /* Remove the child from the list */
-    _children -= name
-    /* If we are terminating, and this is the last child, call the deferred termination steps. */
-    termination.foreach(complete => if _children.isEmpty then deferred(processTerminate(complete))) }
+    /* Test if the child is even present. The user may also call this and misspell the name. */
+    if _children.contains(name) then
+      /* Remove the child from the list */
+      _children -= name
+      /* Now see which action has to be taken. */
+      termination match
+        /* If we are terminating, and this is the last child, call the deferred termination steps. */
+        case Some(complete) => if _children.isEmpty then deferred(processTerminate(complete))
+        /* In case we are still active, put them on the list to be reported as abandoned. A processTrigger()
+         * may be needed in case the mailbox is empty so the callbacks are still handled. */
+        case None           => if isActive then { removed = name :: removed ; processTrigger() } }
+
+  private[actors] override def familyRemoved: Boolean = synchronized { !removed.isEmpty }
+
+  /** Report all childeren that rejected themselves (abandoned the parent) as gone. */
+  private[actors] override def familyReport(): Unit =
+    /* Get the removed names and clear the list. Note that the order of the callbacks is
+     * reversed to the order of removal, but since the addition of the names to the removed
+     * childeren list can be any, there is no rationale for reversing this list. */
+    val (report,stop) = synchronized {
+      val result = removed
+      removed = Nil
+      (result,_children.isEmpty && stopOnBarren) }
+    report.foreach(abandoned)
+    if stop then stopFinish()
+
+  /**
+   * Stop this actor with a stopFinish() after all its children have stopped (active=true). If the actor
+   * has no childeren at the moment of this call, it will stopFinish() directly. As long as the stop did not
+   * kick in, it may be cancelled with an other call with active = false. The stopFinish is called
+   * internally after all abandoned callbacks had a chance to run. If the remaining letters in the mailbox
+   * create new childeren, the teardown procedure is not cancelled. The new children are stopped as well. */
+  final protected def stopBarren(active: Boolean): Unit = synchronized {
+    stopOnBarren = active
+    if active && _children.isEmpty then stopFinish() }
+
+  /**
+   * Override this method to see which child has left the parent. This method may arrive some time
+   * later as the actual removal. Every child that has been removed when the actor was still active
+   * will generate a callback. However, there may be removals between deactivation of the actor and
+   * the complete termination, for example after a stopDirect() or stopFinish() call. These will
+   * not generate a callback. Also, the number of childeren may not decrease by one each call.
+   * More children could be removed in the mean time. However, as long as no new children are adopted,
+   * you may assume the number of children will never increase. Once it is zero, all children are
+   * gone, although there still may be callbacks queued up. The order of removal does not correspond
+   * to the order of the callbacks. These can be in any order.
+   * Furthermore, you cannot assume you can send letters to the child up to the moment this callback
+   * arrives. The child most likely is already out of scope for a while. The callback comes 'eventually'. */
+  protected def abandoned(name: String): Unit = ()
+
 
   /** Get the actor with this path/name if it exists. It will recurse into the family tree if needed. */
   protected[actors] def get(path: String): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,children)

@@ -37,6 +37,9 @@ trait ActorTreeSupply :
       write("stop")
       done.foreach(_())
 
+    override protected def abandoned(child: String) =
+      write(s"<<=$child#")
+
     def newChild(i: Int) = adopt(Tree(s"F$i",Some(this),writeln,None))
 
     private var returns: Int = 0
@@ -54,12 +57,18 @@ trait ActorTreeSupply :
         parent match
           case Some(p) => p ! Tree.Backward
           case None    => returns += 1; if returns == 0 then stopFinish()
+      case Tree.Stop =>
+        write("=>>")
+        if parent.isEmpty then stopBarren(true)
+        val relayed = relay(Tree.Stop,this)
+        if relayed == 0 then stopDirect()
 
   object Tree :
     sealed trait Letter extends Actor.Letter
     case class  Create(width: Int, level: Int) extends Letter
     case object Forward extends Letter
     case object Backward extends Letter
+    case object Stop extends Letter
 
 
 /* Hetrogeneous hierarchy */
@@ -208,6 +217,13 @@ object TestMethods :
   def backward(list: List[String]) = list.filter(_.contains("<<="))
   def stop(list: List[String])     = list.filter(_.contains("stop")).reverse
 
+  def forwElm(i: Int): String = s"=>>F0.F$i"
+  def stopElm(i: Int): String = s"stopF0.F$i"
+  def backElm(i: Int): String = s"<<=F$i#F0"
+
+  def forwBeforeStop(list: List[String])(i: Int) = list.indexOf(forwElm(i)) < list.indexOf(stopElm(i))
+  def stopBeforeBack(list: List[String])(i: Int) = list.indexOf(stopElm(i)) < list.indexOf(backElm(i))
+
 
 object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   import TestMethods.*
@@ -225,7 +241,7 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   val tests = Tests {
 
     /* This tests if the forward (=>>) recursive buildup of children completes, has the correct buildup and
-     * the backward (<==) does not start after a finish command (strict message sequence). Also tests if the
+     * the backward (<<=) does not start after a finish command (strict message sequence). Also tests if the
      * teardown is deterministic (ie. parents only stop after all there children stopped) */
     test("sending letters, finish directly afterwards"){
       /* Uncomment to see the result during tests */
@@ -264,4 +280,35 @@ object TreeActorTestFree extends TestSuite, ActorTreeSupply :
       test("Stop ContainsNoBackwardReferences")     - { deferred.compare(list => containsNoBackwardReferences(stop(list)) ==> true) }
       test("Stop ContainsOnlyUniqueElements")       - { deferred.compare(list => containsOnlyUniqueElements(stop(list)) ==> true) }
       test("Stop hasThePyramidLength")              - { deferred.compare(list => hasThePyramidLength(stop(list),width,level) ==> true) } } }
+
+
+object TreeActorChildStops extends TestSuite, ActorTreeSupply :
+
+  import TestMethods.*
+  given Actor.Anonymous = Actor.Anonymous
+  val buffer = Buffer[String]
+  val width = 5
+  val level = 1 // fixed value
+  val deferred = Deferred(buffer.readlns)
+  val tree: Tree = Tree("F0",None,buffer.writeln,Some(deferred.done))
+  tree ! Tree.Create(width,level)
+  tree ! Tree.Stop
+  deferred.await()
+
+  val tests = Tests {
+
+    /* This tests if the forward (=>>) contains width+1 elements and stops with the childeren. The parent stop may come
+     * only after all abandon calls have arrived. */
+    test("sending letters, finish directly afterwards"){
+      /* Uncomment to see the result during tests */
+      //test("Show result")                          - { deferred.compare(list => println(list)) }
+      test("Start with parent")                    - { deferred.compare(list => list.take(1) ==> List("=>>F0")) }
+      test("Follows with new children")            - { deferred.compare(list => forward(list).drop(1).distinct.size ==> width)  }
+      test("Follows (or mix) with stop children")  - { deferred.compare(list => stop(list).distinct.size ==> width+1)  }
+      test("Follows with abandon children")        - { deferred.compare(list => backward(list.drop(11)).distinct.size ==> width)  }
+      test("All start before  stop children")      - { deferred.compare(list => (1 to width).forall(forwBeforeStop(list)) ==> true)  }
+      test("All stop before backward children")    - { deferred.compare(list => (1 to width).forall(stopBeforeBack(list)) ==> true)  }
+      test("Follows with parent stop")             - { deferred.compare(list => list.drop(1 + 3*width) ==> List("stopF0"))  }
+  } }
+
 

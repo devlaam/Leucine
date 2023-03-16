@@ -167,15 +167,20 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
       envs = if eventsPossible then synchronized { eventsDequeue(stashDequeue(envs.tail)) } else stashDequeue(envs.tail)
       /* In case we have mailbox protection we may have to take action, since the queue may have grown */
       protectAlarm()
+    /* If we have any children that were removed report them now. This means we still receive callbacks on the removed
+     * children after a Stop, but only as long as they were rejected when this actor was still active. Note that we
+     * report outside the inner loop. These callbacks are not that important that we want to test for them every processed
+     * letter. When the callback comes eventually, that is sufficient. */
+    familyReport()
     /* The loop is done, we must exit. If this due to a stop, we may have dropped envelopes. */
     processExit(!envs.isEmpty)
 
   /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
   private def processExit(dropped: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
-    /* When there are no more letters on the queue or stash, and we do not need to report the the mailbox is empty
-     * there are no active tasks present  */
-     def noTasks =  !stashFlush && mailbox.isEmpty && protectIdle
+    /* When there are no more letters on the queue or stash, and we do not need to report the mailbox is empty
+     * or some removed children then there are no active tasks present  */
+     def noTasks =  !stashFlush && mailbox.isEmpty && protectIdle && !familyRemoved
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
