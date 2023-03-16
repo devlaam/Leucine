@@ -24,7 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-
 import java.util.concurrent.Callable
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
@@ -155,5 +154,3 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
 object TimingActor :
   /** Auxiliarly class that holds the relevant elements of an event. */
   private class Event[L](val anchor: Object, val letter: L)
-
-

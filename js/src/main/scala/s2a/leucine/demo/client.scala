@@ -1,4 +1,4 @@
-package s2a.leucine.actors
+package s2a.leucine.demo
 
 /**
  * MIT License
@@ -25,13 +25,32 @@ package s2a.leucine.actors
  **/
 
 
-/** Trait that exposes a method to cancel some process. */
-trait Cancellable :
-  /** Tries its best to cancel the scheduled task. */
-  def cancel(): Unit
-  /** See if this a dummy Cancellable */
-  def isEmpty = this == Cancellable.empty
+/** JS platform specific implementation of the ClientSocket */
+class ClientSocketImplementation(jsSocket: Node.Socket) extends ClientSocket :
 
-object Cancellable :
-  /** The dummy Cancellable */
-  val empty = new Cancellable { def cancel() = () }
+  /** Container to collect the data send over the line. */
+  private val data: StringBuilder = StringBuilder()
+
+  /** Method to fill the data container. */
+  private val receive: String => Unit = (s) => data.append(s)
+
+  jsSocket.on("data",receive)
+
+  /** Obtain the port number of the connection on this side. */
+  def localPort: Int  = jsSocket.localPort
+
+  /** Obtain the port number of the connection on the other side. */
+  def remotePort: Int = jsSocket.remotePort
+
+  /** Write (and flush) some text to the socket. */
+  def writeln(text: String): Unit = jsSocket.write(s"$text\n")
+
+  /** Read some text from the socket (up to the newline) */
+  def readln: String =
+    val result = data.toString()
+    data.clear
+    result
+
+  /** Close this socket */
+  def close(): Unit = jsSocket.destroy()
+

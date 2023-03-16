@@ -317,5 +317,3 @@ object BareActor :
 
   /** The Envelope is responsible for holding the letter and the sender together. */
   private[actors] class Envelope[L,S](val letter: L, val sender: S)
-
-

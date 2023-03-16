@@ -26,5 +26,6 @@ package s2a.leucine.demo
 
 import scala.scalajs.js.Date
 
+
 object Time :
   def nowUTC: String = new Date(Date.now).toUTCString()

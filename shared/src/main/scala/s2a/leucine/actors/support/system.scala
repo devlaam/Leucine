@@ -24,10 +24,10 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-
 import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
+
 
 /** Trait to define the parameters needed for the context and platform classes to run. */
 trait SystemParameters :

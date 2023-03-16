@@ -24,8 +24,8 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.net.{Socket => JavaSocket, ServerSocket => JavaServerSocket, InetAddress, SocketTimeoutException }
-import java.io.{IOException, PrintWriter, InputStreamReader, BufferedReader}
+import java.net.{ServerSocket => JavaServerSocket, InetAddress, SocketTimeoutException }
+
 
 /** Native platform specific implementation of the ServerSocket */
 class ServerSocketImplementation extends ServerSocket:
@@ -89,29 +89,3 @@ class ServerSocketImplementation extends ServerSocket:
    * Contains the last error (usually due to an exception) of the last action. Should
    * also be used to test if the last action was successful. */
   def error = _error
-
-
-/** JVM platform specific implementation of the ClientSocket */
-class ClientSocketImplementation(javaSocket: JavaSocket) extends ClientSocket :
-
-  /* Stream access to the port to be able to write data */
-  private val writer: PrintWriter    = new PrintWriter(javaSocket.getOutputStream(), true)
-
-  /* Stream access to the port to be able to read data */
-  private val reader: BufferedReader = new BufferedReader(new InputStreamReader(javaSocket.getInputStream()));
-
-  /** Obtain the port number of the connection on this side. */
-  def localPort: Int  = javaSocket.getLocalPort()
-
-  /** Obtain the port number of the connection on the other side. */
-  def remotePort: Int = javaSocket.getPort()
-
-  /** Write (and flush) some text to the socket. */
-  def writeln(text: String): Unit = writer.println(text)
-
-  /** Read some text from the socket (up to the newline) */
-  def readln: String = reader.readLine()
-
-  /** Close this socket */
-  def close(): Unit = javaSocket.close()
-

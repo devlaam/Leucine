@@ -25,9 +25,6 @@ package s2a.leucine.actors
  **/
 
 
-import scala.collection.mutable
-
-
 /* Methods stub for when there is no stash mixin used. */
 private[actors] trait StashDefs :
   private[actors] type Env
@@ -119,4 +116,3 @@ trait StashActor extends ActorDefs :
 
     /** See is there are any letters on the stash. */
     def isEmpty: Boolean = stashEmpty
-

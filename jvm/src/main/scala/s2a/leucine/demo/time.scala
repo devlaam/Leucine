@@ -26,5 +26,6 @@ package s2a.leucine.demo
 
 import java.time.Instant
 
+
 object Time :
   def nowUTC: String = Instant.now.toString

@@ -45,4 +45,3 @@ object Auxiliary :
      * return the prefix in front and the rest at the back. The rest may contain further
      * occasions of the separator. */
     if index < 0 then (value,"") else (value.substring(0,index), value.substring(index+1))
-

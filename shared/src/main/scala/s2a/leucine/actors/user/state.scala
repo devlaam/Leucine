@@ -25,7 +25,6 @@ package s2a.leucine.actors
  **/
 
 
-
 /**
  * The StateActor is able to respond to messages, and keeps state between all calls. You are obliged to return the same
  * or a new state upon every call. This is better than using vars.  */

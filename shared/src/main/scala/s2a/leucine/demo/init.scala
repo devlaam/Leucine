@@ -26,7 +26,6 @@ package s2a.leucine.demo
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
-
 import s2a.leucine.actors.*
 
 /* Note: The examples are given to illustrate how the actors could be used, and are
@@ -35,34 +34,6 @@ import s2a.leucine.actors.*
 
 /* The default actor context for these examples */
 given actorContext: ActorContext = ActorContext.system
-
-
-
-private class Console(val name: String) extends BasicActor[Console.Letter] :
-
-  CLI.talk("Please state the demo you want to run (ticker, server or crawler): ",answer => this ! Console.Read(answer))
-
-  def stop(goodbye: String = ""): Unit =
-    if !goodbye.isEmpty then println(goodbye)
-    CLI.close()
-    stopDirect()
-
-  def start(actor: Actor): Unit =
-    ActorGuard.add(actor)
-    stop()
-
-  def receive(letter: Console.Letter) = letter match
-    case Console.Read("ticker")  =>  start(new Ticker)
-    case Console.Read("server")  =>  start(new Server)
-    case Console.Read("crawler") =>  start(new Tree("F0",None))
-    case Console.Read(unknown)   =>  stop(s"Unknown demo '$unknown', closing ...")
-
-
-object Console :
-  sealed trait Letter extends Actor.Letter
-  case class Read(text: String) extends Letter
-
-
 
 object Init extends LogInfo:
   import PlatformContext.Platform

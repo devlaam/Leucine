@@ -1,4 +1,4 @@
-package s2a.leucine.extensions
+package s2a.leucine.demo
 
 /**
  * MIT License
@@ -24,21 +24,28 @@ package s2a.leucine.extensions
  * SOFTWARE.
  **/
 
-
-import s2a.leucine.actors.*
-
-/** Experiment to see how easy the user can extend the possibilities of the actors. */
-trait FamilyChildExtra :
-
-  /* The type for all Senders for messages that can be relayed between parent and child. */
-  type ChildSender
-
-  /* The super type for the letters the childeren may receive. */
-  type ChildLetter
-
-  /** The actor type of the children. */
-  type ChildActor
+import java.nio.channels.SocketChannel
+import java.nio.ByteBuffer
 
 
-  /* Methods to extend. */
-  protected def children: Map[String,ChildActor]
+/** JVM platform specific implementation of the ClientSocket */
+class ClientSocketImplementation(socketChannel: SocketChannel) extends ClientSocket :
+
+  /** Obtain the port number of the connection on this side. */
+  def localPort: Int  = socketChannel.socket().getLocalPort()
+
+  /** Obtain the port number of the connection on the other side. */
+  def remotePort: Int = socketChannel.socket().getPort()
+
+  /** Write (and flush) some text to the socket. */
+  def writeln(text: String): Unit = socketChannel.write(ByteBuffer.wrap(s"$text\n".getBytes()))
+
+  /**
+   * Read some text from the socket (up to the newline).
+   * Not implemented here, since this is socket is write only. */
+  def readln: String = ""
+
+  /** Close this socket */
+  def close(): Unit =
+    socketChannel.socket().close()
+    socketChannel.close()

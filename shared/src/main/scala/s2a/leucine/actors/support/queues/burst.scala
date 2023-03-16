@@ -25,13 +25,20 @@ package s2a.leucine.actors
  **/
 
 
-/** Trait that exposes a method to cancel some process. */
-trait Cancellable :
-  /** Tries its best to cancel the scheduled task. */
-  def cancel(): Unit
-  /** See if this a dummy Cancellable */
-  def isEmpty = this == Cancellable.empty
+/**
+ * Mutable class for managing the message queue .
+ * We want this to be fast, and we know we always empty all at once, after which it may
+ * grow again. Therefore we might as well use a list. Growing is fast, and whatever other
+ * structure we use, there will at least be once an O(n) operation involved. In case there
+ * are not a lot of messages List wins from the other collections because of the low
+ * overhead setup.*/
+class BurstQueue[M] extends ShareQueue[M]:
 
-object Cancellable :
-  /** The dummy Cancellable */
-  val empty = new Cancellable { def cancel() = () }
+  /**
+   * Get all the messages in posted order, clear queue. Since the list must be reversed
+   * this is not fast O(n). If there is already a tail, elements of the queue are prepended. */
+  def dequeue(tail: List[M] = Nil): List[M] =
+    val result = queueIn reverse_::: tail
+    queueIn  = Nil
+    sizeNow  = 0
+    result

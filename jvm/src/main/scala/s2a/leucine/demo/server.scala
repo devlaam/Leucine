@@ -26,7 +26,7 @@ package s2a.leucine.demo
 
 import java.net.InetSocketAddress
 import java.nio.channels.{ServerSocketChannel, SocketChannel, Selector, SelectionKey}
-import java.nio.ByteBuffer
+
 
 /** JVM platform specific implementation of the ServerSocket */
 class ServerSocketImplementation extends ServerSocket:
@@ -149,28 +149,3 @@ object ServerSocketImplementation :
       serverSocketChannel.socket().close()
       serverSocketChannel.close()
       selector.close()
-
-
-
-/** JVM platform specific implementation of the ClientSocket */
-class ClientSocketImplementation(socketChannel: SocketChannel) extends ClientSocket :
-
-  /** Obtain the port number of the connection on this side. */
-  def localPort: Int  = socketChannel.socket().getLocalPort()
-
-  /** Obtain the port number of the connection on the other side. */
-  def remotePort: Int = socketChannel.socket().getPort()
-
-  /** Write (and flush) some text to the socket. */
-  def writeln(text: String): Unit = socketChannel.write(ByteBuffer.wrap(s"$text\n".getBytes()))
-
-  /**
-   * Read some text from the socket (up to the newline).
-   * Not implemented here, since this is socket is write only. */
-  def readln: String = ""
-
-  /** Close this socket */
-  def close(): Unit =
-    socketChannel.socket().close()
-    socketChannel.close()
-

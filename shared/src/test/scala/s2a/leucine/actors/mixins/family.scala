@@ -7,7 +7,6 @@ import scala.annotation.nowarn
 import utest.*
 
 import s2a.control.{Buffer, Deferred}
-import s2a.leucine.extensions.*
 import s2a.leucine.actors.Actor.Anonymous
 
 /* Recursive definition of integer power for non negative arguments and small exponents. */

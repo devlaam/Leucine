@@ -24,8 +24,8 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-
 import java.util.concurrent.Callable
+
 
 /* Methods stub for when there is no monitor mixin used. */
 private[actors] trait MonitorDefs :
@@ -39,6 +39,7 @@ private[actors] trait MonitorDefs :
   private[actors] def monitorExit(envelope: Env): Unit = ()
   private[actors] def monitorStop(): Unit = ()
   private[actors] def userLoad: Double = 0
+
 
 /** Extend your actor with this mixin to put it under monitoring */
 trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
@@ -225,7 +226,6 @@ object MonitorActor :
     def apply[L,S <: Actor](time: Long, action: Action, receiver: String): Trace =
       new Trace(time,action,Post(receiver,"",""))
 
-
   case class Post(val receiver: String, val letter: String, val sender: String) extends Ordered[Post] :
     def compare(that: Post): Int =
       if      this.sender   < that.sender   then -1
@@ -239,7 +239,6 @@ object MonitorActor :
 
   object Post :
     val empty = new Post("","","")
-
 
   /** Class to return the results on a monitor probe. */
   sealed trait Sample :
@@ -261,5 +260,3 @@ object MonitorActor :
   /** Class to marshall all the KPI's of the Families mixins. */
   case class Family(childerenNow: Int, workersSum: Long) extends Sample :
     def show = s"childerenNow=$childerenNow, workersSum=$workersSum"
-
-

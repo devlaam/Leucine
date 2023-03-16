@@ -24,7 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-
 import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory, TimeUnit, Callable, ScheduledFuture}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration

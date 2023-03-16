@@ -32,4 +32,3 @@ trait Digestable[Input] :
    * A task that digests some input, but does not return a result. It is naturally aimed
    * at producing side effects. */
   def digest(input: Input): Unit
-

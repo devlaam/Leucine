@@ -31,6 +31,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.scalajs.js.timers
 import scala.scalajs.js.timers.SetTimeoutHandle
 
+
 /** Context implementation for Javascript */
 abstract class ContextImplementation extends PlatformContext :
 

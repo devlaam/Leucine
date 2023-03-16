@@ -24,7 +24,6 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-
 import s2a.leucine.actors.*
 
 
@@ -34,9 +33,11 @@ import s2a.leucine.actors.*
  * etc. Extend to your own liking. */
 private class LogData(val value: () => String)
 
+
 private object LogData :
   /* In case such information is not available, empty is used. */
   val empty = LogData(() => "---")
+
 
 /* This is the trait you mixin with your class if you need extra context
  * information in the logging. Note, The Logger will also work without. */
@@ -52,7 +53,6 @@ trait LogInfo :
 
   /* Finally this is the object picked up by the Logger methodes. */
   given LogData(data)
-
 
 
 /**

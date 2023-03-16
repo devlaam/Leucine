@@ -95,5 +95,3 @@ object ProtectActor :
     case Raised
     /* The mailbox got to full at least once and this was reported to the user. */
     case Issued
-
-

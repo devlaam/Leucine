@@ -24,8 +24,8 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-
 import scala.io.StdIn
+
 
 object CLI :
   /* One time converstion in the console */

@@ -24,7 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-
 import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt

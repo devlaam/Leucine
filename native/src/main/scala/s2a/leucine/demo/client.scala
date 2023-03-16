@@ -1,4 +1,4 @@
-package s2a.leucine.actors
+package s2a.leucine.demo
 
 /**
  * MIT License
@@ -24,14 +24,30 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import java.net.{Socket => JavaSocket}
+import java.io.{PrintWriter, InputStreamReader, BufferedReader}
 
-/** Trait that exposes a method to cancel some process. */
-trait Cancellable :
-  /** Tries its best to cancel the scheduled task. */
-  def cancel(): Unit
-  /** See if this a dummy Cancellable */
-  def isEmpty = this == Cancellable.empty
 
-object Cancellable :
-  /** The dummy Cancellable */
-  val empty = new Cancellable { def cancel() = () }
+/** JVM platform specific implementation of the ClientSocket */
+class ClientSocketImplementation(javaSocket: JavaSocket) extends ClientSocket :
+
+  /* Stream access to the port to be able to write data */
+  private val writer: PrintWriter    = new PrintWriter(javaSocket.getOutputStream(), true)
+
+  /* Stream access to the port to be able to read data */
+  private val reader: BufferedReader = new BufferedReader(new InputStreamReader(javaSocket.getInputStream()));
+
+  /** Obtain the port number of the connection on this side. */
+  def localPort: Int  = javaSocket.getLocalPort()
+
+  /** Obtain the port number of the connection on the other side. */
+  def remotePort: Int = javaSocket.getPort()
+
+  /** Write (and flush) some text to the socket. */
+  def writeln(text: String): Unit = writer.println(text)
+
+  /** Read some text from the socket (up to the newline) */
+  def readln: String = reader.readLine()
+
+  /** Close this socket */
+  def close(): Unit = javaSocket.close()

@@ -1,4 +1,4 @@
-package s2a.leucine.actors
+package s2a.leucine.demo
 
 /**
  * MIT License
@@ -25,13 +25,21 @@ package s2a.leucine.actors
  **/
 
 
-/** Trait that exposes a method to cancel some process. */
-trait Cancellable :
-  /** Tries its best to cancel the scheduled task. */
-  def cancel(): Unit
-  /** See if this a dummy Cancellable */
-  def isEmpty = this == Cancellable.empty
+/** Transplatform Client Socket for communication with an other socket. */
+trait ClientSocket() :
 
-object Cancellable :
-  /** The dummy Cancellable */
-  val empty = new Cancellable { def cancel() = () }
+  /** Obtain the port number of the connection on this side. */
+  def localPort: Int
+
+  /** Obtain the port number of the connection on the other side. */
+  def remotePort: Int
+
+  /** Write (and flush) some text to the socket. */
+  def writeln(text: String): Unit
+
+  /** Read some text from the socket (up to the newline) */
+  def readln: String
+
+  /** Close this socket */
+  def close(): Unit
+

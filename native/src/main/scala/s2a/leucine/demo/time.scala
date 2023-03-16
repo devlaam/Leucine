@@ -26,5 +26,6 @@ package s2a.leucine.demo
 
 import java.util.Date
 
+
 object Time :
   def nowUTC: String = Date(System.currentTimeMillis()).toString

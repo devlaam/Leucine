@@ -24,8 +24,6 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.io.{IOException, PrintWriter, InputStreamReader, BufferedReader}
-
 
 /** JS platform specific implementation of the ServerSocket */
 class ServerSocketImplementation extends ServerSocket:
@@ -85,32 +83,4 @@ class ServerSocketImplementation extends ServerSocket:
    * Contains the last error (usually due to an exception) of the last action. Should
    * also be used to test if the last action was successful. */
   def error = _error
-
-
-/** JS platform specific implementation of the ClientSocket */
-class ClientSocketImplementation(jsSocket: Node.Socket) extends ClientSocket :
-
-  private val data: StringBuilder = StringBuilder()
-
-  private val receive: String => Unit = (s) => data.append(s)
-
-  jsSocket.on("data",receive)
-
-  /** Obtain the port number of the connection on this side. */
-  def localPort: Int  = jsSocket.localPort
-
-  /** Obtain the port number of the connection on the other side. */
-  def remotePort: Int = jsSocket.remotePort
-
-  /** Write (and flush) some text to the socket. */
-  def writeln(text: String): Unit = jsSocket.write(s"$text\n")
-
-  /** Read some text from the socket (up to the newline) */
-  def readln: String =
-    val result = data.toString()
-    data.clear
-    result
-
-  /** Close this socket */
-  def close(): Unit = jsSocket.destroy()
 

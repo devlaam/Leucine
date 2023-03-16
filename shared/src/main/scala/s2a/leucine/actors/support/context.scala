@@ -72,4 +72,3 @@ object ActorContext :
     export parameters.*
   /** Provide a default actor implementation with a pause time of 10ms.*/
   val system: ActorContext = new ActorImplementation(DefaultSystem)
-

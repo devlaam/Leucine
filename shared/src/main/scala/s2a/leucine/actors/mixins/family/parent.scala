@@ -25,13 +25,30 @@ package s2a.leucine.actors
  **/
 
 
-/** Trait that exposes a method to cancel some process. */
-trait Cancellable :
-  /** Tries its best to cancel the scheduled task. */
-  def cancel(): Unit
-  /** See if this a dummy Cancellable */
-  def isEmpty = this == Cancellable.empty
+/**
+ * Holds all the methods needed for accessing the parent of this family. For internal use.
+ * Not all actors have a parent, so this is not mixed in for the root of the family. */
+transparent private trait FamilyParent extends ActorDefs :
 
-object Cancellable :
-  /** The dummy Cancellable */
-  val empty = new Cancellable { def cancel() = () }
+  /* Local type */
+  private[actors] type PA <: Actor.Parent
+
+  /** The type of the parent for this actor. */
+  type Parent = PA
+
+  /** Reference to the actor context. */
+  private[actors] def context: ActorContext
+
+  /**
+   * Access to the parent of this actor. It should be implemented as value parameter in the
+   * class definition of this actor. That way the parent is an stable reference. */
+  protected def parent: Parent
+
+  /** Internally called to remove an actor from its parents list, just before termination. */
+  private[actors] override def familyAbandon(name: String): Unit = parent.reject(name)
+
+  /**
+   * The path returns the full lineage of this actor: dot separated names of all parents.
+   * The dot can be replaced by your own char by overriding the familySepChar. */
+  override def path: String = s"${parent.path}${context.familyPathSeparator}$name"
+

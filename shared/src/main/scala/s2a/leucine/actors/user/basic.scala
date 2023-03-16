@@ -68,7 +68,6 @@ abstract class BasicActor[ML <: Actor.Letter](using val context: ActorContext) e
      * false if that child is not present or does not accept the letter. */
     protected def pass(letter: fc.ChildLetter, name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
 
-
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (stash: StashOps)
     /**
