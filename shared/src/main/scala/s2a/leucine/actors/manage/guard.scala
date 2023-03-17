@@ -68,7 +68,7 @@ object ActorGuard :
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are
    * done. Do not set the pollInterval to low, for this calls all actors under guard. The minimum is 1
-   * second. In pratice this time defines the maximum time to wait for the application to terminate
+   * second. In practice this time defines the maximum time to wait for the application to terminate
    * after all the work is done. Use force if you want to terminate other processes as well when
    * the actors are all completed to shutdown. Note that if some actors have not stopped by themselves,
    * but are not able to receive any messages any more, the application may run indefinitely, and this
@@ -77,4 +77,4 @@ object ActorGuard :
    * platform. */
   def watch(force: Boolean, complete: () => Unit = () => (), pollInterval: FiniteDuration = 10.seconds)(using context: ActorContext): Unit =
     /* Make sure we wait at least one second. */
-    context.waitForExit(force,pollInterval min 1.second)(allTerminated,complete)
+    context.waitForExit(force,pollInterval max 1.second)(allTerminated,complete)

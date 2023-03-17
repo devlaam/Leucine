@@ -94,6 +94,12 @@ abstract class ContextImplementation  extends PlatformContext :
       if      hasFirstTimer then execFirstTimer()
       /* Subsequently we see if there is a task present. If so we handle only one. */
       else if hasFirstTask  then execFirstTask()
+      /* See if we must call the hook, which should be a rare event. */
+      else if mustCallHook then
+         /* If so, register that we made the call */
+         lastHook = passedTime
+         /* and perform the action. */
+         hook()
       else
         /* Iff there are no timers or tasks it makes sense to probe the asynchrone events.
          * This is because they usually result in more work (i/o). If there are attempts, we
@@ -104,7 +110,6 @@ abstract class ContextImplementation  extends PlatformContext :
          * not hammer the attempt methods, or consume too much time on this loop when there
          * are none. */
         Thread.sleep(idleThreadPause.toMillis)
-      /* See if we must call the hook. */
       /* If there are no tasks, timers or attempts left, where is nothing to continue. */
       continue = continue && !(tasks.isEmpty && timers.isEmpty && attempts.isEmpty)
 
@@ -119,7 +124,7 @@ abstract class ContextImplementation  extends PlatformContext :
   def platform = PlatformContext.Platform.Native
 
   /** True as long as there has been no Shutdown request. */
-  def active =  _active
+  def active = _active
 
   /**
    * True if all treads have completed, for the current Native this is never the case
@@ -132,25 +137,29 @@ abstract class ContextImplementation  extends PlatformContext :
 
   /** Plan a new task on the current Execution Context, which is run after some delay. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable =
-    var time = passedTime + delay.toNanos
-    /* There may already be a time with this exact delay, so we plan it a few nanosecs later. */
-    while timers.contains(time) do time = time + 1
-    /* Add the new timer and action to the exisiting timers. */
-    timers = timers + (time -> callable)
-    /* Construct an object that enables the user to retract the actoin. */
-    new Cancellable { def cancel() = timers = timers - time  }
+    if active then
+      var time = passedTime + delay.toNanos
+      /* There may already be a time with this exact delay, so we plan it a few nanosecs later. */
+      while timers.contains(time) do time = time + 1
+      /* Add the new timer and action to the exisiting timers. */
+      timers = timers + (time -> callable)
+      /* Construct an object that enables the user to retract the actoin. */
+      new Cancellable { def cancel() = timers = timers - time  }
+    else Cancellable.empty
 
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
    * digestable process. As longs as there is no result yet, the attempt should produce None */
   def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
-    /* Create the actual attempt as a delayed digest. */
-    val doAttempt = () => attempt.map(digestable.digest)
-    /* Add the attempt to the set of attempts. */
-    attempts = attempts + doAttempt
-    /* Construct an object that enables the user to retract the attempt. */
-    new Cancellable { def cancel() = attempts = attempts - doAttempt }
+    if active then
+      /* Create the actual attempt as a delayed digest. */
+      val doAttempt = () => attempt.map(digestable.digest)
+      /* Add the attempt to the set of attempts. */
+      attempts = attempts + doAttempt
+      /* Construct an object that enables the user to retract the attempt. */
+      new Cancellable { def cancel() = attempts = attempts - doAttempt }
+    else Cancellable.empty
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed

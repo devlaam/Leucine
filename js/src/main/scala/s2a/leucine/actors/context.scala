@@ -57,15 +57,19 @@ abstract class ContextImplementation extends PlatformContext :
 
   /** Plan a new task on the current Execution Context, which is run after some delay. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable =
-    val timeoutHandle: SetTimeoutHandle = timers.setTimeout(delay)(callable.call())
-    new Cancellable { def cancel() = timers.clearTimeout(timeoutHandle) }
+    if active then
+      val timeoutHandle: SetTimeoutHandle = timers.setTimeout(delay)(callable.call())
+      new Cancellable { def cancel() = timers.clearTimeout(timeoutHandle) }
+    else Cancellable.empty
 
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
   * digestable process. As longs as there is no result yet, the attempt should produce None */
   def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
-    new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,idleThreadPause)
+    if active
+    then new ContextImplementation.Awaitable(attempt.map(digestable.digest).isDefined,idleThreadPause)
+    else Cancellable.empty
 
   /**
    * In JavaScript it is not possible to shutdown the only executer, so this just makes sure that no new
