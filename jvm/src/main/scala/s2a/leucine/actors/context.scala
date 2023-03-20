@@ -82,8 +82,8 @@ abstract class ContextImplementation extends PlatformContext :
    * is called. */
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     while active || !terminated do
-      if active && shutdownRequest then shutdown(force)
       threadPool.awaitTermination(time.toSeconds, TimeUnit.SECONDS)
+      if active && shutdownRequest then shutdown(force)
     complete()
 
 

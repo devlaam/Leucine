@@ -82,11 +82,11 @@ abstract class ContextImplementation extends PlatformContext :
    * calls complete(). Call in the main thread as last action there. In JavaScript it is not possible to block,
    * so this uses a schedule timer to see if we are complete. */
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
-    def delay: Callable[Unit] = new Callable[Unit] { def call(): Unit = tryExit() }
-    def tryExit() = if !active then complete() else
-      if shutdownRequest then shutdown(force)
+    def delay: Callable[Unit] = new Callable[Unit] { def call(): Unit = tryExit(true) }
+    def tryExit(check: Boolean) = if !active then complete() else
+      if check && shutdownRequest then shutdown(force)
       schedule(delay,time)
-    tryExit()
+    tryExit(false)
 
 
 
