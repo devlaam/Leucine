@@ -44,12 +44,12 @@ object Init extends LogInfo:
   @main
   def main(): Unit =
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
-    val console = Console("Console")
-    ActorGuard.add(console)
+    val console = new Console
     /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
      * but not on JS. There blocking is not possible and this call returns immedeately. Normally
-     * you do not call watch on JS, for this does have not much added value. */
-    ActorGuard.watch(false,complete,10.seconds)
+     * you do not call watch on JS, for this does have not much added value. Except if you use
+     * stopSilent() somewhere.*/
+    ActorGuard.watch(false,complete,3.seconds)
     /* The application should exit, but sometimes on the JVM this is needed, i do not no why */
     //System.exit(0)
 

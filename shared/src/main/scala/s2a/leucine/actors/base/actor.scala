@@ -50,7 +50,7 @@ trait Actor :
   /**
    * Name of this actor. Note: this is user defined should be unique in a within family among its siblings.
    * It can be anyting, but if possible exclude . and # Dots are used to build name paths in families and
-   * # are used to make numberd actors, of whom we do not want to keep names. Both chars can be overriden
+   * # are used to make numberd actors, of whom we do not want to keep names. Both chars can be defined
    * by your own if needed.  */
   def name: String
 
@@ -91,6 +91,24 @@ trait Actor :
    * Note that in an asynchronous system, the answer may already have changed after the read. Once it
    * turns to false however, it will never return to true again. */
   def isTerminated: Boolean
+
+  /**
+   * Generates an unique name of the structure ClassName#Hash. This can be used instead of
+   * self invented names. It is given inside the actor constructor.  */
+  private[actors] def uniqueName: String =
+    val hash: Long = ##.toLong & 0xFFFFFFFFL
+    s"${getClass.getSimpleName}#$hash"
+
+  /**
+   * Register this actor. Per default we do that in the actor guard. Other mixins may
+   * override this too, for example adopt the actor by a family. */
+  private[actors] def register(prename: String): String =
+    /* Register it under the prename. If this name is not defined (empty) it will
+     * be registered but not be added to the index.  */
+    ActorGuard.add(prename,this)
+    /* If no name is given, generate an unique name for this actor. */
+    if prename.isEmpty then uniqueName else prename
+
 
 
 object Actor :

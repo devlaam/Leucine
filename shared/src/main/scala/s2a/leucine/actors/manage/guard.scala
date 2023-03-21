@@ -39,7 +39,12 @@ import scala.concurrent.duration.DurationInt
 object ActorGuard :
 
   /** Collection of all actors that are relevant for keeping the threadpool alive. */
-  private var actors: Map[String,Actor] = Map.empty
+  private var actors: Set[Actor] = Set.empty
+
+  /* Index with with all named actors to find them on their name. Not all actors of
+   * stored in the set actors are present here. But all of the indexed are also
+   * present in the actors, which is the 'leading collection'. */
+  private var index: Map[String,Actor] = Map.empty
 
   /**
    * See if all the actors that are running have completed. We do not put synchronized
@@ -50,20 +55,30 @@ object ActorGuard :
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
-  private def allTerminated = actors.values.forall(_.isTerminated)
+  private def allTerminated = actors.forall(_.isTerminated)
 
-  /* This method is synchronized for it modifies the actors set. This is not a big problem
-   * normally since it is mostly done at the start of the application. Synchronization is
-   * needed if called concurrently from within an other actor threads.  */
-  /** Put an actor under guard. Make sure its name is unique */
-  def add(actor: Actor): Unit = synchronized { actors += actor.name -> actor }
+  /** Put an actor under guard. If it has a prename, add it to the index as well. */
+  private[actors] def add(prename: String, actor: Actor): Unit =
+    /* We had some problems with null names here due to a design flaw regaring the
+     * order of object construction. These should be gone now. Lets verify for a while. */
+    assert(prename != null, "uninitialised name in ActorGuard|add")
+    synchronized {
+      /* We use prename here, to avoid confusion with the actors real name (to be determined) */
+      if !prename.isEmpty then index += prename -> actor
+      actors += actor }
+
+  /** Removes an actor from the list, and index. Call when the actor is terminated. */
+  private[actors] def remove(actor: Actor): Unit = synchronized {
+    /* Try to remove the name. In some situations this is called when it cannot be a member. This is okay. */
+    index -= actor.name
+    /* Remove the actor from the primary collection. */
+    actors -= actor }
 
   /**
    * Get the actor with this path/name if it exists. It will recurse into the family tree if required
-   * Since normally all stand alone actors are registered in the ActorGuard, you may obtain any
-   * actor in the system using this method. If you are already inside a family actor, it is more
-   * efficient to search just that tree. */
-  def get(path: String)(using context: ActorContext): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,actors)
+   * All actors you gave a name manually are indexed. Here is the primary search point. If you are
+   * already inside a family actor, it is more efficient to search just that tree. */
+  def get(path: String)(using context: ActorContext): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,index)
 
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are

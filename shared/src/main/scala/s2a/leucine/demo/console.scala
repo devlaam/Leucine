@@ -26,8 +26,10 @@ package s2a.leucine.demo
 
 import s2a.leucine.actors.*
 
-/* The console is also organised as actor, which makes sense, since it must run independently from the application. */
-private class Console(val name: String) extends BasicActor[Console.Letter] :
+/* The console is also organised as actor, which makes sense, since it must run independently from the application.
+ * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
+ * we define it to be a worker */
+private class Console extends BasicActor[Console.Letter]("Console") :
 
   /* The welcome message. You may choose your demo. */
   CLI.talk("Please state the demo you want to run (ticker, server or crawler): ",answer => this ! Console.Read(answer))
@@ -40,8 +42,6 @@ private class Console(val name: String) extends BasicActor[Console.Letter] :
 
   /* Method to start the demo of choice. */
   def start(actor: Actor): Unit =
-    /* Put the new actor under guard, so we monitor when all actors are done.  */
-    ActorGuard.add(actor)
     /* stop the console, this is okay, cause the demo is already running. */
     stop()
 

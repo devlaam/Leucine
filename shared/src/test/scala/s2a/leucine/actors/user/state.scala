@@ -11,8 +11,7 @@ object StateActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor[Clock.Letter,Clock.Accept,Clock.State] :
-   val name = "clock"
+  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor[Clock.Letter,Clock.Accept,Clock.State]("clock") :
    override protected def stopped(complete: Boolean) = done()
    protected def initial = Clock.State(0,0,0)
    protected def receive(letter: Clock.Letter, sender: Sender, state: Clock.State): Clock.State = letter match

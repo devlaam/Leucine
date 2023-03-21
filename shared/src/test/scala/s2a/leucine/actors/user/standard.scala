@@ -12,8 +12,7 @@ object StandardActorTest extends TestSuite :
   implicit val ac: ActorContext = ActorContext.system
 
 
-  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Joni.Accept] :
-    val name = "Joni"
+  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Joni.Letter,Joni.Accept]("Joni") :
     var mary: Option[Mary] = None
     var sara: Option[Sara] = None
     def sendJoni(text: String, depth: Int) = this ! Joni.Text(s"${text}J",depth+1)
@@ -35,8 +34,7 @@ object StandardActorTest extends TestSuite :
 
 
 
-  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Mary.Accept] :
-    val name = "Mary"
+  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Mary.Letter,Mary.Accept]("Mary") :
     var joni: Option[Joni] = None
     var sara: Option[Sara] = None
     def sendJoni(text: String, depth: Int) = joni.foreach(_ ! Joni.Text(s"${text}M",depth+1))
@@ -58,8 +56,7 @@ object StandardActorTest extends TestSuite :
     type Accept = Joni | Mary | Sara | Actor.Anonymous
 
 
-  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Sara.Accept] :
-    val name = "Sara"
+  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor[Sara.Letter,Sara.Accept]("Sara") :
     var joni: Option[Joni] = None
     var mary: Option[Mary] = None
     def sendJoni(text: String, depth: Int) = joni.foreach(_ ! Joni.Text(s"${text}S",depth+1))

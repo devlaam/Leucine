@@ -73,10 +73,7 @@ trait ServerSocket:
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider.Letter,Actor], LogInfo :
-
-  /* There is only one 'Server' so we may fix the name here. */
-  val name = "server"
+class Server extends BasicActor[Server.Letter]("server"), TimingActor, FamilyRoot[Provider.Letter,Actor], LogInfo :
 
   /* Time this demo will last. */
   val runtime = 60.seconds
@@ -139,9 +136,7 @@ class Server extends BasicActor[Server.Letter], TimingActor, FamilyRoot[Provider
     case Server.Connect(socket) =>
       Logger.info("Accepted a connection.")
       /* We see the providers as workers and generate automatic names for them. */
-      val provider = new Provider(workerName,socket,this)
-      /* Integrate this provider into the family */
-      adopt(provider)
+      val provider = new Provider(socket,this)
       /* Be ready for a new connection. */
       if !useCallback then expect(connect,expectationAnchor)
     /* The request has come to close stop this server. */

@@ -11,7 +11,7 @@ object BasicActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Writer(val name: String, val writeln: String => Unit, val done: () => Unit) extends BasicActor[Writer.Letter] :
+  class Writer(name: String, val writeln: String => Unit, val done: () => Unit) extends BasicActor[Writer.Letter](name) :
     override protected def stopped(complete: Boolean) =
       writeln(s"$name:stop:$complete")
       done()

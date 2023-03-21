@@ -28,8 +28,9 @@ package s2a.leucine.actors
 /**
  * The BasicActor accepts messages from any other actor, but is not able to return an answer, because the sender is not tracked.
  * This simplifies the use, for not all possible return types need to be specified. It is still possible to send a message to
- * a fixed actor though, if the actorRef is known. */
-abstract class BasicActor[ML <: Actor.Letter](using val context: ActorContext) extends BareActor:
+ * a fixed actor though, if the actorRef is known. If no name is given, an unique name is generated, but the actor is not indexed
+ * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. */
+abstract class BasicActor[ML <: Actor.Letter](prename: String = "")(using val context: ActorContext) extends BareActor:
 
   private[actors] type MyLetter = ML
   private[actors] type ActState = Actor.State
@@ -60,9 +61,17 @@ abstract class BasicActor[ML <: Actor.Letter](using val context: ActorContext) e
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (fc: FamilyChild {type ChildLetter <: Actor.Letter; type ChildSender = Actor} )
     /**
-     * Forward a message to all children, or children of which the name pass the test 'include'.
-     * Returns the number of children that accepted the letter. */
-    protected def relay(letter: fc.ChildLetter, include: String => Boolean = _ => true): Int = fc.relayEnv(letter,Actor.Anonymous,include)
+     * Forward a message to children of which the name passes the test 'include'.
+     * Returns the number of children that accepted the letter. Does not include
+     * auto named children (chidren that were not given an explicit name) or workers. */
+    protected def relay(letter: fc.ChildLetter, include: String => Boolean): Int =
+      fc.relayEnvFilter(letter,Actor.Anonymous,include)
+    /**
+     * Forward a message to children that are indexed and/or workers and or children that were given
+     * an automatic name, i.e. children that were not given an explicit name.
+     * Returns the number of children that accepted the letter.  */
+    protected def relay(letter: fc.ChildLetter, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
+      fc.relayEnvGrouped(letter,Actor.Anonymous,toIndexed, toWorkers,toAutoNamed)
     /**
      * Forward a message to one specific child on the basis of its name. Returns true if successful and
      * false if that child is not present or does not accept the letter. */
@@ -101,4 +110,5 @@ abstract class BasicActor[ML <: Actor.Letter](using val context: ActorContext) e
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
   def ! (letter: MyLetter): Unit = sendEnvelope(letter)
 
-
+  /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
+  final val name = register(prename)

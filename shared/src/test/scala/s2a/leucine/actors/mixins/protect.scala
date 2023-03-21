@@ -9,8 +9,7 @@ object ProtectActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Digest(val writeln: String => Unit, val done: () => Unit) extends BasicActor[Digest.Letter], ProtectActor :
-    val name = "Digest"
+  class Digest(val writeln: String => Unit, val done: () => Unit) extends BasicActor[Digest.Letter](), ProtectActor :
 
     override val maxMailboxSize = 4
     val alarmSize = 2

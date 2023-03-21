@@ -44,11 +44,8 @@ transparent private trait FamilyParent extends ActorDefs :
    * class definition of this actor. That way the parent is an stable reference. */
   protected def parent: Parent
 
-  /** Internally called to remove an actor from its parents list, just before termination. */
-  private[actors] override def familyAbandon(name: String): Unit = parent.reject(name)
-
   /**
    * The path returns the full lineage of this actor: dot separated names of all parents.
    * The dot can be replaced by your own char by overriding the familySepChar. */
-  override def path: String = s"${parent.path}${context.familyPathSeparator}$name"
+  final override val path: String = s"${parent.path}${context.familyPathSeparator}$name"
 

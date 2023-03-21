@@ -54,6 +54,9 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   /* Temporary fast storage for the trace objects. */
   private var traces: List[Trace] = Nil
 
+  /** Value contains if this actor is a worker based on its name prefix (# per default) */
+  def isWorker: Boolean
+
   /**
    * This is the personal setting of tracing. There is a public setting as well.
    * If tracing is active for this actor depends on both settings, in a symmetric manner.
@@ -126,9 +129,6 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   private def probeCancel() = synchronized {
     cancelProbe.cancel()
     probeNow(false) }
-
-  /** Values contains if this actor is a worker based on its name prefix (# per default) */
-  private val isWorker = name.startsWith(context.workerPrefix)
 
   /* For workers we do not want to use the full name, but a one name for all workers in this family. So
    * we only use the path up to and including the worker prefix. The rest is dropped. */

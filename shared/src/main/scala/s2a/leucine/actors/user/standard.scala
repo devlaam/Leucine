@@ -27,9 +27,10 @@ package s2a.leucine.actors
 
 /**
  * The StandardActor is able to respond to messages, but does not keep state. You can of course keep your own in var's.
- * If you do, make sure these are private, so there is no risk the leak to the outside world.
- * All possible return types must be specified. */
-abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](using val context: ActorContext) extends BareActor :
+ * If you do, make sure these are private, so there is no risk the leak to the outside world. All possible return types
+ * must be specified. If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
+ * on the base of its name. Supply !# as name to define this a worker actor.*/
+abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](prename: String = "")(using val context: ActorContext) extends BareActor :
 
   private[actors] type MyLetter = ML
   private[actors] type ActState = Actor.State
@@ -58,10 +59,18 @@ abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](using val context:
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (fc: FamilyChild {type ChildLetter <: Actor.Letter; type ChildSender <: Actor} )
+     /**
+     * Forward a message to children of which the name passes the test 'include'.
+     * Returns the number of children that accepted the letter. Does not include
+     * auto named children (chidren that were not given an explicit name) or workers. */
+    protected def relay(letter: fc.ChildLetter, sender: fc.ChildSender, include: String => Boolean): Int =
+      fc.relayEnvFilter(letter,sender,include)
     /**
-     * Forward a message to all children, or children of which the name pass the test 'include'.
-     * Returns the number of children that accepted the letter. */
-    protected def relay(letter: fc.ChildLetter, sender: fc.ChildSender, include: String => Boolean = _ => true): Int = fc.relayEnv(letter,sender,include)
+     * Forward a message to children that are indexed and/or workers and or children that were given
+     * an automatic name, i.e. children that were not given an explicit name.
+     * Returns the number of children that accepted the letter.  */
+    protected def relay(letter: fc.ChildLetter, sender: fc.ChildSender, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
+      fc.relayEnvGrouped(letter,sender,toIndexed, toWorkers,toAutoNamed)
     /**
      * Forward a message to one specific child on the basis of its name. Returns true if successful and
      * false if that child is not present or does not accept the letter. */
@@ -100,3 +109,6 @@ abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](using val context:
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
   def ! (letter: MyLetter)(using sender: Sender): Unit = sendEnvelope(pack(letter,sender))
+
+  /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
+  final val name = register(prename)

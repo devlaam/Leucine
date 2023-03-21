@@ -28,6 +28,8 @@ import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
+/** Constant value you can use as actor name to define the actor a worker. */
+final val !# = DefaultSystem.workerPrefix * 3
 
 /** Trait to define the parameters needed for the context and platform classes to run. */
 trait SystemParameters :

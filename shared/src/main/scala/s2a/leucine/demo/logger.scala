@@ -58,11 +58,8 @@ trait LogInfo :
 /**
  * The logger will only receive messages and never send one. Also, we do not
  * care from whom the message is originating. */
-private class Logger extends BasicActor[Logger.Letter] :
+private class Logger extends BasicActor[Logger.Letter]("logger") :
   import Logger.*
-
-  /* There will be only one logger, so we can fix the name. */
-  val name = "logger"
 
   /* Soft level of the messages that are printed. Can be changed by during runtime. */
   private var level: Level = Level.Debug

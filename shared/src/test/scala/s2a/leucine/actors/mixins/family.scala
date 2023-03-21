@@ -28,7 +28,7 @@ extension (value: String)
 trait ActorTreeSupply :
   implicit val ac: ActorContext = ActorContext.system
 
-  class Tree(val name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor], FamilyTree[Tree] :
+  class Tree(name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor[Tree.Letter,Actor](name), FamilyTree[Tree] :
 
     private def write(kind: String) = writeln(s"$kind$path")
 
@@ -39,7 +39,7 @@ trait ActorTreeSupply :
     override protected def abandoned(child: String) =
       write(s"<<=$child#")
 
-    def newChild(i: Int) = adopt(Tree(s"F$i",Some(this),writeln,None))
+    def newChild(i: Int) = Tree(s"F$i",Some(this),writeln,None)
 
     private var returns: Int = 0
     def receive(letter: Tree.Letter, sender: Sender) = letter match
@@ -127,7 +127,7 @@ object ActorFamilySupply extends TestSuite :
     type Level1B_Accept = Actor.Anonymous | Outside
     type Level1C_Accept = Actor.Anonymous | Outside | Level1A
 
-    class Outside(val name: String) extends StandardActor[Outside_.Letter,Outside_Accept], TimingActor :
+    class Outside() extends StandardActor[Outside_.Letter,Outside_Accept]("boo"), TimingActor :
       post(Outside_.Bell,1.seconds)
 
       @nowarn /* This method does not generate a warning outside of the tests macro expansion */
@@ -136,14 +136,13 @@ object ActorFamilySupply extends TestSuite :
         case(Outside_.Text(msg), s: Outside) => ()
         case(Outside_.Bell,_) => ()
 
-    val outside = new Outside("boo")
+    val outside = new Outside()
 
 
-    class Level0(val name: String) extends StandardActor[Level0_.Letter,Level0_Accept], FamilyRoot[Level0_ChildrenLetters, Level0_ChildrenAccept] :
-      val level1A = Level1A("1a",this)
-      val level1B = Level1B("1b",this)
-      val level1C = Level1C("1c",this)
-      adopt(level1A,level1B,level1C)
+    class Level0() extends StandardActor[Level0_.Letter,Level0_Accept]("l0"), FamilyRoot[Level0_ChildrenLetters, Level0_ChildrenAccept] :
+      val level1A = Level1A(this)
+      val level1B = Level1B(this)
+      val level1C = Level1C(this)
       level1A.send(Level1A_.Test1A,Actor.Anonymous)
       level1A.send(Level1A_.Test1A,outside)
       level1A.send(Level1A_.Test1A,this)
@@ -153,10 +152,10 @@ object ActorFamilySupply extends TestSuite :
       compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.clean() ==> "Found:(Level0.this.level1B:Level1B)Required:Level0.this.level1C.Sender"
       compileError("level1B.send(Level1B_.Test1B,this)").msg.clean() ==> "Found:(Level0.this:Level0)Required:Level0.this.level1B.Sender"
 
-      relay(Level_.Common,outside,_ => true)
-      compileError("relay(Level_.Common,this,_ => true)").msg.clean(75) ==> "Found:(ActorFamilySupply.Level_.Common.type,Level0,Any)Required:FamilyChild"
-      compileError("relay(Level1A_.Test1A,outside,_ => true)").msg.clean(78) ==> "Found:(ActorFamilySupply.Level1A_.Test1A.type,Outside,Any)Required:FamilyChild"
-      compileError("relay(Level1B_.Test1B,outside,_ => true)").msg.clean(78) ==> "Found:(ActorFamilySupply.Level1B_.Test1B.type,Outside,Any)Required:FamilyChild"
+      relay(Level_.Common,outside)
+      compileError("relay(Level_.Common,this)").msg.clean(75) ==> "Found:(Level0.this:Level0)Required:Level0.this.ChildSender"
+      compileError("relay(Level1A_.Test1A,outside)").msg.clean(78) ==> "Found:ActorFamilySupply.Level1A_.Test1A.typeRequired:Level0.this.ChildLetter"
+      compileError("relay(Level1B_.Test1B,outside)").msg.clean(78) ==> "Found:ActorFamilySupply.Level1B_.Test1B.typeRequired:Level0.this.ChildLetter"
 
       get("1a").isDefined    ==> true
       get("1a.2a").isDefined ==> true
@@ -169,7 +168,7 @@ object ActorFamilySupply extends TestSuite :
       def receive(letter: MyLetter, sender: Sender) = (letter,sender) match
         case (Level0_.Test0, s: Actor.Anonymous) => ()
         case (Level0_.Test0, s: Outside) => ()
-        case (Level_.Common, rs: ChildSender) => relay(Level_.Common,rs,_ => true)
+        case (Level_.Common, rs: ChildSender) => relay(Level_.Common,rs)
         case (Level0_.Test0, s: Level0) => ()
         case (Level_.Common, s: Level0) => ()
         /* Testing these hit a compiler bug. */
@@ -179,9 +178,8 @@ object ActorFamilySupply extends TestSuite :
         //compileError("case (Level1B_.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) ").msg.clean() ==> "Dit kan niet en dat klopt."
 
 
-    class Level1A(val name: String, protected val parent: Level0) extends StandardActor[Level1A_.Letter,Level1A_Accept], FamilyBranch[Level2A_.Letter,Actor,Level0] :
-      val level2A = Level2A("2a",this)
-      adopt(level2A)
+    class Level1A(protected val parent: Level0) extends StandardActor[Level1A_.Letter,Level1A_Accept]("1a"), FamilyBranch[Level2A_.Letter,Actor,Level0] :
+      val level2A = Level2A(this)
       level2A.send(Level2A_.Text("hi"),this)
       level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
       compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.clean() ==> "Found:ActorFamilySupply.Level1A_.Test1A.typeRequired:Level1A.this.level2A.MyLetter"
@@ -189,16 +187,16 @@ object ActorFamilySupply extends TestSuite :
 
       def receive(letter: Level1A_.Letter, sender: Sender) = ()
 
-    class Level1B(val name: String, protected val parent: Level0) extends StandardActor[Level1B_.Letter,Level1B_Accept], FamilyLeaf[Level0] :
+    class Level1B(protected val parent: Level0) extends StandardActor[Level1B_.Letter,Level1B_Accept]("1b"), FamilyLeaf[Level0] :
       def receive(letter: Level1B_.Letter, sender: Sender) = ()
 
-    class Level1C(val name: String, protected val parent: Level0) extends StandardActor[Level1C_.Letter,Level1C_Accept], FamilyLeaf[Level0] :
+    class Level1C(protected val parent: Level0) extends StandardActor[Level1C_.Letter,Level1C_Accept]("1c"), FamilyLeaf[Level0] :
       def receive(letter: Level1C_.Letter, sender: Sender) = ()
 
-    class Level2A(val name: String, protected val parent: Level1A) extends StandardActor[Level2A_.Letter,Actor], FamilyLeaf[Level1A] :
+    class Level2A(protected val parent: Level1A) extends StandardActor[Level2A_.Letter,Actor]("2a"), FamilyLeaf[Level1A] :
       def receive(letter: Level2A_.Letter, sender: Sender) = ()
 
-    val level0 = Level0("l0")
+    val level0 = Level0()
     level0.send(Level0_.Test0,Actor.Anonymous)
     level0.send(Level0_.Test0,outside)
     level0.send(Level_.Common,outside)

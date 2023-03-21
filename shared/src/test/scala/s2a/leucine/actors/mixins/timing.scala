@@ -12,8 +12,7 @@ object TimingActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Clock.Letter], TimingActor:
-    val name = "Clock"
+  class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Clock.Letter](), TimingActor :
 
     override protected def stopped(complete: Boolean) =
       writeln(s"stopped:$complete")
@@ -45,8 +44,7 @@ object TimingActorTest extends TestSuite :
     case object Done extends Letter
 
 
-  class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Expect.Letter], TimingActor:
-    val name = "Expect"
+  class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Expect.Letter](), TimingActor :
 
     override protected def stopped(complete: Boolean) =
       writeln(s"stopped:$complete")

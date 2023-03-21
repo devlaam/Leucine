@@ -31,7 +31,7 @@ Leucine is typed actor system, with the following properties:
 ### Getting started
 It could look something like this:
 ```Scala
-class MyActor(val name: String) extends BasicActor[MyActor.Letter] :
+class MyActor(name: String) extends BasicActor[MyActor.Letter](name) :
   // some startup code
 
   /* Handle all incoming letters. */

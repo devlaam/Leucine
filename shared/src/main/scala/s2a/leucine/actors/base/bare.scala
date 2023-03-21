@@ -67,13 +67,6 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
 
-  /**
-   * Generates an unique name of the structure ClassName#Hash. This can be used instead of
-   * self invented names. It is given inside the actor constructor.  */
-  protected def uniqueName: String =
-    val hash: Long = ##.toLong & 0xFFFFFFFFL
-    s"${getClass.getSimpleName}#$hash"
-
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorActor.Bare] =
     val result = MonitorActor.Bare(phase,mailbox.sum,mailbox.max,excepts,userLoad)
@@ -118,8 +111,10 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
     stopped(complete)
     /* We must abandon after the stopped has called, so that we call all stopped in a family in
      * the correct order, since they may be executed in different threads. When all stopped
-     * of the children of a family are done, the processTerminate of the parent is called. */
-    familyAbandon(name)
+     * children of a family are done, the processTerminate of the parent is called.
+     * When the actor is not a child (anymore) familyAbandon() returns false, in which case
+     * we must remove it from the guard itself. */
+    if !familyAbandon() then ActorGuard.remove(this)
     /* This actor is now Done. Note that, actors called by familyAbandon above may reach the
      * phase Done before this actor does. However, this actor has completed its actions before
      * the others have.  */
@@ -286,6 +281,10 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /** In the base actor the path and name are equal. */
   def path: String = name
+
+  /** Values contains if this actor is a worker based on its name prefix (# per default) */
+  def isWorker: Boolean = name.startsWith(context.workerPrefix)
+
 
   /** Used as sender for all messages send from this actor without explicit sender. */
   given this.type = this
