@@ -24,9 +24,19 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+class Worker :
 
-/**
- * Holds all the general methods needed for managing the family actor.
- * For internal use. This is always mixed in. */
-transparent private trait FamilyMain extends ActorDefs
+  /** Counter to generate a unique name for the workers for an actor. */
+  private var _counter: Long = 0L
+
+  /** Increase the value and get a copy. */
+  private def inc: Long = synchronized {
+    _counter = _counter + 1
+    _counter }
+
+  /** Get the number of worker names generated. Local copy, may be outdated. */
+  def size: Long = _counter
+
+  /** Generates a unique name based on this counter */
+  def name(prefix: String): String = s"${prefix}${inc}"
 

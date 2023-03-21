@@ -46,6 +46,9 @@ object ActorGuard :
    * present in the actors, which is the 'leading collection'. */
   private var index: Map[String,Actor] = Map.empty
 
+  /* Worker instance to give all workers, not part of a family a worker name. */
+  private[actors] val worker = new Worker
+
   /**
    * See if all the actors that are running have completed. We do not put synchronized
    * here and rely in the atomicity of the reference variable actors and _.isActive calls.
@@ -57,14 +60,15 @@ object ActorGuard :
    * these have not terminated when they themselves created new actors.  */
   private def allTerminated = actors.forall(_.isTerminated)
 
-  /** Put an actor under guard. If it has a prename, add it to the index as well. */
-  private[actors] def add(prename: String, actor: Actor): Unit =
+  /** Put an actor under guard. If requested add it to the index as well. */
+  private[actors] def add(actor: Actor, rename: Auxiliary.Rename = Auxiliary.Rename.empty): Unit =
     /* We had some problems with null names here due to a design flaw regaring the
      * order of object construction. These should be gone now. Lets verify for a while. */
-    assert(prename != null, "uninitialised name in ActorGuard|add")
+    assert(rename.name != null, "uninitialised name in ActorGuard|add")
     synchronized {
-      /* We use prename here, to avoid confusion with the actors real name (to be determined) */
-      if !prename.isEmpty then index += prename -> actor
+      /* Put it in the index if required. */
+      if rename.inIndex then index += rename.name -> actor
+      /* Always add it to the base collection of (running) actors. */
       actors += actor }
 
   /** Removes an actor from the list, and index. Call when the actor is terminated. */

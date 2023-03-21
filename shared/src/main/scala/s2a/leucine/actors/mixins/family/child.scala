@@ -47,6 +47,9 @@ transparent private trait FamilyChild extends ActorDefs :
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
 
+  /** Generates a unique name for a new child actor within its siblings of the structure #<nr>. */
+  private val worker = new Worker
+
   /**
    * Variable that holds the termination result from the actor in case
    * we have to wait for the children to finish */
@@ -79,8 +82,8 @@ transparent private trait FamilyChild extends ActorDefs :
   /** Variable that holds all names of the children that are being removed */
   private var removed: List[String] = Nil
 
-  /** Generates a unique name for a new child actor within its siblings of the structure #<nr>. */
-  protected def workerName: String
+  /** Take a snapshot of the internals of this actor. */
+  private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family(_index.size,_children.size,worker.size))
 
   /**
    * Save access to the children of this actor. Note, this is temporary copy,
@@ -112,26 +115,21 @@ transparent private trait FamilyChild extends ActorDefs :
   private[actors] override def familyTerminate(complete: Boolean): Unit = termination = Some(complete)
 
   /**
-   * Adopt child actors with the given name. If the name is empty, a unique name is given. If the name starts
-   * with a worker prefix a new free worker name is generated. In these situations the actor is not put in the
-   * index. But, if an actor under the prename already exists, its index entry overwritten. Once adopted, the actor is only removed after it
-   * stopped working. This is automatic. Returns the new real name if needed. */
+   * Adopt child actors with the given name. Once adopted, the actor is removed after it
+   * stopped working, which is automatic. Returns the new real name. */
   private[actors] def adopt(prename: String, child: ChildActor): String =
-    val (name,index) =
-      /* If there is no prename, generate a unique name, based on the childs class name, but prohibit indexing. */
-      if      prename.isEmpty                          then (child.uniqueName,false)
-      /* If we want a worker, generate a new free worker name and  prohibit indexing. */
-      else if prename.startsWith(context.workerPrefix) then (workerName,false)
-      /* If this actor was give a name by hand use that, and try to index it. */
-      else                                                  (prename,true)
+    /* If the name is empty, an unique name is given. If the name starts with a worker prefix a new
+     * free worker name is generated. In these situations the actor is not put in the
+     * index. But, if an actor under the prename already exists, its index entry overwritten. */
+    val rename = Auxiliary.rename(prename,child,worker,context.workerPrefix)
     synchronized {
       if context.actorTracing then println(s"In actor=$name:  adopting: $name")
       /* All childeren are added. */
       _children += child
       /* If required add it to the index. If the name already exists, overwrite the entry.
        * There is nothing we can realisticly do to save the  day. */
-      if index then _index += name -> child }
-    name
+      if rename.inIndex then _index += rename.name -> child }
+    rename.name
 
   /**
    * Reject a child with a given name. For internal use. Normally, there should not be a reason
@@ -152,7 +150,7 @@ transparent private trait FamilyChild extends ActorDefs :
         case Some(complete) => if _children.isEmpty then deferred(processTerminate(complete))
         /* If we are in normal operation (most likely the child is terminating) */
         case None =>
-          if keep then ActorGuard.add("",child) // dit kan gevaarlijk zijn ivm deadlock!
+          if keep then ActorGuard.add(child) // dit kan gevaarlijk zijn ivm deadlock!
           /* In case we are still active, put them on the list to be reported as abandoned. A processTrigger()
            * may be needed in case the mailbox is empty so the callbacks are still handled. */
           if isActive then { removed = child.name :: removed ; processTrigger() }

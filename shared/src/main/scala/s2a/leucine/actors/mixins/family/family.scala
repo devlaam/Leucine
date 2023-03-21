@@ -94,7 +94,7 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * Mixin to construct a family tree where all levels accept the same letters, and which may be build dynamically/recursively.
  * The field 'parent' is an option in this case and the root of the tree should not have a parent. The type of the parent equals
  * the type of the FamilyTree and all letters are derived from one common ancestor. */
-trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, Actor :
+trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
   self: BareActor =>
   private[actors] type CL = MyLetter
   private[actors] type RS = Sender

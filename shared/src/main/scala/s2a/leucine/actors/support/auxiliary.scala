@@ -30,6 +30,11 @@ package s2a.leucine.actors
  * tha lack a natural place to put them. */
 object Auxiliary :
 
+  /** Tiny class for renaming an actor. */
+  class Rename(val name: String, val inIndex: Boolean)
+  object Rename :
+    val empty = Rename("",false)
+
   /**
    * Splits the string in two parts at the separator. If the separator is not
    * present the whole string is at the first element of the tuple. The second will
@@ -45,3 +50,12 @@ object Auxiliary :
      * return the prefix in front and the rest at the back. The rest may contain further
      * occasions of the separator. */
     if index < 0 then (value,"") else (value.substring(0,index), value.substring(index+1))
+
+  /** Generates a new name based on a preliminairy name and tells you if this name should be indexed. */
+  private[actors] def rename(prename: String, actor: NameActor, worker: Worker, prefix: String): Rename =
+    /* If there is no prename, generate a unique name, based on the childs class name, but prohibit indexing. */
+    if      prename.isEmpty            then Rename(actor.uniqueName,false)
+    /* If we want a worker, generate a new free worker name and  prohibit indexing. */
+    else if prename.startsWith(prefix) then Rename(worker.name(prefix),false)
+    /* If this actor was give a name by hand use that, and try to index it. */
+    else                                    Rename(prename,true)

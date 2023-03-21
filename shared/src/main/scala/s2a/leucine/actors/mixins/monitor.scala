@@ -258,5 +258,5 @@ object MonitorActor :
     def show = s"timersSum=$lettersSum, timersMax=$lettersMax, timersNow=$anchorsSize"
 
   /** Class to marshall all the KPI's of the Families mixins. */
-  case class Family(childerenNow: Int, workersSum: Long) extends Sample :
-    def show = s"childerenNow=$childerenNow, workersSum=$workersSum"
+  case class Family(namedChildrenNow: Int, allChildrenNow: Int, workersSum: Long) extends Sample :
+    def show = s"namedChildrenNow=$namedChildrenNow, allChildrenNow=$allChildrenNow, workersSum=$workersSum"

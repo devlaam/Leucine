@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /** The BareActor implements all methods needed for basic actor operation. It should not be instantiated by the user. */
-abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
+abstract class BareActor(using context: ActorContext) extends NameActor :
   import BareActor.Phase
 
   if context.actorTracing then println(s"In actor=$path: Constructed")
@@ -278,13 +278,6 @@ abstract class BareActor(using context: ActorContext) extends Actor, ActorDefs:
 
   /** The mailbox is processed, but no more letters are accepted. Terminate afterwards. */
   final def stopFinish(): Unit = stopWith(true)
-
-  /** In the base actor the path and name are equal. */
-  def path: String = name
-
-  /** Values contains if this actor is a worker based on its name prefix (# per default) */
-  def isWorker: Boolean = name.startsWith(context.workerPrefix)
-
 
   /** Used as sender for all messages send from this actor without explicit sender. */
   given this.type = this

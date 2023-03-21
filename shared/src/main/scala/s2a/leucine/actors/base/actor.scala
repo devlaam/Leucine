@@ -92,24 +92,6 @@ trait Actor :
    * turns to false however, it will never return to true again. */
   def isTerminated: Boolean
 
-  /**
-   * Generates an unique name of the structure ClassName#Hash. This can be used instead of
-   * self invented names. It is given inside the actor constructor.  */
-  private[actors] def uniqueName: String =
-    val hash: Long = ##.toLong & 0xFFFFFFFFL
-    s"${getClass.getSimpleName}#$hash"
-
-  /**
-   * Register this actor. Per default we do that in the actor guard. Other mixins may
-   * override this too, for example adopt the actor by a family. */
-  private[actors] def register(prename: String): String =
-    /* Register it under the prename. If this name is not defined (empty) it will
-     * be registered but not be added to the index.  */
-    ActorGuard.add(prename,this)
-    /* If no name is given, generate an unique name for this actor. */
-    if prename.isEmpty then uniqueName else prename
-
-
 
 object Actor :
   /** Having children defines the parent */
