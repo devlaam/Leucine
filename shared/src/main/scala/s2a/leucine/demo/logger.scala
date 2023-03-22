@@ -72,15 +72,17 @@ private class Logger extends BasicActor[Logger.Letter]("logger") :
 
   /* receive method that handles the incomming logger and control messages. */
   def receive(letter: Logger.Letter) = letter match
-    case msg: Message => if msg.level.ordinal <= this.level.ordinal then println(msg.show)
+    case msg: Message => if msg.level <= this.level then println(msg.show)
     case Switch(level: Level) => this.level = level
     case Stop                 => stopDirect()
 
 
 object Logger :
   import PlatformContext.Platform
+
   /* This are the levels the logger is able to handle. */
-  enum Level { case Error, Warning, Info, Debug }
+  enum Level extends EnumOrder[Level] :
+    case Error, Warning, Info, Debug
 
   /* Make this class sealed so that the compile can check at the receiver method if
    * we were complete in the implementation of all message types */
@@ -122,19 +124,19 @@ object Logger :
 
   /** Level to report severe problems. */
   def error(text: => String)(using data: LogData = LogData.empty): Unit =
-    if Level.Error.ordinal <= level.ordinal then logger.send(Message(Level.Error,data,text))
+    if Level.Error <= level then logger.send(Message(Level.Error,data,text))
 
   /** Level to report problems that require attention. */
   def warn(text: => String)(using data: LogData = LogData.empty): Unit =
-    if  Level.Warning.ordinal <= level.ordinal then logger.send(Message(Level.Warning,data,text))
+    if  Level.Warning <= level then logger.send(Message(Level.Warning,data,text))
 
   /** Level to just inform want is going down. */
   def info(text: => String)(using data: LogData = LogData.empty): Unit =
-    if Level.Info.ordinal <= level.ordinal then logger.send(Message(Level.Info,data,text))
+    if Level.Info <= level then logger.send(Message(Level.Info,data,text))
 
   /** Level to report inside information to correct and improve your code. */
   def debug(text: => String)(using data: LogData = LogData.empty): Unit =
-    if Level.Debug.ordinal <= level.ordinal then logger.send(Message(Level.Debug,data,text))
+    if Level.Debug <= level then logger.send(Message(Level.Debug,data,text))
 
   /** Change the log level */
   def switch(level: Level): Unit = logger.send(Switch(level))
