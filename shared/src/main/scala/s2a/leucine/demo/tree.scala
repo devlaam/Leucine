@@ -43,7 +43,6 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
     if parent.isEmpty then monitor.show(path)
 
   /* New children must be created and manually adopted by the parent. */
-  //!private def newChild(i: Int) = adopt(Tree(s"F$i",Some(this)))
   private def newChild(i: Int) = Tree(s"F$i",Some(this))
 
   /* Variable to see if all child actors have reported back that their
@@ -82,7 +81,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
        * hit zero, the traversal is complete and we may finish.*/
       parent match
         case Some(p) => p ! Tree.Backward
-        case None    => returns -= 1; if returns == 0 then stopFinish()
+        case None    => returns -= 1; if returns == 0 then stop(Actor.Stop.Finish)
 
 
 object Tree :

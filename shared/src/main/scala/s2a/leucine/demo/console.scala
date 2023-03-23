@@ -38,7 +38,7 @@ private class Console extends BasicActor[Console.Letter]("Console") :
   def stop(goodbye: String = ""): Unit =
     if !goodbye.isEmpty then println(goodbye)
     CLI.close()
-    stopDirect()
+    stop(Actor.Stop.Direct)
 
   /* Method to start the demo of choice. */
   def start(actor: Actor): Unit =

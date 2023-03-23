@@ -49,6 +49,13 @@ object ActorGuard :
   /* Worker instance to give all workers, not part of a family a worker name. */
   private[actors] val worker = new Worker
 
+  /** Contains all actors that require needle drop. */
+  private var silent: Set[BareActor] = Set.empty
+
+  /** Add or remove an actor to the needle dropping for silence detection. */
+  private[actors] def dropNeedles(active: Boolean, actor: BareActor): Unit = synchronized {
+    if active then silent += actor else silent -= actor }
+
   /**
    * See if all the actors that are running have completed. We do not put synchronized
    * here and rely in the atomicity of the reference variable actors and _.isActive calls.
@@ -58,7 +65,33 @@ object ActorGuard :
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
-  private def allTerminated = actors.forall(_.isTerminated)
+  private def allTerminated: Boolean =
+    import Actor.Activity.*, Actor.Stop.*
+    /* Use a var to collect all actors that are running that may be stopped. */
+    var haltables: List[Actor] = Nil
+    /* Test this actor on its activity, return true when is has already stopped or may be stopped. */
+    def act(actor: Actor): Boolean =
+    /* Get its activity */
+      val activity = actor.activity
+      /* If the actor is allowed to be stopped ... */
+      if activity == Haltable
+      /* ... add it to the collection of actors that will be stopped */
+      then { haltables = actor :: haltables; true }
+      /* ... otherwise see if the actor has already stopped. */
+      else activity == Terminated
+    /* Loop all actors to see if they have stopped or may be stopped. Terminate the loop
+     * as soon as one actor does not fullful this test. Note, usually this loop is very
+     * short. Terminated actors remove themselves from the list when they are done. */
+    val mayTerminate = actors.forall(act)
+    /* If we may terminate the actor system ... */
+    if mayTerminate
+    /* ... we must first terminate the haltable (but still active) actors */
+    then haltables.foreach(_.stop(Direct))
+    /* if not, we must probe all actors that requested it to see if they are silent (doing nothing). */
+    else silent.foreach(_.dropNeedle(true))
+    /* Finally we are really terminated if we were allowed to terminate and there were no haltables left. */
+    mayTerminate && haltables.isEmpty
+
 
   /** Put an actor under guard. If requested add it to the index as well. */
   private[actors] def add(actor: Actor, rename: Auxiliary.Rename = Auxiliary.Rename.empty): Unit =
@@ -72,9 +105,11 @@ object ActorGuard :
       actors += actor }
 
   /** Removes an actor from the list, and index. Call when the actor is terminated. */
-  private[actors] def remove(actor: Actor): Unit = synchronized {
+  private[actors] def remove(actor: BareActor): Unit = synchronized {
     /* Try to remove the name. In some situations this is called when it cannot be a member. This is okay. */
     index -= actor.name
+    /* Remove the actor for needle dropping */
+    silent -= actor
     /* Remove the actor from the primary collection. */
     actors -= actor }
 
@@ -88,12 +123,15 @@ object ActorGuard :
    * Start watching for actor system completion. This uses polling to see if all actors are
    * done. Do not set the pollInterval to low, for this calls all actors under guard. The minimum is 1
    * second. In practice this time defines the maximum time to wait for the application to terminate
-   * after all the work is done. Use force if you want to terminate other processes as well when
+   * after all the work is done. So for servers running days or more 10 seconds to 1 minute may be a good
+   * value, for CLI apps, use 2 seconds. Use force if you want to terminate other processes as well when
    * the actors are all completed to shutdown. Note that if some actors have not stopped by themselves,
    * but are not able to receive any messages any more, the application may run indefinitely, and this
    * is platform dependent. In that case you may need to call context.showdown(true/false) somewhere
    * manually. Calling the watch method may be needed to start the actor system  depening on the
    * platform. */
-  def watch(force: Boolean, complete: () => Unit = () => (), pollInterval: FiniteDuration = 10.seconds)(using context: ActorContext): Unit =
+  def watch(force: Boolean, pollInterval: FiniteDuration, complete: () => Unit = () => ())(using context: ActorContext): Unit =
     /* Make sure we wait at least one second. */
-    context.waitForExit(force,pollInterval max 1.second)(allTerminated,complete)
+    val pollLimited = pollInterval max 1.second
+    /* Now, wait for the system to complete by polling allTerminated. At completion call the complete handler. */
+    context.waitForExit(force,pollLimited)(allTerminated,complete)

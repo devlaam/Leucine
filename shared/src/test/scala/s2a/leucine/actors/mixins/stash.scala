@@ -48,7 +48,7 @@ object StashActorTest extends TestSuite :
       stack ! Stack.Pop
       (21 to 24).foreach(i => stack ! Stack.Write(i))
       stack ! Stack.Print
-      stack.stopFinish()
+      stack.stop(Actor.Stop.Finish)
       deferred.await()
       deferred.compare(_ ==> expect) } }
 

@@ -127,7 +127,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingActor, FamilyRoo
     /* ... if not report this */
     Logger.warn(s"ServerSocket cannot be opened: ${serverSocket.error}")
     /* ... and stop the server. */
-    stopDirect()
+    stop(Actor.Stop.Direct)
 
 
   /* Handle all incomming letters. */
@@ -146,7 +146,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingActor, FamilyRoo
        * BTW, this is automatic in stopDirect, for illustration only. */
       dump(expectationAnchor)
       /* Stop the actor. */
-      stopDirect()
+      stop(Actor.Stop.Direct)
 
   protected override def except(letter: Server.Letter, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")

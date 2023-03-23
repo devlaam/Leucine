@@ -55,14 +55,14 @@ transparent private trait FamilyChild extends ActorDefs :
    * we have to wait for the children to finish */
   private var termination: Option[Boolean] = None
 
-  /** Stop on barren flag. If this is true the actor will stopFinish when all children are gone. */
-  private var stopOnBarren: Boolean = false
+  /** See the current activity state of this actor */
+  def activity: Actor.Activity
 
-  /** See if this actor is still active. */
-  def isActive: Boolean
+  /** Method to inform the actor to stop its activities. */
+  def stop(value: Actor.Stop): Unit
 
-  /** The mailbox is processed, but no more letters are accepted. Terminate afterwards. */
-  def stopFinish(): Unit
+  /** Stop on barren test. If this is true the actor will stopFinish when all children are gone. */
+  private[actors] def stopOnBarren: Boolean
 
   /** Execute an action later on the context. */
   private[actors] def deferred(action: => Unit): Unit
@@ -91,6 +91,13 @@ transparent private trait FamilyChild extends ActorDefs :
   protected[actors] def children: Set[ChildActor] = _children
 
   /**
+   * Pass the dropped needles to all children. Needle dropping is to test if the actors has gone silent.  */
+  private[actors] override def familyDropNeedle(): Unit =
+    /* If needles are dropped from a parent, this is not the root, so we say false here. That is important
+     * since needles dropped by the root are treated differently. */
+    _children.foreach(_.dropNeedle(false))
+
+  /**
    * Save access to the index of this actor. Note, this is temporary copy,
    * so it may already have changed after being read. */
   protected[actors] def index: Map[String,ChildActor] = _index
@@ -107,7 +114,9 @@ transparent private trait FamilyChild extends ActorDefs :
    * cleaned from the bottom up. Afterwards, the actors are removed from the childrens
    * map, by there own doing. So it may take a little while before there references are
    * removed. */
-  private[actors] override def familyStop(finish: Boolean): Unit = synchronized { _children.foreach(_.stopWith(finish)) }
+  private[actors] override def familyStop(finish: Boolean): Unit = synchronized {
+    val stop = if finish then Actor.Stop.Finish else Actor.Stop.Direct
+    _children.foreach(_.stop(stop)) }
 
   /**
    * Called when this actor still has childeren (_children guaranteed to be non empty). Defers
@@ -150,12 +159,13 @@ transparent private trait FamilyChild extends ActorDefs :
         case Some(complete) => if _children.isEmpty then deferred(processTerminate(complete))
         /* If we are in normal operation (most likely the child is terminating) */
         case None =>
-          if keep then ActorGuard.add(child) // dit kan gevaarlijk zijn ivm deadlock!
+          if keep then ActorGuard.add(child)
           /* In case we are still active, put them on the list to be reported as abandoned. A processTrigger()
            * may be needed in case the mailbox is empty so the callbacks are still handled. */
-          if isActive then { removed = child.name :: removed ; processTrigger() }
+          if activity.active then { removed = child.name :: removed ; processTrigger() }
       true }
 
+  /** See if there are any children removed that we did not yet report. */
   private[actors] override def familyRemoved: Boolean = synchronized { !removed.isEmpty }
 
   /** Report all childeren that rejected themselves (abandoned the parent) as gone. */
@@ -163,22 +173,12 @@ transparent private trait FamilyChild extends ActorDefs :
     /* Get the removed names and clear the list. Note that the order of the callbacks is
      * reversed to the order of removal, but since the addition of the names to the removed
      * childeren list can be any, there is no rationale for reversing this list. */
-    val (report,stop) = synchronized {
+    val (report,barren) = synchronized {
       val result = removed
       removed = Nil
       (result,_children.isEmpty && stopOnBarren) }
     report.foreach(abandoned)
-    if stop then stopFinish()
-
-  /**
-   * Stop this actor with a stopFinish() after all its children have stopped (active=true). If the actor
-   * has no childeren at the moment of this call, it will stopFinish() directly. As long as the stop did not
-   * kick in, it may be cancelled with an other call with active = false. The stopFinish is called
-   * internally after all abandoned callbacks had a chance to run. If the remaining letters in the mailbox
-   * create new childeren, the teardown procedure is not cancelled. The new children are stopped as well. */
-  final protected def stopBarren(active: Boolean): Unit = synchronized {
-    stopOnBarren = active
-    if active && _children.isEmpty then stopFinish() }
+    if barren then stop(Actor.Stop.Finish)
 
   /**
    * Override this method to see which child has left the parent. This method may arrive some time

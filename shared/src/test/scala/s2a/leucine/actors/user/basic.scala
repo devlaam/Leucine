@@ -36,7 +36,7 @@ object BasicActorTest extends TestSuite :
       writer.send(Writer.Number(1))
       writer.send(Writer.Text("text2"))
       writer.send(Writer.Number(2))
-      writer.stopFinish()
+      writer.stop(Actor.Stop.Finish)
       deferred.await()
       deferred.compare(_ ==> List("A:text1","A:1","A:text2","A:2","A:stop:true")) }
     test("sending letters, stop in the middle."){
@@ -44,16 +44,16 @@ object BasicActorTest extends TestSuite :
       val writer = new Writer("B",buffer.writeln,deferred.done)
       writer.send(Writer.Text("text3"))
       writer.send(Writer.Number(3))
-      writer.stopFinish()
+      writer.stop(Actor.Stop.Finish)
       writer.send(Writer.Text("text4"))
       writer.send(Writer.Number(4))
-      writer.stopFinish()
+      writer.stop(Actor.Stop.Finish)
       deferred.await()
       deferred.compare(_ ==> List("B:text3","B:3","B:stop:true")) }
     test("sending letters, stop at the start."){
       val deferred = Deferred(buffer.readlns)
       val writer = new Writer("C",buffer.writeln,deferred.done)
-      writer.stopFinish()
+      writer.stop(Actor.Stop.Finish)
       writer.send(Writer.Text("text5"))
       writer.send(Writer.Number(5))
       deferred.await()
@@ -68,13 +68,13 @@ object BasicActorTest extends TestSuite :
       writer.send(Writer.Except)
       writer.send(Writer.Number(7))
       writer.send(Writer.Except)
-      writer.stopFinish()
+      writer.stop(Actor.Stop.Finish)
       deferred.await()
       deferred.compare(_ ==> List("D:text6","except(D,1)","D:6","D:text7","except(D,2)","D:7","except(D,3)","D:stop:true")) }
     test("sending letters with random stop"){
       val writer = new Writer("E",buffer.writeln,() => ())
       def result(processed: Int, accepted: Int) = (1 until processed).map(i => s"E:$i").appended(s"E:stop:${processed-1==accepted}").toList
-      ac.delayed(writer.stopDirect(), 1.millis)
+      ac.delayed(writer.stop(Actor.Stop.Direct), 1.millis)
       val accepted = (1 until 30).map(i => writer.send(Writer.Number(i))).count(identity)
       val deferred = Deferred(buffer.readlns,0,100.millis)
       deferred.await()

@@ -28,6 +28,7 @@ package s2a.leucine.actors
 /* Methods stub for when there is no family mixin used. */
 private[actors] trait FamilyDefs :
   private[actors] def familySize: Int = 0
+  private[actors] def familyDropNeedle(): Unit = ()
   private[actors] def familyRemoved: Boolean = false
   private[actors] def familyStop(finish: Boolean): Unit = ()
   private[actors] def familyTerminate(complete: Boolean): Unit = ()
@@ -82,7 +83,7 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
    * you want to prohibit the termination of this actor when the parent stops, this could be one.
    * The parent itself cannot be removed from the child that is rejected. When the actor is still
    * active it will be put under guard. There is no way to reunite the child and parent later on. */
-  protected def abandon(): Boolean = parent.reject(self,isActive)
+  protected def abandon(): Boolean = parent.reject(self,activity.active)
 
   /** Register this actor, we are a child, so we do this at the parent. */
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
@@ -115,7 +116,7 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
    * you should not call this when the actor itself has children.
    * The parent itself cannot be removed from the child that is rejected. When the actor is still
    * active it will be put under guard. There is no way to reunite the child and parent later on. */
-  protected def abandon(): Boolean = parent.map(_.reject(self,isActive)).getOrElse(false)
+  protected def abandon(): Boolean = parent.map(_.reject(self,activity.active)).getOrElse(false)
 
   /** Register this actor. */
   private[actors] override def register(prename: String): String =

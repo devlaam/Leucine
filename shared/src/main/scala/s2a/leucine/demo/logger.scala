@@ -74,7 +74,7 @@ private class Logger extends BasicActor[Logger.Letter]("logger") :
   def receive(letter: Logger.Letter) = letter match
     case msg: Message => if msg.level <= this.level then println(msg.show)
     case Switch(level: Level) => this.level = level
-    case Stop                 => stopDirect()
+    case Stop                 => stop(Actor.Stop.Direct)
 
 
 object Logger :
@@ -113,6 +113,9 @@ object Logger :
 
   /* The actual logger is hidden from the user. */
   private val logger = new Logger
+
+  /* The logger may stop if there is nothing left to log. */
+  logger.stop(Actor.Stop.Final)
 
   /* Hard wired minimum level for logging. This is handy to quickly decide what to ignore.
    * This can be changed in something that is decided at program start. */

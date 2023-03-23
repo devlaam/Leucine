@@ -27,6 +27,7 @@ package s2a.leucine.actors
 
 /** The BareActor implements all methods needed for basic actor operation. It should not be instantiated by the user. */
 abstract class BareActor(using context: ActorContext) extends NameActor :
+  import Actor.{Activity, Stop}
   import BareActor.Phase
 
   if context.actorTracing then println(s"In actor=$path: Constructed")
@@ -50,6 +51,11 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
   private var phase: Phase = Phase.Start
 
   /**
+   * Variable that keeps track of the stop that has been requested. Some stops cannot be reverted, or
+   * or only increased.  */
+  private var stopper: Stop = Stop.Never
+
+  /**
    * Variable that keeps track of the transient state between processes.
    * Note that allthough access on state may be from different threads, it is strictly sequential, so
    * there is no need to protect manipulations. */
@@ -58,11 +64,56 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
   /** Counter for the total number of exceptions during the lifetime of this actor. */
   private var excepts: Int = 0
 
-  /** See if this actor is still active. */
-  def isActive: Boolean = synchronized { phase.active }
+  /**
+   * Counter for the total number of silent periods (needle drops). Anytime the actor starts the
+   * processing loop this is reset. It is periodically increased when in pause mode. */
+  private var needles: Int = 0
 
-  /** See if this actor is completely terminated. */
-  def isTerminated: Boolean = synchronized { phase == Phase.Done }
+  /**
+   * Call from the guard to drop a needle. If the number of needles exceeds a threshold,
+   * the actor is assumed to be silent. */
+  private[actors] def dropNeedle(root: Boolean): Unit =
+    val passOn =  synchronized {
+      /* See if we are not double booked. This is the case when this actor is requested to
+       * stop on Silent and one of its ancesters is as well. In that case we remove this booking
+       * and ignore the signal. */
+      if (stopper == Stop.Silent) && !root then
+        /* Remove the booking */
+        ActorGuard.dropNeedles(false,this)
+        /* Ignore this Silent stopper. */
+        stopper == Stop.Never
+        /* Do not pass the signal on. */
+        false
+      /* See if we still want the actor to stop on Silent. This is the case when we received
+       * the request ourselves, or when it is passed from the parent in a family. */
+      else if (stopper == Stop.Silent) || !root then
+        /* See if we are indeed doing nothing, in that case drop needle. Note: this test
+         * is essential. Allthough the needles are cleared at every processLoop, this only
+         * happens at the start, on a very busy actor, clearing may be selldom. */
+        if (phase == Phase.Start) || (phase == Phase.Pause) then needles = needles + 1
+        /* If the limit of needles is reached, the actor is considered silent. We may now
+         * stop if there are no children any more. If there still are, we must wait until
+         * these have stopped. */
+        if (needles > context.silentStop) && (familySize == 0) then stop(Stop.Finish)
+        /* Pass the signal on. */
+        true
+      /* In the other cases there is nothing to do or pass. */
+      else false }
+    /* Pass the needle on to the children, since the stop request considers the whole tree.
+     * Note: this must be done outside the synchronization to prevent possible deadlocks. This
+     * may imply we miss an actor that was newly registered. That is no problem. A silent stop
+     * comes eventually. */
+    if passOn then familyDropNeedle()
+
+  /** See the current activity state of this actor */
+  def activity: Activity = synchronized {
+    if phase.active
+    then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
+    else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping }
+
+
+  /** Stop on barren test. If this is true the actor will stopFinish when all children are gone. */
+  private[actors] def stopOnBarren: Boolean = synchronized { stopper == Stop.Barren }
 
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
@@ -81,6 +132,9 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
   /** Call processPlay to continue the processLoop. */
   private def processPlay(): Unit =
     if context.actorTracing then println(s"In actor=$path: processPlay() called in phase=${phase}")
+    /* Reset the dropped needles counter (note we only call processPlay synchronised.) */
+    needles = 0
+    /* Put the processLoop() on the context. */
     deferred(processLoop())
 
   /**
@@ -256,7 +310,7 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
       true }
 
   /** Stop this actor asap, but complete the running letter. */
-  private[actors] def stopWith(finish: Boolean): Unit = synchronized {
+  private def stopWith(finish: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: Before stopInternal($finish) message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
@@ -273,11 +327,25 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
-  /** Stop this actor asap, but complete the running letter. Terminate afterwards. */
-  final def stopDirect(): Unit = stopWith(false)
-
-  /** The mailbox is processed, but no more letters are accepted. Terminate afterwards. */
-  final def stopFinish(): Unit = stopWith(true)
+  /**
+   * Stopping of an actor is organised in levels of sevirity. The lowest level (Direct) terminates directly, the
+   * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
+   * possible if the stop action was not yet started. Direct and Finish start immediately, and cannot be retracted. */
+  final def stop(value: Stop): Unit =
+    def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
+    synchronized { stopper = value match
+      case Stop.Direct  if stopper >  Stop.Direct => stopWith(false); Stop.Direct
+      case Stop.Finish  if stopper >  Stop.Finish => stopWith(true);  Stop.Finish
+      case Stop.Barren  if stopper == Stop.Silent => if familySize == 0 then { stopWith(true); Stop.Finish } else { drop(false); Stop.Barren }
+      case Stop.Barren  if stopper >  Stop.Silent => if familySize == 0 then { stopWith(true); Stop.Finish } else Stop.Barren
+      case Stop.Silent  if stopper >  Stop.Silent => drop(true);  Stop.Silent
+      case Stop.Final   if stopper == Stop.Barren => Stop.Final
+      case Stop.Final   if stopper == Stop.Silent => drop(false); Stop.Final
+      case Stop.Final   if stopper >  Stop.Final  => Stop.Final
+      case Stop.Never   if stopper == Stop.Barren => Stop.Never
+      case Stop.Never   if stopper == Stop.Silent => drop(false); Stop.Never
+      case Stop.Never   if stopper >  Stop.Silent => Stop.Never
+      case _            => stopper }
 
   /** Used as sender for all messages send from this actor without explicit sender. */
   given this.type = this
@@ -293,7 +361,7 @@ object BareActor :
    * the loop asap. Subsequently afterStop() is called, and the pahse becomes Done. It may never be reactivated again.
    * The first three phases are active (so the actor may accept letters, the last ones are not, and describe the state
    * in various ways of tearing down. */
-  private[actors]  enum Phase(val active: Boolean) :
+  private[actors] enum Phase(val active: Boolean) :
     /** The first phase the actor is in after creation. */
     case Start  extends Phase(true)
     /** The active phase when the actor is processing a letter. */

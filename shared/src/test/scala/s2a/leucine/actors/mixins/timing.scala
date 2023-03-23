@@ -24,7 +24,7 @@ object TimingActorTest extends TestSuite :
 
     def receive(letter: Clock.Letter) = letter match
       case  Clock.Result(value: Int) => writeln(s"$value")
-      case  Clock.Done               => stopFinish()
+      case  Clock.Done               => stop(Actor.Stop.Finish)
       case  Clock.Stop =>
         writeln(s"stop")
         dumpAll()
@@ -56,7 +56,7 @@ object TimingActorTest extends TestSuite :
     def receive(letter: Expect.Letter) = letter match
       case Expect.Release(msg) =>
         writeln(msg)
-        stopFinish()
+        stop(Actor.Stop.Finish)
 
   object Expect :
     sealed trait Letter extends Actor.Letter

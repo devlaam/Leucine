@@ -62,7 +62,7 @@ class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
          * the 'last letter'. Note that in this case this is not really needed, nobody
          * else sends messages to Ticker, so the letter queue empties itself anyway, but
          * to actually quit the application, we need it to stop itself. */
-        if value<10 then this ! Ticker.Work else stopFinish()
+        if value<10 then this ! Ticker.Work else stop(Actor.Stop.Finish)
         /* After a few ticks we know the app is working, and set the logger level
          * to debug. Note, this is a soft switch. So some work is done, even for
          * debug level Debug. Change Logger.level at compile time for production. */

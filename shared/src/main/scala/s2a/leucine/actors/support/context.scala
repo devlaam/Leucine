@@ -50,6 +50,9 @@ trait ActorContext extends PlatformContext with ExecutionContext :
   /** Global maximum number of letters per mailbox. */
   def maxMailboxSize: Int
 
+  /** The minimal number of poll loops (from the guard) for an actor to be considered silent. */
+  def silentStop: Int
+
   /** Future to be executed on the ActorContext. */
   def future[T](task: => T): Future[T] =
     val promise = Promise[T]()

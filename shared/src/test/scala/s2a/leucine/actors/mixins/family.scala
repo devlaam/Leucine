@@ -55,12 +55,12 @@ trait ActorTreeSupply :
         write("<<=")
         parent match
           case Some(p) => p ! Tree.Backward
-          case None    => returns += 1; if returns == 0 then stopFinish()
+          case None    => returns += 1; if returns == 0 then stop(Actor.Stop.Finish)
       case Tree.Stop =>
         write("=>>")
-        if parent.isEmpty then stopBarren(true)
+        if parent.isEmpty then stop(Actor.Stop.Barren)
         val relayed = relay(Tree.Stop,this)
-        if relayed == 0 then stopDirect()
+        if relayed == 0 then stop(Actor.Stop.Direct)
 
   object Tree :
     sealed trait Letter extends Actor.Letter
@@ -232,7 +232,7 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   val tree: Tree = Tree("F0",None,buffer.writeln,Some(deferred.done))
   tree ! Tree.Create(width,level)
   tree ! Tree.Forward
-  tree.stopFinish()
+  tree.stop(Actor.Stop.Finish)
   deferred.await()
 
   val tests = Tests {

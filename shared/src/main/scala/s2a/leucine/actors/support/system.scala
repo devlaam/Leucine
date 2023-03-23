@@ -43,6 +43,8 @@ trait SystemParameters :
   def familyPathSeparator: Char
   /** Global maximum number of letters per mailbox. */
   def maxMailboxSize: Int
+  /** The minimal number of poll loops (from the guard) for an actor to be considered silent. */
+  def silentStop: Int
 
 
 /**
@@ -55,3 +57,4 @@ object DefaultSystem extends SystemParameters :
   val workerPrefix: String            = "#"
   val familyPathSeparator: Char       = '.'
   val maxMailboxSize: Int             = Int.MaxValue
+  val silentStop: Int                 = 3

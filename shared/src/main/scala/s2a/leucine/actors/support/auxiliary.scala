@@ -26,8 +26,8 @@ package s2a.leucine.actors
 
 
 /**
- * Contains library methods needed on different places in the code
- * tha lack a natural place to put them. */
+ * Contains small library methods needed on different places in the code
+ * that lack a natural place to put them. */
 object Auxiliary :
 
   /** Tiny class for renaming an actor. */
