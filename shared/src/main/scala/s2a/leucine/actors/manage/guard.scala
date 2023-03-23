@@ -50,10 +50,10 @@ object ActorGuard :
   private[actors] val worker = new Worker
 
   /** Contains all actors that require needle drop. */
-  private var silent: Set[BareActor] = Set.empty
+  private var silent: Set[Actor] = Set.empty
 
   /** Add or remove an actor to the needle dropping for silence detection. */
-  private[actors] def dropNeedles(active: Boolean, actor: BareActor): Unit = synchronized {
+  private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
     if active then silent += actor else silent -= actor }
 
   /**
@@ -105,7 +105,7 @@ object ActorGuard :
       actors += actor }
 
   /** Removes an actor from the list, and index. Call when the actor is terminated. */
-  private[actors] def remove(actor: BareActor): Unit = synchronized {
+  private[actors] def remove(actor: Actor): Unit = synchronized {
     /* Try to remove the name. In some situations this is called when it cannot be a member. This is okay. */
     index -= actor.name
     /* Remove the actor for needle dropping */

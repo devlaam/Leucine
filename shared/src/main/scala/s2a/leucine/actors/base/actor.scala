@@ -92,6 +92,11 @@ trait Actor :
    * condition to stop the actor did not kick in. */
   def stop(value: Stop): Unit
 
+  /**
+   * Called from the guard to drop a needle. If the number of needles exceeds a threshold,
+   * the actor is assumed to be silent. For internal use. */
+  private[actors] def dropNeedle(root: Boolean): Unit
+
 
 object Actor :
   /** Having children defines the parent */
@@ -155,3 +160,5 @@ object Actor :
     def activity: Activity = Activity.Stopping
     /** The Anonymous actor is not running, so it cannot be stopped. */
     def stop(value: Stop): Unit = ()
+    /** The Anonymous actor is always silent so dropping has no consequences. */
+    private[actors] def dropNeedle(root: Boolean): Unit = ()
