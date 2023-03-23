@@ -84,8 +84,8 @@ abstract class ContextImplementation extends PlatformContext :
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     def delay: Callable[Unit] = new Callable[Unit] { def call(): Unit = tryExit(true) }
     def tryExit(check: Boolean) = if !active then complete() else
-      if check && shutdownRequest then shutdown(force)
       schedule(delay,time)
+      if check && shutdownRequest then shutdown(force)
     tryExit(false)
 
 
