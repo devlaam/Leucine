@@ -30,10 +30,10 @@ import java.util.concurrent.Callable
 /* Methods stub for when there is no monitor mixin used. */
 private[actors] trait MonitorDefs :
   private[actors] type Env
-  private[actors] def probeBare(): Option[MonitorActor.Bare]  = None
-  private[actors] def probeStash(): Option[MonitorActor.Stash]  = None
-  private[actors] def probeTiming(): Option[MonitorActor.Timing]  = None
-  private[actors] def probeFamily(): Option[MonitorActor.Family]  = None
+  private[actors] def probeBare(): Option[MonitorAid.Bare]  = None
+  private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
+  private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
+  private[actors] def probeFamily(): Option[MonitorAid.Family]  = None
   private[actors] def monitorSend(isActive: Boolean, envelope: Env): Unit = ()
   private[actors] def monitorEnter(envelope: Env): Unit = ()
   private[actors] def monitorExit(envelope: Env): Unit = ()
@@ -42,8 +42,8 @@ private[actors] trait MonitorDefs :
 
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
-  import MonitorActor.{Action, Trace, Post, Tracing}
+trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
+  import MonitorAid.{Action, Trace, Post, Tracing}
 
   /* Fields to measure the time spend inside the thread and outside the thread */
   private var lastClockTime: Long = 0
@@ -189,7 +189,7 @@ trait MonitorActor(monitor: ActorMonitor)(using context: ActorContext) extends A
   monitorStart()
 
 
-object MonitorActor :
+object MonitorAid :
 
   /* All trace entries are counted, so you can see none is failing. */
   private var _tracer: Int = 0

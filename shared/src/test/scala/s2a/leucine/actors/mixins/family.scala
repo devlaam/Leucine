@@ -127,7 +127,7 @@ object ActorFamilySupply extends TestSuite :
     type Level1B_Accept = Actor.Anonymous | Outside
     type Level1C_Accept = Actor.Anonymous | Outside | Level1A
 
-    class Outside() extends StandardActor[Outside_.Letter,Outside_Accept]("boo"), TimingActor :
+    class Outside() extends StandardActor[Outside_.Letter,Outside_Accept]("boo"), TimingAid :
       post(Outside_.Bell,1.seconds)
 
       @nowarn /* This method does not generate a warning outside of the tests macro expansion */

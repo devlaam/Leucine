@@ -111,7 +111,6 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
     then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
     else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping }
 
-
   /** Stop on barren test. If this is true the actor will stopFinish when all children are gone. */
   private[actors] def stopOnBarren: Boolean = synchronized { stopper == Stop.Barren }
 
@@ -119,8 +118,8 @@ abstract class BareActor(using context: ActorContext) extends NameActor :
   protected def maxMailboxSize: Int = context.maxMailboxSize
 
   /** Take a snapshot of the internals of this actor. */
-  private[actors] override def probeBare(): Option[MonitorActor.Bare] =
-    val result = MonitorActor.Bare(phase,mailbox.sum,mailbox.max,excepts,userLoad)
+  private[actors] override def probeBare(): Option[MonitorAid.Bare] =
+    val result = MonitorAid.Bare(phase,mailbox.sum,mailbox.max,excepts,userLoad)
     mailbox.reset()
     Some(result)
 

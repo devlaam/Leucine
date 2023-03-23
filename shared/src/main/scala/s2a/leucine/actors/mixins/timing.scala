@@ -39,8 +39,8 @@ private[actors] trait TimingDefs :
 
 
 /** Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events. */
-trait TimingActor(using context: ActorContext) extends ActorDefs :
-  import TimingActor.Event
+trait TimingAid(using context: ActorContext) extends ActorDefs :
+  import TimingAid.Event
 
   /** See the current activity state of this actor */
   def activity: Actor.Activity
@@ -58,7 +58,7 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
   private val events: DropQueue[Event[MyLetter]] = new DropQueue[Event[MyLetter]]()
 
   /** Take a snapshot of the internals of this actor. */
-  private[actors] override def probeTiming(): Option[MonitorActor.Timing] = Some(MonitorActor.Timing(events.sum,events.max,anchors.size))
+  private[actors] override def probeTiming(): Option[MonitorAid.Timing] = Some(MonitorAid.Timing(events.sum,events.max,anchors.size))
 
   /**
    * Construct a new callable on the fly. The call method puts the event on the events queue and
@@ -151,6 +151,6 @@ trait TimingActor(using context: ActorContext) extends ActorDefs :
       true }
 
 
-object TimingActor :
+object TimingAid :
   /** Auxiliarly class that holds the relevant elements of an event. */
   private class Event[L](val anchor: Object, val letter: L)

@@ -8,11 +8,11 @@ import utest.*
 
 import s2a.control.{Buffer, Deferred}
 
-object TimingActorTest extends TestSuite :
+object TimingAidTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Clock.Letter](), TimingActor :
+  class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Clock.Letter](), TimingAid :
 
     override protected def stopped(complete: Boolean) =
       writeln(s"stopped:$complete")
@@ -44,7 +44,7 @@ object TimingActorTest extends TestSuite :
     case object Done extends Letter
 
 
-  class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Expect.Letter](), TimingActor :
+  class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Expect.Letter](), TimingAid :
 
     override protected def stopped(complete: Boolean) =
       writeln(s"stopped:$complete")

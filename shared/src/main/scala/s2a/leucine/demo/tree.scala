@@ -30,7 +30,7 @@ import s2a.leucine.actors.Actor.Anonymous
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Letter,Actor](name), FamilyTree[Tree], MonitorActor(monitor) :
+class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Letter,Actor](name), FamilyTree[Tree], MonitorAid(monitor) :
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) = println(s"$kind $path")

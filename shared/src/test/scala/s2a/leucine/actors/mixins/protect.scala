@@ -5,11 +5,11 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import s2a.control.{Buffer, Deferred}
 
-object ProtectActorTest extends TestSuite :
+object ProtectAidTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Digest(val writeln: String => Unit, val done: () => Unit) extends BasicActor[Digest.Letter](), ProtectActor :
+  class Digest(val writeln: String => Unit, val done: () => Unit) extends BasicActor[Digest.Letter](), ProtectAid :
 
     override val maxMailboxSize = 4
     val alarmSize = 2

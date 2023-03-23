@@ -38,7 +38,7 @@ private[actors] trait StashDefs :
 
 
 /** Mixin if you need to store letters away.  */
-trait StashActor extends ActorDefs :
+trait StashAid extends ActorDefs :
 
   /** Actor dependend packing of letter and sender into one enveloppe. */
   private[actors] def pack(letter: MyLetter, sender: Sender): Env
@@ -55,7 +55,7 @@ trait StashActor extends ActorDefs :
   private var storeRequest: Boolean = false
 
   /** Take a snapshot of the internals of this actor. */
-  private[actors] override def probeStash(): Option[MonitorActor.Stash] = Some(MonitorActor.Stash(stashbox.sum,stashbox.max))
+  private[actors] override def probeStash(): Option[MonitorAid.Stash] = Some(MonitorAid.Stash(stashbox.sum,stashbox.max))
 
   /** Internal test to see if we must flush */
   private[actors] override def stashFlush: Boolean = flushRequest

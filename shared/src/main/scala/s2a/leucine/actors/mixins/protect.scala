@@ -34,8 +34,8 @@ private[actors] trait ProtectDefs :
 
 
 /** Mixin which guards the level of the mailbox and generates events when it gets to full. */
-trait ProtectActor(using context: ActorContext) extends ActorDefs :
-  import ProtectActor.Alarm
+trait ProtectAid(using context: ActorContext) extends ActorDefs :
+  import ProtectAid.Alarm
 
   /* This variable makes sure the alarm calls are never repeated.
    * Once an alarm is issued (sizeAlarm(true) called) it will not
@@ -85,7 +85,7 @@ trait ProtectActor(using context: ActorContext) extends ActorDefs :
   protected def sizeAlarm(full: Boolean): Unit
 
 
-object ProtectActor :
+object ProtectAid :
 
   /* Possible states of the alarm. */
   enum Alarm :

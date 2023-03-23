@@ -83,7 +83,7 @@ transparent private trait FamilyChild extends ActorDefs :
   private var removed: List[String] = Nil
 
   /** Take a snapshot of the internals of this actor. */
-  private[actors] override def probeFamily(): Option[MonitorActor.Family] = Some(MonitorActor.Family(_index.size,_children.size,worker.size))
+  private[actors] override def probeFamily(): Option[MonitorAid.Family] = Some(MonitorAid.Family(_index.size,_children.size,worker.size))
 
   /**
    * Save access to the children of this actor. Note, this is temporary copy,

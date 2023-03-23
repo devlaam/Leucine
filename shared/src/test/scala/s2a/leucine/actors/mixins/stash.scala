@@ -8,11 +8,11 @@ import utest.*
 import s2a.control.{Buffer, Deferred}
 import s2a.leucine.actors.PlatformContext.Platform
 
-object StashActorTest extends TestSuite :
+object StashAidTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor,Stack.State](), StashActor :
+  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor,Stack.State](), StashAid :
     override protected def stopped(complete: Boolean) =
       writeln(s"stop:$complete")
       done()

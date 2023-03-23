@@ -34,7 +34,7 @@ import s2a.leucine.actors.*
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
 val monitor = new ActorMonitor {
-  import MonitorActor.{Trace, Post, Action, Tracing}
+  import MonitorAid.{Trace, Post, Action, Tracing}
   import ActorMonitor.Record
   /* This callback is directly called in case an actor is added. Not used in this example. */
   def added(path: String, actors: Map[String,Record]): Unit = ()

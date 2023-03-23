@@ -33,7 +33,7 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 /** Extend and Instantiate this class to get a custom made monitor */
 abstract class ActorMonitor :
-  import MonitorActor.{Action, Sample, Trace, Post, Tracing}
+  import MonitorAid.{Action, Sample, Trace, Post, Tracing}
   import ActorMonitor.Record
 
   /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
@@ -162,7 +162,7 @@ abstract class ActorMonitor :
 
 /** Use this Object to directly start monitoring with default functionality. */
 object ActorMonitor  :
-  import MonitorActor.Sample
+  import MonitorAid.Sample
 
   case class Record(val incarnations: Int, val active: Boolean, val samples: List[Sample]) :
     def inc: Record = copy(incarnations+1,true)

@@ -69,11 +69,11 @@ trait ServerSocket:
 /* This class captures the incomming connection an creates a new actor for each. It is derived from
  * BasicActor because we do no receive letters from others than ourselves. As a best practice we define
  * the letters Server is able to process in the compagnion object, and use Server.Letter as the base
- * type. Furthermore we need to mix TimingActor in for we need letters that arrive after a certain
+ * type. Furthermore we need to mix TimingAid in for we need letters that arrive after a certain
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Server extends BasicActor[Server.Letter]("server"), TimingActor, FamilyRoot[Provider.Letter,Actor], LogInfo :
+class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[Provider.Letter,Actor], LogInfo :
 
   /* Time this demo will last. */
   val runtime = 60.seconds
