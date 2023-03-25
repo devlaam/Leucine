@@ -14,7 +14,7 @@ object TimingAidTest extends TestSuite :
 
   class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Clock.Letter](), TimingAid :
 
-    override protected def stopped(complete: Boolean) =
+    override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stopped:$complete")
       done()
 
@@ -46,7 +46,7 @@ object TimingAidTest extends TestSuite :
 
   class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Expect.Letter](), TimingAid :
 
-    override protected def stopped(complete: Boolean) =
+    override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stopped:$complete")
       done()
 

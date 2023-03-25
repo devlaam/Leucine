@@ -8,20 +8,7 @@ import utest.*
 
 import s2a.control.{Buffer, Deferred}
 import s2a.leucine.actors.Actor.Anonymous
-
-/* Recursive definition of integer power for non negative arguments and small exponents. */
-extension (value: Int)
-  private def pow(x: Int, n: Int): Int = if n==1 then x else x * pow(x,n-1)
-  def ** (exp: Int): Int =
-    if       exp < 0      then throw Exception("Integer powers with negative exponent not supported.")
-    else if  value < 0    then throw Exception("Integer powers with negative base not supported.")
-    else if  value <= 1   then value
-    else if  exp >= 32    then throw Exception("Integer number too large")
-    else if  exp == 0     then 1
-    else                  pow(value,exp)
-
-extension (value: String)
-  def clean(n: Int = 200) = value.replaceAll("\\s","").replaceAll("s2a.leucine.actors.","").take(n)
+import s2a.control.Helpers.*
 
 
 /* Homogeneous hierarchy */
@@ -32,8 +19,8 @@ trait ActorTreeSupply :
 
     private def write(kind: String) = writeln(s"$kind$path")
 
-    override protected def stopped(complete: Boolean) =
-      write("stop")
+    override protected def stopped(cause: Actor.Stop, complete: Boolean) =
+      write(s"stop:$cause")
       done.foreach(_())
 
     override protected def abandoned(child: String) =
@@ -47,10 +34,10 @@ trait ActorTreeSupply :
         if parent.isEmpty then returns = -(width**level)
         (1 to width).foreach(newChild)
         if (level > 1) then relay(Tree.Create(width,level - 1),this)
-      case Tree.Forward =>
+      case Tree.Forward(bounce) =>
         write("=>>")
-        val relayed = relay(Tree.Forward,this)
-        if relayed == 0 then parent.map(_ ! Tree.Backward)
+        val relayed = relay(Tree.Forward(bounce),this)
+        if bounce && (relayed == 0) then parent.map(_ ! Tree.Backward)
       case Tree.Backward =>
         write("<<=")
         parent match
@@ -65,7 +52,7 @@ trait ActorTreeSupply :
   object Tree :
     sealed trait Letter extends Actor.Letter
     case class  Create(width: Int, level: Int) extends Letter
-    case object Forward extends Letter
+    case class  Forward(bounce: Boolean) extends Letter
     case object Backward extends Letter
     case object Stop extends Letter
 
@@ -215,7 +202,7 @@ object TestMethods :
   def stop(list: List[String])     = list.filter(_.contains("stop")).reverse
 
   def forwElm(i: Int): String = s"=>>F0.F$i"
-  def stopElm(i: Int): String = s"stopF0.F$i"
+  def stopElm(i: Int): String = s"stop:DirectF0.F$i"
   def backElm(i: Int): String = s"<<=F$i#F0"
 
   def forwBeforeStop(list: List[String])(i: Int) = list.indexOf(forwElm(i)) < list.indexOf(stopElm(i))
@@ -231,7 +218,7 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   val deferred = Deferred(buffer.readlns)
   val tree: Tree = Tree("F0",None,buffer.writeln,Some(deferred.done))
   tree ! Tree.Create(width,level)
-  tree ! Tree.Forward
+  tree ! Tree.Forward(true)
   tree.stop(Actor.Stop.Finish)
   deferred.await()
 
@@ -260,7 +247,7 @@ object TreeActorTestFree extends TestSuite, ActorTreeSupply :
   val deferred = Deferred(buffer.readlns)
   val tree: Tree = Tree("F0",None,buffer.writeln,Some(deferred.done))
   tree ! Tree.Create(width,level)
-  tree ! Tree.Forward
+  tree ! Tree.Forward(true)
   deferred.await()
 
   val tests = Tests {
@@ -303,9 +290,41 @@ object TreeActorChildStops extends TestSuite, ActorTreeSupply :
       test("Follows with new children")            - { deferred.compare(list => forward(list).drop(1).distinct.size ==> width)  }
       test("Follows (or mix) with stop children")  - { deferred.compare(list => stop(list).distinct.size ==> width+1)  }
       test("Follows with abandon children")        - { deferred.compare(list => backward(list).distinct.size ==> width)  }
-      test("All start before  stop children")      - { deferred.compare(list => (1 to width).forall(forwBeforeStop(list)) ==> true)  }
+      test("All start before stop children")       - { deferred.compare(list => (1 to width).forall(forwBeforeStop(list)) ==> true)  }
       test("All stop before backward children")    - { deferred.compare(list => (1 to width).forall(stopBeforeBack(list)) ==> true)  }
-      test("Follows with parent stop")             - { deferred.compare(list => list.drop(1 + 3*width) ==> List("stopF0"))  }
+      test("Follows with parent stop")             - { deferred.compare(list => list.drop(1 + 3*width) ==> List("stop:BarrenF0"))  }
+  } }
+
+
+
+object TreeStartsStops extends TestSuite, ActorTreeSupply :
+
+  import TestMethods.*
+  given Actor.Anonymous = Actor.Anonymous
+  val buffer = Buffer[String]
+  val width = 3
+  val level = 2
+  val deferred = Deferred(buffer.readlns)
+  val tree: Tree = Tree("F0",None,buffer.writeln,Some(deferred.done))
+  tree ! Tree.Create(width,level)
+  tree ! Tree.Forward(false)
+  tree.stop(Actor.Stop.Silent)
+  deferred.await(300.millis)
+
+  val tests = Tests {
+
+    /* This tests if the forward (=>>) contains width+1 elements and stops with the childeren. The parent stop may come
+     * only after all abandon calls have arrived. */
+    test("sending letters, finish directly afterwards"){
+      /* Uncomment to see the result during tests */
+      test("Show result")                          - { deferred.compare(list => println(list)) }
+      //test("Start with parent")                    - { deferred.compare(list => list.take(1) ==> List("=>>F0")) }
+      //test("Follows with new children")            - { deferred.compare(list => forward(list).drop(1).distinct.size ==> width)  }
+      //test("Follows (or mix) with stop children")  - { deferred.compare(list => stop(list).distinct.size ==> width+1)  }
+      //test("Follows with abandon children")        - { deferred.compare(list => backward(list).distinct.size ==> width)  }
+      //test("All start before  stop children")      - { deferred.compare(list => (1 to width).forall(forwBeforeStop(list)) ==> true)  }
+      //test("All stop before backward children")    - { deferred.compare(list => (1 to width).forall(stopBeforeBack(list)) ==> true)  }
+      //test("Follows with parent stop")             - { deferred.compare(list => list.drop(1 + 3*width) ==> List("stopF0"))  }
   } }
 
 

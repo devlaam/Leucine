@@ -29,8 +29,8 @@ class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration 
       tryCall()
   /* Future handling is platform dependent. SBT cannot handle the futures on my actor
    * execution context for Native. So we treat them seperately with a manual await. */
-  def await() = if ac.platform == Platform.Native then
-    ac.waitForExit(false,10.seconds)(false, () => ())
+  def await(poll: FiniteDuration = 10.seconds) = if ac.platform == Platform.Native then
+    ac.waitForExit(false,poll)(false, () => ())
   def compare(expected: Result => Unit) =
     def complete(): Unit = result match
       case Some(r) => expected(r)

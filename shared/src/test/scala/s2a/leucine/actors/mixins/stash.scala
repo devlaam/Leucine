@@ -13,7 +13,7 @@ object StashAidTest extends TestSuite :
   implicit val ac: ActorContext = ActorContext.system
 
   class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor,Stack.State](), StashAid :
-    override protected def stopped(complete: Boolean) =
+    override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stop:$complete")
       done()
     protected def initial = Stack.State(Nil,true)

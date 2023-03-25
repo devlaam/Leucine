@@ -14,7 +14,7 @@ object ProtectAidTest extends TestSuite :
     override val maxMailboxSize = 4
     val alarmSize = 2
 
-    override protected def stopped(complete: Boolean) =
+    override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stop:$complete")
       done()
 
