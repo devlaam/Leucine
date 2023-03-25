@@ -57,7 +57,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
       post(Provider.Send,2.seconds)
 
   /* If this actor is stopped, we must close the connection. */
-  override def stopped(complete: Boolean) =
+  override def stopped(cause: Actor.Stop, complete: Boolean) =
     println(s"Provider $path stopped.")
     socket.close()
 

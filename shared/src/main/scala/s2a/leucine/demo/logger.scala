@@ -65,7 +65,7 @@ private class Logger extends BasicActor[Logger.Letter]("logger") :
   private var level: Level = Level.Debug
 
   /* Report that this logger has been disabled. */
-  override protected def stopped(complete: Boolean) = println("Stopped Logger")
+  override protected def stopped(cause: Actor.Stop, complete: Boolean) = println("Stopped Logger")
 
   /* Report that this logger has started. */
   println("Started Logger")

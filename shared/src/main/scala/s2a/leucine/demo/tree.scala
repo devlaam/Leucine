@@ -36,9 +36,9 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
   private def write(kind: String) = println(s"$kind $path")
 
   /* Show when the actor stops. */
-  override protected def stopped(complete: Boolean) =
+  override protected def stopped(cause: Actor.Stop, complete: Boolean) =
     /* This is written for all actors. */
-    write("stop")
+    write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
     if parent.isEmpty then monitor.show(path)
 
@@ -53,6 +53,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
   if parent.isEmpty then
     this ! Tree.Create(2,3)
     this ! Tree.Forward
+    stop(Actor.Stop.Silent)
 
 
   def receive(letter: Tree.Letter, sender: Sender) = letter match
@@ -81,7 +82,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
        * hit zero, the traversal is complete and we may finish.*/
       parent match
         case Some(p) => p ! Tree.Backward
-        case None    => returns -= 1; if returns == 0 then stop(Actor.Stop.Finish)
+        case None    => returns -= 1; //if returns == 0 then stop(Actor.Stop.Finish)
 
 
 object Tree :

@@ -151,7 +151,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
   protected override def except(letter: Server.Letter, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
-  override def stopped(complete: Boolean) =
+  override def stopped(cause: Actor.Stop, complete: Boolean) =
     println("Server stopped")
     /* Decently close this socket. */
     serverSocket.close()

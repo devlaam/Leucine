@@ -35,7 +35,7 @@ class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
   def initial = Ticker.Tick(0)
 
   /* We just log the fact that this actor stops. */
-  override protected def stopped(complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
+  override protected def stopped(cause: Actor.Stop, complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
 
   /* In order to set the machinery in motion, a first tick must be send. */
   this ! Ticker.Work

@@ -29,15 +29,27 @@ import s2a.leucine.actors.*
 /* The console is also organised as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends BasicActor[Console.Letter]("Console") :
+private class Console extends BasicActor[Console.Letter](!#) :
 
-  /* The welcome message. You may choose your demo. */
+  /* The welcome message. You may choose your demo. As soon as you type the answer, a message is constructed
+   * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
+   * so it also blocks the actor. On JS it works with a callback. */
   CLI.talk("Please state the demo you want to run (ticker, server or crawler): ",answer => this ! Console.Read(answer))
+
+  /* If the user does not type in an answer in due time, close this actor. (Only works on JS, due to the
+   * blocking of the CLI on other platforms. */
+  stop(Actor.Stop.Silent)
+
+  override protected def stopped(cause: Actor.Stop, complete: Boolean) =
+    /* CIS must be closed, otherwise the application cannot terminate. */
+    CLI.close()
+    /* Let the user know he was lazy if we closed due to being silent. */
+    if cause == Actor.Stop.Silent then println("You did not make a choice, closing ...")
 
   /* Completing this console. Note that the demo may still run. */
   def stop(goodbye: String = ""): Unit =
     if !goodbye.isEmpty then println(goodbye)
-    CLI.close()
+    /* If the user may a choice, this actor is no longer required. */
     stop(Actor.Stop.Direct)
 
   /* Method to start the demo of choice. */
