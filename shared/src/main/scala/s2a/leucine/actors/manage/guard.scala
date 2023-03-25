@@ -86,7 +86,7 @@ object ActorGuard :
     /* If we may terminate the actor system ... */
     if mayTerminate
     /* ... we must first terminate the haltable (but still active) actors */
-    then haltables.foreach(_.stop(Direct))
+    then haltables.foreach(_.stopWith(true))
     /* if not, we must probe all actors that requested it to see if they are silent (doing nothing). */
     else silent.foreach(_.dropNeedle(true))
     /* Finally we are really terminated if we were allowed to terminate and there were no haltables left. */

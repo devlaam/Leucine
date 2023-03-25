@@ -68,10 +68,13 @@ transparent private trait FamilyChild extends ActorDefs :
   private[actors] def deferred(action: => Unit): Unit
 
   /** Triggers the processLoop into execution, depending on the phase. */
-  private[actors] def processTrigger(): Unit
+  private[actors] def processTrigger(coreTask: Boolean): Unit
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit
+
+  /** Stop this actor asap, but complete the running letter if finish is true. */
+  private[actors] def stopWith(finish: Boolean): Unit
 
   /** Variable that holds all the children of this actor. */
   private var _children: Set[ChildActor] = Set.empty
@@ -162,7 +165,7 @@ transparent private trait FamilyChild extends ActorDefs :
           if keep then ActorGuard.add(child)
           /* In case we are still active, put them on the list to be reported as abandoned. A processTrigger()
            * may be needed in case the mailbox is empty so the callbacks are still handled. */
-          if activity.active then { removed = child.name :: removed ; processTrigger() }
+          if activity.active then { removed = child.name :: removed ; processTrigger(false) }
       true }
 
   /** See if there are any children removed that we did not yet report. */
@@ -178,7 +181,7 @@ transparent private trait FamilyChild extends ActorDefs :
       removed = Nil
       (result,_children.isEmpty && stopOnBarren) }
     report.foreach(abandoned)
-    if barren then stop(Actor.Stop.Finish)
+    if barren then stopWith(true)
 
   /**
    * Override this method to see which child has left the parent. This method may arrive some time

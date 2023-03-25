@@ -33,12 +33,14 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
   /**
    * Called from the guard to drop a needle. If the number of needles exceeds a threshold,
    * the actor is assumed to be silent. */
+//! alleen als we active zijn??
   private[actors] def dropNeedle(root: Boolean): Unit =
     val passOn =  synchronized {
       /* See if we are not double booked. This is the case when this actor is requested to
        * stop on Silent and one of its ancesters is as well. In that case we remove this booking
        * and ignore the signal. */
       if (stopper == Stop.Silent) && !root then
+        println(s"$path: REMOVING DOUBLE BOOKING")
         /* Remove the booking */
         ActorGuard.dropNeedles(false,this)
         /* Ignore this Silent stopper. */
@@ -48,6 +50,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       /* See if we still want the actor to stop on Silent. This is the case when we received
        * the request ourselves, or when it is passed from the parent in a family. */
       else if (stopper == Stop.Silent) || !root then
+        println(s"$path: DROPPING NEEDLE:  needles=$needles")
         /* See if we are indeed doing nothing, in that case drop needle. Note: this test
          * is essential. Allthough the needles are cleared at every processLoop, this only
          * happens at the start, on a very busy actor, clearing may be selldom. */
@@ -55,7 +58,12 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
         /* If the limit of needles is reached, the actor is considered silent. We may now
          * stop if there are no children any more. If there still are, we must wait until
          * these have stopped. */
-        if (needles > context.silentStop) && (familySize == 0) then stop(Stop.Finish)
+        if (needles > context.silentStop) && (familySize == 0) then
+          println(s"$path: NEEDLE MAX => Stop.Silent ")
+          /* We want to report Silent as stop cause, also when the needle came from the parent. */
+          stopper = Stop.Silent
+          /* The actual stop ritual is by finish. */
+          stopWith(true)
         /* Pass the signal on. */
         true
       /* In the other cases there is nothing to do or pass. */
@@ -83,11 +91,13 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       /* ... put the mail in the box */
       mailbox.enqueue(envelope)
       /* ... trigger the processLoop, so execution starts, if currenly in Pause. */
-      processTrigger()
+      processTrigger(true)
       true }
 
-  /** Stop this actor asap, but complete the running letter. */
-  private def stopWith(finish: Boolean): Unit = synchronized {
+  /**
+   * Stop this actor asap, but complete the running letter if finish is true. This is an internal call
+   * which does not change the stopper value, which holds the primary user action to stop the actor */
+  private[actors] def stopWith(finish: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: Before stopInternal($finish) message, phase=${phase}")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
@@ -109,17 +119,43 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
    * possible if the stop action was not yet started. Direct and Finish start immediately, and cannot be retracted. */
   final def stop(value: Stop): Unit =
+    /* Activate/deactivate ther needle dropping, which is there to see if the actor turned silent. */
     def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
+    /* Stop with finish if there are no childeren for this actor. */
+    def stopChildless(): Unit = if familySize == 0 then stopWith(true)
+    /* All changes to the stopper are protected by a test on the current phase. There can only be one
+     * cause to stop the actor. Once the teardown process has started, this cannot be changed anymore.
+     * This is important for the user can call stop from different threads an the parent actor sometimes
+     * tries to stop the child twice. The second time will be ignored. Furthermore, the stop level cannot
+     * be increased in most cases. */
     synchronized { stopper = value match
-      case Stop.Direct  if stopper >  Stop.Direct => stopWith(false); Stop.Direct
-      case Stop.Finish  if stopper >  Stop.Finish => stopWith(true);  Stop.Finish
-      case Stop.Barren  if stopper == Stop.Silent => if familySize == 0 then { stopWith(true); Stop.Finish } else { drop(false); Stop.Barren }
-      case Stop.Barren  if stopper >  Stop.Silent => if familySize == 0 then { stopWith(true); Stop.Finish } else Stop.Barren
-      case Stop.Silent  if stopper >  Stop.Silent => drop(true);  Stop.Silent
-      case Stop.Final   if stopper == Stop.Barren => Stop.Final
-      case Stop.Final   if stopper == Stop.Silent => drop(false); Stop.Final
-      case Stop.Final   if stopper >  Stop.Final  => Stop.Final
-      case Stop.Never   if stopper == Stop.Barren => Stop.Never
-      case Stop.Never   if stopper == Stop.Silent => drop(false); Stop.Never
-      case Stop.Never   if stopper >  Stop.Silent => Stop.Never
+      /* A request to stop the actor right now is always honoured, unless the actor is allready stopping.
+       * It is allowed to overwrite a Stop.Finish here to accelerate the stopping process. */
+      case Stop.Direct  if (stopper >  Stop.Direct) && (phase < Phase.Stop)   => stopWith(false); Stop.Direct
+      /* A request to stop the actor and finish completion of the mailbox is honoured when we are not already doing this.
+       * Note that, due to the nested synchronization calls, the situation where (phase >= Phase.Finish) after
+       * stopper >  Stop.Finish should not appear. But for consistency and protection this test is kept in. */
+      case Stop.Finish  if (stopper >  Stop.Finish) && (phase < Phase.Finish) => stopWith(true);  Stop.Finish
+      /* A stop on Barren (ie stop wheren there are no children, equals a request to finish when there are no children
+       * right now, and otherwise the actor waits until this situation occours. If we were waiting on silence before
+       * this is deleted, since the silence test also waits on the disappearance of the childeren, but Barren is stronger. */
+      case Stop.Barren  if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); stopChildless(); Stop.Barren
+      /* In case we were not waiting on Silent before, we can directly test or wait. */
+      case Stop.Barren  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => stopChildless(); Stop.Barren
+      /* If we want to stop on Silent (but were not before, make sure to start the needle dropping.  */
+      case Stop.Silent  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => drop(true);  Stop.Silent
+      /* Setting Stop to Final when we were on Barren is a simple reset, so the Barren condition is not tested any more. */
+      case Stop.Final   if (stopper == Stop.Barren) && (phase < Phase.Finish) => Stop.Final
+      /*  Setting Stop to Final when we were on Silent requires removing the actor from needle dropping. */
+      case Stop.Final   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); Stop.Final
+      /* In other cases we just set the stopper to Final, which is probed by the guard. The guard decides if the actor
+       * must stop. When the time has come, he will stop the actors by the internal stop call. */
+      case Stop.Final   if (stopper >  Stop.Final ) && (phase < Phase.Finish) => Stop.Final
+      /* Just reset the stopper to prohibit stopping, but only when the teardown did not yet start. */
+      case Stop.Never   if (stopper == Stop.Barren) && (phase < Phase.Finish) => Stop.Never
+      /* Cancel needle dropping to prohibit stopping, but only when the teardown did not yet start. */
+      case Stop.Never   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); Stop.Never
+      /* In all other cases (only Final) reset the stopper. */
+      case Stop.Never   if (stopper >  Stop.Silent) && (phase < Phase.Finish) => Stop.Never
+      /* In all other situations the call cannot be honoured and nothing is changed. */
       case _            => stopper }

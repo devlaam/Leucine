@@ -97,6 +97,8 @@ trait Actor :
    * the actor is assumed to be silent. For internal use. */
   private[actors] def dropNeedle(root: Boolean): Unit
 
+  /** Stop this actor asap, but complete the running letter if finish is true. */
+  private[actors] def stopWith(finish: Boolean): Unit
 
 object Actor :
   /** Having children defines the parent */
@@ -162,3 +164,5 @@ object Actor :
     def stop(value: Stop): Unit = ()
     /** The Anonymous actor is always silent so dropping has no consequences. */
     private[actors] def dropNeedle(root: Boolean): Unit = ()
+    /** The Anonymous actor is not running, so it cannot be stopped. */
+    private[actors] def stopWith(finish: Boolean): Unit = ()

@@ -59,7 +59,7 @@ object BareActor :
    * the loop asap. Subsequently afterStop() is called, and the pahse becomes Done. It may never be reactivated again.
    * The first three phases are active (so the actor may accept letters, the last ones are not, and describe the state
    * in various ways of tearing down. */
-  private[actors] enum Phase(val active: Boolean) :
+  private[actors] enum Phase(val active: Boolean) extends EnumOrder[Phase] :
     /** The first phase the actor is in after creation. */
     case Start  extends Phase(true)
     /** The active phase when the actor is processing a letter. */

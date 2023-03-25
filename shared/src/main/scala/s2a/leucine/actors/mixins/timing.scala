@@ -49,7 +49,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   private[actors] def pack(letter: MyLetter, sender: Sender | this.type): Env
 
   /** Triggers the processLoop into execution, depending on the phase. */
-  private[actors] def processTrigger(): Unit
+  private[actors] def processTrigger(coreTask: Boolean): Unit
 
   /** Holds all references to the runnig timers, so we can cancel them when needed. */
   private val anchors: mutable.Map[Object,Cancellable] = mutable.Map.empty
@@ -71,7 +71,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     def handle() = synchronized { if anchors.contains(event.anchor) then
       events.enqueue(event)
       anchors.remove(event.anchor)
-      processTrigger() }
+      processTrigger(true) }
     new Callable[Unit] { def call(): Unit = handle() }
 
   /**
@@ -82,7 +82,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     def handle(letter: MyLetter) = synchronized {
       events.enqueue(Event(anchor,letter))
       anchors.remove(anchor)
-      processTrigger() }
+      processTrigger(true) }
     new Digestable[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
 
   /** See if there could be events present.  */

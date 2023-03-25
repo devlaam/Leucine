@@ -34,15 +34,15 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     context.execute(runnable)
 
   /** Triggers the processLoop into execution, depending on the phase. */
-  final private[actors] def processTrigger(): Unit = synchronized {
+  final private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: Trigger message, phase=${phase}")
     phase = phase match
       /* If this is the very first trigger, we must also call beforeStart() */
-      case Phase.Start  => processPlay(); Phase.Play
+      case Phase.Start  => processPlay(coreTask); Phase.Play
       /* If we are already looping, nothing to do. */
       case Phase.Play   => Phase.Play
       /* If we were just taking a break, start the loop again. */
-      case Phase.Pause  => processPlay(); Phase.Play
+      case Phase.Pause  => processPlay(coreTask); Phase.Play
       /* The finish letter was received, we do not except triggers. Do nothing */
       case Phase.Finish => Phase.Finish
       /* We are already stopping and do not except triggers. Do nothing */
@@ -51,10 +51,11 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
       case Phase.Done   => Phase.Done }
 
   /** Call processPlay to continue the processLoop. */
-  private[actors] def processPlay(): Unit =
+  private[actors] def processPlay(reset: Boolean): Unit =
     if context.actorTracing then println(s"In actor=$path: processPlay() called in phase=${phase}")
-    /* Reset the dropped needles counter (note we only call processPlay synchronised.) */
-    needles = 0
+    /* Reset the dropped needles counter (note we only call processPlay synchronised.) if
+     * requested, otherwise make sure it does not exceed the silentStop value. */
+    if reset then needles = 0 else needles = needles min context.silentStop
     /* Put the processLoop() on the context. */
     deferred(processLoop())
 
@@ -133,7 +134,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =
     /* Call the stop event handler of this actor, if implemented. */
-    stopped(complete)
+    stopped(stopper,complete)
     /* We must abandon after the stopped has called, so that we call all stopped in a family in
      * the correct order, since they may be executed in different threads. When all stopped
      * children of a family are done, the processTerminate of the parent is called.
@@ -148,19 +149,29 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
   private[actors] def processExit(dropped: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
+    /**/
+    val coreFinishTasks = stashFlush      || !mailbox.isEmpty
+    val corePlayTasks   = coreFinishTasks || eventsPresent
+    val reportTasks     = !protectIdle    || familyRemoved
+    val withFinishTasks = coreFinishTasks || reportTasks
+    val withPlayTasks   = corePlayTasks   || reportTasks
+
     /* When there are no more letters on the queue or stash, and we do not need to report the mailbox is empty
      * or some removed children then there are no active tasks present  */
-     def noTasks =  !stashFlush && mailbox.isEmpty && protectIdle && !familyRemoved
+    val noTasks = !stashFlush && mailbox.isEmpty && protectIdle && !familyRemoved
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
       case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
       /* If there are no tasks we may pause, otherwise continue */
-      case Phase.Play   => if !eventsPresent && noTasks then Phase.Pause else { processPlay(); Phase.Play }
+//      case Phase.Play   => if !eventsPresent && noTasks then Phase.Pause else { processPlay(); Phase.Play }
+//      case Phase.Play   => if noTasks && !eventsPresent then Phase.Pause else { processPlay(coreTasks || eventsPresent); Phase.Play }
+      case Phase.Play   => if withPlayTasks then { processPlay(corePlayTasks); Phase.Play } else Phase.Pause
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
       /* If we got an Finish letter, we must complete avaible tasks or stop. Events, even when expired, are dropped. */
-      case Phase.Finish => if noTasks then { processStop(dropped,true); Phase.Stop } else { processPlay(); Phase.Finish }
+//      case Phase.Finish => if noTasks then { processStop(dropped,true); Phase.Stop } else { processPlay(true); Phase.Finish }
+      case Phase.Finish => if withFinishTasks then  { processPlay(true); Phase.Finish } else { processStop(dropped,true); Phase.Stop }
       /* If we got an exteral stop request, make an end to this. */
       case Phase.Stop   => processStop(dropped,false); Phase.Stop
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */

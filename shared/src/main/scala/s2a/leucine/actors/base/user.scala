@@ -26,6 +26,7 @@ package s2a.leucine.actors
 
 /** The UserActor contains all methods the user of the library must implement or may override. */
 transparent trait UserActor(using context: ActorContext) extends Actor, ActorDefs :
+  import Actor.Stop
 
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
@@ -48,10 +49,11 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   /**
    * Called before actor deactivation and guaranteed after the last message is processed. If there were any
    * unprocessed letters in this actor at teardown, complete is false. These could be in the normal mailbox
-   * or on the stash, if present.
+   * or on the stash, if present. Cause returns the last stop mode, so the cause of stopping this actor is
+   * known.
    * In case of a actorContext shutdown this is NOT called, for this disruptly terminates the processing loops.
-   * It is however called when stopDirect() or stopFinish() are used. The actor may still be around
-   * after this method is called, but will never accept new messages. The parent is still defined,
+   * It is however called when stop(...) is used, or when the actor is shutdown by a parent. The actor may still
+   * be around after this method is called, but will never accept new messages. The parent is still defined,
    * when stopped() is executed (but may already stopped processing messages) but all the childeren
    * will already be removed from the list, and their stopped() methods have already been called. */
-  protected def stopped(complete: Boolean): Unit = ()
+  protected def stopped(cause: Stop, complete: Boolean): Unit = ()

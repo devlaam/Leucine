@@ -79,9 +79,9 @@ trait ProtectAid(using context: ActorContext) extends ActorDefs :
    * Implement an event handler for the situation the mailbox exceeds the limit set in alarmSize,
    * (full = true) and for when mailbox, stash and event queues are all depleted (full = false).
    * Each call happens only once, and you always receive an call signalling empty queues after a
-   * a call with full=true was made and before the next call with full=true is made. When stopFinish()
+   * a call with full=true was made and before the next call with full=true is made. When stop(Finish)
    * is called the call sizeAlarm(false) will come after the last letter is processed and but before
-   * stopped() is called. When stopDirect() is called, the sizeAlarm(true/false) may not come at all. */
+   * stopped() is called. When stop(Direct) is called, the sizeAlarm(true/false) may not come at all. */
   protected def sizeAlarm(full: Boolean): Unit
 
 
