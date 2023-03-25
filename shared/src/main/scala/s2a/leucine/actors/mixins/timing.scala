@@ -71,6 +71,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     def handle() = synchronized { if anchors.contains(event.anchor) then
       events.enqueue(event)
       anchors.remove(event.anchor)
+      /* The process may be in pause, so we must kittle it. Events are a core process.*/
       processTrigger(true) }
     new Callable[Unit] { def call(): Unit = handle() }
 
@@ -82,6 +83,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     def handle(letter: MyLetter) = synchronized {
       events.enqueue(Event(anchor,letter))
       anchors.remove(anchor)
+      /* The process may be in pause, so we must kittle it. Events are a core process.*/
       processTrigger(true) }
     new Digestable[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
 

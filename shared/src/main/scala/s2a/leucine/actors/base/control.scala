@@ -35,7 +35,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * the actor is assumed to be silent. */
 //! alleen als we active zijn??
   private[actors] def dropNeedle(root: Boolean): Unit =
-    val passOn =  synchronized {
+    val passOn =  synchronized { activity.active && (
       /* See if we are not double booked. This is the case when this actor is requested to
        * stop on Silent and one of its ancesters is as well. In that case we remove this booking
        * and ignore the signal. */
@@ -67,7 +67,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
         /* Pass the signal on. */
         true
       /* In the other cases there is nothing to do or pass. */
-      else false }
+      else false )}
     /* Pass the needle on to the children, since the stop request considers the whole tree.
      * Note: this must be done outside the synchronization to prevent possible deadlocks. This
      * may imply we miss an actor that was newly registered. That is no problem. A silent stop

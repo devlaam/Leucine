@@ -163,8 +163,9 @@ transparent private trait FamilyChild extends ActorDefs :
         /* If we are in normal operation (most likely the child is terminating) */
         case None =>
           if keep then ActorGuard.add(child)
-          /* In case we are still active, put them on the list to be reported as abandoned. A processTrigger()
-           * may be needed in case the mailbox is empty so the callbacks are still handled. */
+          /* In case we are still active, put them on the list to be reported as abandoned. A process
+           * kittle may be needed in case the mailbox is empty so the callbacks are still handled.
+           * This is no core process however. */
           if activity.active then { removed = child.name :: removed ; processTrigger(false) }
       true }
 

@@ -149,29 +149,39 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
   private[actors] def processExit(dropped: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
-    /**/
+    /* There are regular (core) tasks that handle some envelopped message. There can stem from the
+     * the mailbox, the stash or the eventqueue. These are all handled in normal operation and when
+     * we are finishing, the eventqueue is ignored. So we first calculate these coreFinishTasks */
     val coreFinishTasks = stashFlush      || !mailbox.isEmpty
+    /* and then the corePlayTasks are found by adding the events if present. */
     val corePlayTasks   = coreFinishTasks || eventsPresent
+    /* Appart from the core tasks there are reports (callbacks) on situations that occur. We report
+     * a child was removed or if the mailbox is empty again. These are called report tasks. */
     val reportTasks     = !protectIdle    || familyRemoved
+    /* So we start play again when we are in Finish mode if there are coreFinishTasks or reportTasks.
+     * (Note that with Stop.Direct the reportTasks are skipped as well) */
     val withFinishTasks = coreFinishTasks || reportTasks
+    /* And we start play again in regular operation when there are any of the core or play tasks. */
     val withPlayTasks   = corePlayTasks   || reportTasks
 
-    /* When there are no more letters on the queue or stash, and we do not need to report the mailbox is empty
-     * or some removed children then there are no active tasks present  */
-    val noTasks = !stashFlush && mailbox.isEmpty && protectIdle && !familyRemoved
+    // /* When there are no more letters on the queue or stash, and we do not need to report the mailbox is empty
+    //  * or some removed children then there are no active tasks present  */
+    // val noTasks = !stashFlush && mailbox.isEmpty && protectIdle && !familyRemoved
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
       case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
-      /* If there are no tasks we may pause, otherwise continue */
+//      /* If there are no tasks we may pause, otherwise continue */
 //      case Phase.Play   => if !eventsPresent && noTasks then Phase.Pause else { processPlay(); Phase.Play }
 //      case Phase.Play   => if noTasks && !eventsPresent then Phase.Pause else { processPlay(coreTasks || eventsPresent); Phase.Play }
+      /* If there are play tasks, start the loop again, and only fully reset the needles on the core tasks. */
       case Phase.Play   => if withPlayTasks then { processPlay(corePlayTasks); Phase.Play } else Phase.Pause
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
-      /* If we got an Finish letter, we must complete avaible tasks or stop. Events, even when expired, are dropped. */
+//      /* If we got an Finish letter, we must complete avaible tasks or stop. Events, even when expired, are dropped. */
 //      case Phase.Finish => if noTasks then { processStop(dropped,true); Phase.Stop } else { processPlay(true); Phase.Finish }
-      case Phase.Finish => if withFinishTasks then  { processPlay(true); Phase.Finish } else { processStop(dropped,true); Phase.Stop }
+      /* If there are finish tasks, start the loop again, and reset does not realy matter, since needle dropping has stopped. */
+      case Phase.Finish => if withFinishTasks then  { processPlay(coreFinishTasks); Phase.Finish } else { processStop(dropped,true); Phase.Stop }
       /* If we got an exteral stop request, make an end to this. */
       case Phase.Stop   => processStop(dropped,false); Phase.Stop
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
