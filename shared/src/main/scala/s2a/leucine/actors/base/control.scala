@@ -33,24 +33,22 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
   /**
    * Called from the guard to drop a needle. If the number of needles exceeds a threshold,
    * the actor is assumed to be silent. */
-//! alleen als we active zijn??
   private[actors] def dropNeedle(root: Boolean): Unit =
+    /* Dropping needles only makes sense when we are active. */
     val passOn =  synchronized { activity.active && (
       /* See if we are not double booked. This is the case when this actor is requested to
        * stop on Silent and one of its ancesters is as well. In that case we remove this booking
        * and ignore the signal. */
       if (stopper == Stop.Silent) && !root then
-        println(s"$path: REMOVING DOUBLE BOOKING")
         /* Remove the booking */
         ActorGuard.dropNeedles(false,this)
         /* Ignore this Silent stopper. */
-        stopper == Stop.Never
+        stopper = Stop.Never
         /* Do not pass the signal on. */
         false
       /* See if we still want the actor to stop on Silent. This is the case when we received
        * the request ourselves, or when it is passed from the parent in a family. */
       else if (stopper == Stop.Silent) || !root then
-        println(s"$path: DROPPING NEEDLE:  needles=$needles")
         /* See if we are indeed doing nothing, in that case drop needle. Note: this test
          * is essential. Allthough the needles are cleared at every processLoop, this only
          * happens at the start, on a very busy actor, clearing may be selldom. */
@@ -59,7 +57,6 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
          * stop if there are no children any more. If there still are, we must wait until
          * these have stopped. */
         if (needles > context.silentStop) && (familySize == 0) then
-          println(s"$path: NEEDLE MAX => Stop.Silent ")
           /* We want to report Silent as stop cause, also when the needle came from the parent. */
           stopper = Stop.Silent
           /* The actual stop ritual is by finish. */
