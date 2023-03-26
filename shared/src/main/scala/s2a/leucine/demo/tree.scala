@@ -82,7 +82,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
        * hit zero, the traversal is complete and we may finish.*/
       parent match
         case Some(p) => p ! Tree.Backward
-        case None    => returns -= 1; //if returns == 0 then stop(Actor.Stop.Finish)
+        case None    => returns -= 1; if returns == 0 then println("Wait for silent termination (~12s)")
 
 
 object Tree :
