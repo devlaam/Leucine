@@ -164,22 +164,14 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     /* And we start play again in regular operation when there are any of the core or play tasks. */
     val withPlayTasks   = corePlayTasks   || reportTasks
 
-    // /* When there are no more letters on the queue or stash, and we do not need to report the mailbox is empty
-    //  * or some removed children then there are no active tasks present  */
-    // val noTasks = !stashFlush && mailbox.isEmpty && protectIdle && !familyRemoved
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */
       case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
-//      /* If there are no tasks we may pause, otherwise continue */
-//      case Phase.Play   => if !eventsPresent && noTasks then Phase.Pause else { processPlay(); Phase.Play }
-//      case Phase.Play   => if noTasks && !eventsPresent then Phase.Pause else { processPlay(coreTasks || eventsPresent); Phase.Play }
       /* If there are play tasks, start the loop again, and only fully reset the needles on the core tasks. */
       case Phase.Play   => if withPlayTasks then { processPlay(corePlayTasks); Phase.Play } else Phase.Pause
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
-//      /* If we got an Finish letter, we must complete avaible tasks or stop. Events, even when expired, are dropped. */
-//      case Phase.Finish => if noTasks then { processStop(dropped,true); Phase.Stop } else { processPlay(true); Phase.Finish }
       /* If there are finish tasks, start the loop again, and reset does not realy matter, since needle dropping has stopped. */
       case Phase.Finish => if withFinishTasks then  { processPlay(coreFinishTasks); Phase.Finish } else { processStop(dropped,true); Phase.Stop }
       /* If we got an exteral stop request, make an end to this. */
