@@ -42,7 +42,7 @@ private[actors] trait MonitorDefs :
 
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
+trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Post, Tracing}
 
@@ -104,48 +104,56 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
   private var cancelProbe = Cancellable.empty
 
   /** Method to create a new scheduable object to probe the actor. */
-  private def callProbe   = new Callable[Unit] { def call(): Unit = probeNow(false) }
+  private def callProbe = new Callable[Unit] {
+    /* Try to make a probe and if successful, schedule a new one. */
+    def call(): Unit = if probeNow() then probeRenew() }
 
   /** Start the probe actions */
   private def probeStart() = synchronized {
-    /* The probing flag must be set to continue scheduling late probes. */
+    /* The probing flag must be set to continue scheduling late probes. But we cannot take probes
+     * right away, since the actor may still be in the construction phase (deadlock!). But it will
+     * make no sense eigher, since there is nothing going in at the start. */
     probing = true
-    /* Make the first probe right now by hand. */
-    probeNow(true) }
+    /* Start the probe interval timer.  */
+    probeRenew() }
 
-  /** Method to do the actual probing of the actor. */
-  private def probeNow(manual: Boolean): Unit =
+  /** Call this to restart the probing, if we are still probing. */
+  private def probeRenew(): Unit =
+    /* Schedule the probing to take place over a fixed amount of time. */
+    context.schedule(callProbe,monitor.probeInterval)
+
+  /** Method to do the actual probing of the actor. Returns if probes were made. */
+  private def probeNow(): Boolean =
     /* Take the samples in a synchronized way. */
-    val (samples,traces,renew) = synchronized {
-      /* See if we must probe the actor. This is only false in case of cancelled, but executed callProbe. */
-      val probe = manual || probing
+    val (samples,traces,probed) = synchronized {
       /* Do the actual probing work on all mixins and the bare actor trait. */
-      val samples = if probe then List(probeBare(),probeStash(),probeTiming(),probeFamily()).flatten else Nil
+      val samples = if probing then List(probeBare(),probeStash(),probeTiming(),probeFamily()).flatten else Nil
       /* Get the traces gathered from this actor */
-      val traces = if probe then this.traces else Nil
+      val traces = if probing then this.traces else Nil
       /* Clean the trace storage */
       this.traces = Nil
       /* Communicate the result outside the synchronized environment */
       (samples,traces,probing) }
-    /* Schedule the probing to take place over a fixed amount of time, if we are still probing. */
-    cancelProbe = if renew then context.schedule(callProbe,monitor.probeInterval) else Cancellable.empty
-    /* Store the collected samples in the monitor storage */
-    monitor.setSamples(storePath,samples)
-    /* Store the posts in the monitor storage */
-    if mayTraceCount then monitor.setPosts(path,traces)
-    /* Store the traces in the monitor storage */
-    if mayTraceAll then monitor.setTraces(path,traces)
-
+    /* If probes were made, store them. */
+    if probed then
+      /* Store the collected samples in the monitor storage */
+      monitor.setSamples(storePath,samples)
+      /* Store the posts in the monitor storage */
+      if mayTraceCount then monitor.setPosts(path,traces)
+      /* Store the traces in the monitor storage */
+      if mayTraceAll then monitor.setTraces(path,traces)
+    /* Return the fact if we made any probes.*/
+    probed
 
   /** Cancel the delayed probe actions, but also perfom one last probe action right now. */
-  private def probeStop() = synchronized {
+  private def probeStop() =
     /* Canceling the scheduled next probe is on best effort basis. It cannot be guaranteed,
      * the event will come never the less. So we must be ready for that. */
     cancelProbe.cancel()
-    /* Setting this to false prohibits the furter scheduled executions of probes. */
-    probing = false
     /* Make the last probe manually */
-    probeNow(true) }
+    probeNow()
+    /* Setting this to false prohibits the furter scheduled executions of probes. */
+    synchronized { probing = false }
 
   /* For workers we do not want to use the full name, but a one name for all workers in this family. So
    * we only use the path up to and including the worker prefix. The rest is dropped. */
