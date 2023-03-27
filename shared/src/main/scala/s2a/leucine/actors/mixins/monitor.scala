@@ -274,9 +274,9 @@ object MonitorAid :
     def show: String
 
   /** Class to marshall all the KPI's of the bare actor. */
-  case class Bare(phase: BareActor.Phase, lettersSum: Int, lettersMax: Int, exceptionsSum: Int, userLoad: Double) extends Sample :
+  case class Bare(phase: BareActor.Phase, stop: Actor.Stop, lettersSum: Int, lettersMax: Int, exceptionsSum: Int, needles: Int, userLoad: Double) extends Sample :
     def userPPM = (userLoad * 1000000).toInt
-    def show = s"phase=$phase, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, userLoad=${userPPM}ppm"
+    def show = s"phase=$phase, stop=$stop, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, needles=$needles, userLoad=${userPPM}ppm"
 
   /** Class to marshall all the KPI's of the Stash mixin. */
   case class Stash(lettersSum: Int, lettersMax: Int) extends Sample :
