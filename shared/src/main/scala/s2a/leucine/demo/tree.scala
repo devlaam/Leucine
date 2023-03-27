@@ -24,13 +24,15 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 import s2a.leucine.actors.Actor.Anonymous
 
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Letter,Actor](name), FamilyTree[Tree], MonitorAid(monitor) :
+class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Letter,Actor](name), FamilyTree[Tree], TimingAid, MonitorAid(monitor) :
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) = println(s"$kind $path")
@@ -40,7 +42,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
     /* This is written for all actors. */
     write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
-    if parent.isEmpty then monitor.show(path)
+    if parent.isEmpty then monitor.show(Config(posts = true, traces = true))
 
   /* New children must be created and manually adopted by the parent. */
   private def newChild(i: Int) = Tree(s"F$i",Some(this))
@@ -53,6 +55,9 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
   if parent.isEmpty then
     this ! Tree.Create(2,3)
     this ! Tree.Forward
+    /* Show the internals of the actor after some time */
+    post(Tree.Report,6.seconds)
+    /* Stop this actor tree when nothing is happening any more. */
     stop(Actor.Stop.Silent)
 
 
@@ -83,6 +88,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
       parent match
         case Some(p) => p ! Tree.Backward
         case None    => returns -= 1; if returns == 0 then println("Wait for silent termination (~12s)")
+    case Tree.Report => monitor.show(Config(samples = true))
 
 
 object Tree :
@@ -95,4 +101,6 @@ object Tree :
   case object Forward extends Letter
   /* Message to traverse the tree in backwards direction. */
   case object Backward extends Letter
+  /* Message report the samples once. */
+  case object Report extends Letter
 

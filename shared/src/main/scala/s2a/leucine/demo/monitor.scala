@@ -29,11 +29,13 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
 import s2a.leucine.actors.*
 
 
+case class Config(samples: Boolean = false, posts: Boolean = false, traces: Boolean = false)
+
 /* If you want to use the monitor, you must implement some callback methods. Here we keep
  * that simple and only report the after the application has completed. In bigger applications
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
-val monitor = new ActorMonitor {
+val monitor = new ActorMonitor[Config] {
   import MonitorAid.{Trace, Post, Action, Tracing}
   import ActorMonitor.Record
   /* This callback is directly called in case an actor is added. Not used in this example. */
@@ -48,9 +50,9 @@ val monitor = new ActorMonitor {
   def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit = ()
   /* Method you can implement to show the results obtained sofar. Since this example only has one short
    * run the results are show an the end. */
-  def show(path: String): Unit =
+  def show(config: Config): Unit =
     val writer: PrintWriter = new PrintWriter(System.out)
-    report(writer)
+    report(writer,config.samples,config.posts,config.traces)
     writer.flush()
   /* Global setting of tracing. Here we enable is for all actors. Since the personal setting is Default
    * this should activate TraceCount and TraceFull. */

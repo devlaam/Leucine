@@ -32,7 +32,7 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 
 /** Extend and Instantiate this class to get a custom made monitor */
-abstract class ActorMonitor :
+abstract class ActorMonitor[Config] :
   import MonitorAid.{Action, Sample, Trace, Post, Tracing}
   import ActorMonitor.Record
 
@@ -143,21 +143,24 @@ abstract class ActorMonitor :
   def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit
 
   /** Create a full report to a given string writer */
-  def report(target: PrintWriter): Unit =
+  def report(target: PrintWriter, samples: Boolean, posts: Boolean, traces: Boolean): Unit =
     /* Take snapshot */
-    val (samples,traces) = synchronized { (this.samples,this.traces) }
+    val (samplesSS,postsSS,tracesSS) = synchronized { (this.samples,this.posts,this.traces) }
     /* Construct a basic String representation from the samples. */
-    target.println("All Samples:")
-    samples.foreach((path,record) => target.println(s"'$path': ${record.show}"))
+    if samples then
+      target.println("All Samples:")
+      samplesSS.foreach((path,record) => target.println(s"'$path': ${record.show}"))
     /* Construct a basic String representation from the posts. */
-    target.println("All Posts:")
-    posts.foreach((post,count) => target.println(s"${post.show}: $count"))
+    if posts then
+      target.println("All Posts:")
+      postsSS.foreach((post,count) => target.println(s"${post.show}: $count"))
     /* Construct a basic String representation for all traced.*/
-    target.println("All Traces:")
-    traces.foreach(trace => target.println(trace.show))
+    if traces then
+      target.println("All Traces:")
+      tracesSS.foreach(trace => target.println(trace.show))
 
   /** Use this method to extract dynamical information contained here called from your actor. */
-  def show(path: String): Unit
+  def show(config: Config): Unit
 
 
 /** Use this Object to directly start monitoring with default functionality. */
