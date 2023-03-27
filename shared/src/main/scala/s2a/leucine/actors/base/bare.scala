@@ -33,12 +33,6 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
   /** Use this inside the actor to test for an anonymous sender */
   type Anonymous = Actor.Anonymous.type
 
-  /* Pack the letter with the sender. Here the sender is ignored.
-   * //TODO For the moment, this is only used in at message relaying among
-   * children. This is not ideal design, since we do not want to know anything
-   * about the sender in the BareActor. However, i see no solution right now. */
-  private[actors] def pack(letter: MyLetter, sender: Sender): Env
-
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorAid.Bare] =
     val result = MonitorAid.Bare(phase,mailbox.sum,mailbox.max,excepts,userLoad)

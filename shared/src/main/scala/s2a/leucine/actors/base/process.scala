@@ -163,7 +163,6 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     val withFinishTasks = coreFinishTasks || reportTasks
     /* And we start play again in regular operation when there are any of the core or play tasks. */
     val withPlayTasks   = corePlayTasks   || reportTasks
-
     /* See what has changed in the meantime and how to proceed. */
     phase = phase match
       /* This situation cannot occur, phase should be advanced before loop is started */

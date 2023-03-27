@@ -43,6 +43,7 @@ private[actors] trait MonitorDefs :
 
 /** Extend your actor with this mixin to put it under monitoring */
 trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends ActorDefs :
+  this: NameActor =>
   import MonitorAid.{Action, Trace, Post, Tracing}
 
   /* Fields to measure the time spend inside the thread and outside the thread */
@@ -53,9 +54,6 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
 
   /* Temporary fast storage for the trace objects. */
   private var traces: List[Trace] = Nil
-
-  /** Value contains if this actor is a worker based on its name prefix (# per default) */
-  def isWorker: Boolean
 
   /**
    * This is the personal setting of tracing. There is a public setting as well.

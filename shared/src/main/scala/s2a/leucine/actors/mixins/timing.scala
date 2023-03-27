@@ -38,18 +38,15 @@ private[actors] trait TimingDefs :
   private[actors] def eventsDequeue(tail: List[Env]): List[Env] = tail
 
 
-/** Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events. */
+/** Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events.
+ * This actor sends messages to itself. For the moment, you must explicitly allow this in the sender
+ * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
 trait TimingAid(using context: ActorContext) extends ActorDefs :
+  this: ProcessActor =>
   import TimingAid.Event
-
-  /** See the current activity state of this actor */
-  def activity: Actor.Activity
 
   /** Actor dependend packing of letter and sender into one enveloppe. */
   private[actors] def pack(letter: MyLetter, sender: Sender | this.type): Env
-
-  /** Triggers the processLoop into execution, depending on the phase. */
-  private[actors] def processTrigger(coreTask: Boolean): Unit
 
   /** Holds all references to the runnig timers, so we can cancel them when needed. */
   private val anchors: mutable.Map[Object,Cancellable] = mutable.Map.empty

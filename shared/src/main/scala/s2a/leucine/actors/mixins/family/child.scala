@@ -30,8 +30,9 @@ package s2a.leucine.actors
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
 transparent private trait FamilyChild extends ActorDefs :
+  this: ControlActor =>
 
-  /* Local type */
+  /* Local types */
   private[actors] type CL
   private[actors] type RS
 
@@ -54,27 +55,6 @@ transparent private trait FamilyChild extends ActorDefs :
    * Variable that holds the termination result from the actor in case
    * we have to wait for the children to finish */
   private var termination: Option[Boolean] = None
-
-  /** See the current activity state of this actor */
-  def activity: Actor.Activity
-
-  /** Method to inform the actor to stop its activities. */
-  def stop(value: Actor.Stop): Unit
-
-  /** Stop on barren test. If this is true the actor will stopFinish when all children are gone. */
-  private[actors] def stopOnBarren: Boolean
-
-  /** Execute an action later on the context. */
-  private[actors] def deferred(action: => Unit): Unit
-
-  /** Triggers the processLoop into execution, depending on the phase. */
-  private[actors] def processTrigger(coreTask: Boolean): Unit
-
-  /** Last goodbyes of this actor. */
-  private[actors] def processTerminate(complete: Boolean): Unit
-
-  /** Stop this actor asap, but complete the running letter if finish is true. */
-  private[actors] def stopWith(finish: Boolean): Unit
 
   /** Variable that holds all the children of this actor. */
   private var _children: Set[ChildActor] = Set.empty
@@ -180,7 +160,7 @@ transparent private trait FamilyChild extends ActorDefs :
     val (report,barren) = synchronized {
       val result = removed
       removed = Nil
-      (result,_children.isEmpty && stopOnBarren) }
+      (result,_children.isEmpty && (stopper == Actor.Stop.Barren)) }
     report.foreach(abandoned)
     if barren then stopWith(true)
 

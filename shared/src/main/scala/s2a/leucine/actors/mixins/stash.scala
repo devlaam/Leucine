@@ -40,9 +40,6 @@ private[actors] trait StashDefs :
 /** Mixin if you need to store letters away.  */
 trait StashAid extends ActorDefs :
 
-  /** Actor dependend packing of letter and sender into one enveloppe. */
-  private[actors] def pack(letter: MyLetter, sender: Sender): Env
-
   /** The queue for the letters/senders. */
   private val stashbox: BurstQueue[Env] = new BurstQueue[Env]
 

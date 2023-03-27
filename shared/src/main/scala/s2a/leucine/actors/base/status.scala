@@ -65,6 +65,3 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
     if phase.active
     then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
     else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping }
-
-  /** Stop on barren test. If this is true the actor will stopFinish when all children are gone. */
-  private[actors] def stopOnBarren: Boolean = synchronized { stopper == Stop.Barren }

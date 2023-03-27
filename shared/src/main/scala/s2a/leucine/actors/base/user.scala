@@ -28,6 +28,12 @@ package s2a.leucine.actors
 transparent trait UserActor(using context: ActorContext) extends Actor, ActorDefs :
   import Actor.Stop
 
+  /* Pack the letter with the sender. Here the sender is ignored.
+   * //TODO For the moment, this is only used in at message relaying among
+   * children. This is not ideal design, since we do not want to know anything
+   * about the sender in the BareActor. However, i see no solution right now. */
+  private[actors] def pack(letter: MyLetter, sender: Sender): Env
+
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
 
