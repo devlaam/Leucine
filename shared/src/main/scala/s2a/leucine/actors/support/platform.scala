@@ -52,7 +52,11 @@ trait PlatformContext:
   /** Execute a new task on the current Execution Context directly */
   def execute(runnable: Runnable): Unit
 
-  /** Plan a new task on the current Execution Context, which is run after some delay. */
+  /**
+   * Plan a new task on the current Execution Context, which is run after some delay.
+   * Depending on the platform, the execution of mutiple delayed tasks can hinder
+   * each other. So it is best to keep the execution time wihtin the callable low,
+   * and transfer work to the thread pool. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable
 
   /**
