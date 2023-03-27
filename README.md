@@ -96,7 +96,6 @@ Please state the demo you want to run (ticker, server or crawler):
 ```
 and then choose one of them. The `ticker` and `crawler` are stand alone demo's, the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
-It may be needed on the JVM to exit with ^C in some situations, after the demo is complete.
 
 #### Demos on NodeJS
 

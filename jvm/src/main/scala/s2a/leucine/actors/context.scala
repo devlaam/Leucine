@@ -84,6 +84,7 @@ abstract class ContextImplementation extends PlatformContext :
     while active || !terminated do
       threadPool.awaitTermination(time.toSeconds, TimeUnit.SECONDS)
       if active && shutdownRequest then shutdown(force)
+    scheduler.shutdownNow()
     complete()
 
 
