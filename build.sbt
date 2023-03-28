@@ -8,10 +8,11 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import xerial.sbt.Sonatype._
 
 /* Set to false for local publishing to exclude the demo files. */
-val withDemo  = true
+val withDemo  = false
 
 val publishSettings = Seq(
   name                   :=  "leucine",
+  version                :=  "0.2.1",
   organization           :=  "com.sense2act",
   licenses               :=  Seq("MIT" -> url("https://opensource.org/license/mit/")),
   description            :=  "Small x-platform actor framework",
