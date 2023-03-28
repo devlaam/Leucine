@@ -18,7 +18,8 @@ val publishSettings = Seq(
   description            :=  "Small x-platform actor framework",
   publishTo              :=  sonatypePublishToBundle.value,
   publishMavenStyle      :=  true,
-  sonatypeProjectHosting :=  Some(GitHubHosting("devlaam", "Leucine", "ruud@sense2act.com"))
+  sonatypeProjectHosting :=  Some(GitHubHosting("devlaam", "Leucine", "ruud@sense2act.com")),
+  versionPolicyIntention :=  Compatibility.None
   )
 
 val sharedSettings = Seq(
