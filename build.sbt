@@ -12,7 +12,7 @@ val withDemo  = false
 
 val publishSettings = Seq(
   name                   :=  "leucine",
-  version                :=  "0.2.1",
+  version                :=  "0.2.2",
   organization           :=  "com.sense2act",
   licenses               :=  Seq("MIT" -> url("https://opensource.org/license/mit/")),
   description            :=  "Small x-platform actor framework",
