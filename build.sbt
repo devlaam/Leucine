@@ -5,29 +5,21 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-import xerial.sbt.Sonatype._
-
-/* Set to false for local publishing to exclude the demo files. */
+/* Set to false for publishing to exclude the demo files. */
 val withDemo  = false
 
-val publishSettings = Seq(
-  name                   :=  "leucine",
-  version                :=  "0.2.2",
-  organization           :=  "com.sense2act",
-  licenses               :=  Seq("MIT" -> url("https://opensource.org/license/mit/")),
-  description            :=  "Small x-platform actor framework",
-  publishTo              :=  sonatypePublishToBundle.value,
-  publishMavenStyle      :=  true,
-  sonatypeProjectHosting :=  Some(GitHubHosting("devlaam", "Leucine", "ruud@sense2act.com")),
-  versionPolicyIntention :=  Compatibility.None
-  )
+ThisBuild / version       :=  "0.2.3"
+ThisBuild / scalaVersion  :=  "3.2.1"
 
 val sharedSettings = Seq(
-  scalaVersion            :=   "3.2.1",
-  scalacOptions           ++=  Seq("-feature","-deprecation","-unchecked","-explain"),
-  libraryDependencies     +=   "com.lihaoyi" %%% "utest" % "0.8.1" % Test,
-  testFrameworks          +=   new TestFramework("s2a.control.LeucineFramework"),
-  Compile / excludeFilter :=   new FileFilter { def accept(f: File) = !withDemo && f.getPath.containsSlice("/demo/") }
+  name                    :=  "leucine",
+  organization            :=  "com.sense2act",
+  description             :=  "Small x-platform actor framework.",
+  versionPolicyIntention  :=  Compatibility.None,
+  scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain"),
+  libraryDependencies     +=  "com.lihaoyi" %%% "utest" % "0.8.1" % Test,
+  testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
+  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = !withDemo && f.getPath.containsSlice("/demo/") }
   )
 
 val jvmSettings = Seq(
@@ -53,7 +45,6 @@ val nativeSettings = Seq(
 lazy val leucine = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("."))
-  .settings(publishSettings)
   .settings(sharedSettings)
   .jvmSettings(jvmSettings)
   .jsSettings(jsSettings)
