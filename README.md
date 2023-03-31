@@ -29,15 +29,18 @@ Leucine is typed actor system, with the following properties:
 * It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
 
 ### Getting started
-It could look something like this:
+The three actor base types you can choose from are: `BasicActor`, `StandardActor` and `StateActor`. It could look something like this:
 ```Scala
+given actorContext: ActorContext = ActorContext.system
+
 class MyActor(name: String) extends BasicActor[MyActor.Letter](name) :
   // some startup code
+  println(s"Actor $name started.")
 
   /* Handle all incoming letters. */
   protected def receive(letter: MyActor.Letter): Unit = letter match
-    case Text(data) => println(data)
-    case Terminated => stopDirect()
+    case MyActor.Text(data) => println(s"Received $data")
+    case MyActor.Terminated => stop(Actor.Stop.Finish)
 
 
 object MyActor :
@@ -49,7 +52,14 @@ object MyActor :
   case object Terminated extends Letter
 ```
 You can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
-short form `receiver ! letter` from within the `sender`. The three actor base types are: `BasicActor`, `StandardActor` and `StateActor`.
+short form `receiver ! letter` from within the `sender`. For example:
+```Scala
+val myActor = MyActor("test")
+myActor ! MyActor.Text("Hello World")
+myActor ! MyActor.Terminated
+ActorGuard.watch(false,3.seconds)
+```
+See this [run in Scastie](https://scastie.scala-lang.org/Cx3kIAV0RYq8jTuYCVS5tg)(BTW sometimes quits before the other threads were able to complete.)
 
 ### Advanced features
 The functionality of actors can be extended with mixin's. There are:
@@ -61,12 +71,15 @@ deterministic buildup and teardown sequence.
 * `Monitor` mixin and related class, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see: the time spend in each actor, number of children or worker actors, the messages being send around etc.
 
 ## Status
-The project is in its infancy, so to explore what the possibilities are the best is to clone the repro:
+To explore what the possibilities are the best is to clone the repro:
 ```
 $ git clone https://github.com/devlaam/Leucine
 $ cd leucine
 ```
-and use `publishLocal` for the moment to turn this into a library.
+and run the demo's first. In your project you may use
+```
+libraryDependencies += "com.sense2act" %% "leucine" % "<latest-version>"
+```
 
 ### Demos
 The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/develop/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
@@ -98,7 +111,6 @@ and then choose one of them. The `ticker` and `crawler` are stand alone demo's, 
 that is able to connect with raw TCP sockets on the localhost, port 8180.
 
 #### Demos on NodeJS
-
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJS/fullLinkJS
@@ -142,9 +154,9 @@ The crawler demo on Native runned in 0.7ms on my laptop (compiled with 'release-
 whereas the java version needed around 48ms!
 
 ## Future
-This library will be a replacement for my other projects that use Akka at the moment, so expect a steady grow
-for a while. But Leucine will not try to copy all of Akka or follow its conventions. Changes in the design may
-still happen, at least until release 1.0 is reached.
+This library will be a replacement for my other projects that use Akka at the moment. But Leucine will not try to
+copy all of Akka or follow its conventions. Changes in the design may still happen, at least until release 1.0 is reached.
+The featues I need myself are incorporated by now, so the comming months are devoted to testing.
 Feature requests are welcome if motivated, and of course, bug reports. Please do not send a PR without consultation.
 
 

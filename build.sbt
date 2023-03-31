@@ -5,21 +5,20 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-/* Set to false for publishing to exclude the demo files. */
-val withDemo  = false
+/* Set to 1 for publishing to exclude the demo/test files. */
+val publishMe: Int = 0
 
-ThisBuild / version       :=  "0.2.3"
+ThisBuild / version       :=  "0.2.4"
 ThisBuild / scalaVersion  :=  "3.2.1"
 
 val sharedSettings = Seq(
   name                    :=  "leucine",
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
-  versionPolicyIntention  :=  Compatibility.None,
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain"),
-  libraryDependencies     +=  "com.lihaoyi" %%% "utest" % "0.8.1" % Test,
+  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.8.1" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
-  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = !withDemo && f.getPath.containsSlice("/demo/") }
+  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
   )
 
 val jvmSettings = Seq(
