@@ -8,7 +8,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 /* Set to 1 for publishing to exclude the demo/test files. */
 val publishMe: Int = 0
 
-ThisBuild / version       :=  "0.2.4"
+ThisBuild / version       :=  "0.3.0"
 ThisBuild / scalaVersion  :=  "3.2.1"
 
 val sharedSettings = Seq(
@@ -27,7 +27,9 @@ val jvmSettings = Seq(
 
 val jsSettings = Seq(
   scalaJSUseMainModuleInitializer := true,
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+  /* Remove test which cannot run on the JS-Emulated platform.*/
+  Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NJS")))
   )
 
 val nativeSettings = Seq(
@@ -35,9 +37,7 @@ val nativeSettings = Seq(
   //nativeMode      := "release-full"
   /* This setting is a requirement for uTest on Native */
   nativeLinkStubs := true,
-  /* To ensure to tasks are put in determistic way on the custom main loop. */
-  Test / parallelExecution := false,
-  /* Remove test which cannot run Native platform.*/
+  /* Remove test which cannot run on the Native platform.*/
   Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN")))
   )
 

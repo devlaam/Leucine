@@ -3,20 +3,13 @@ package s2a.leucine.actors
 import utest.*
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
-import s2a.control.{Buffer, Deferred}
+import s2a.control.{Buffer, Deferred, Helpers}
 
-object ProtectAidTest extends TestSuite :
-
-  implicit val ac: ActorContext = ActorContext.system
+trait ProtectAidTest(using ac: ActorContext) :
 
   class Digest(val writeln: String => Unit, val done: () => Unit) extends BasicActor[Digest.Letter](), ProtectAid :
-
     override val maxMailboxSize = 4
     val alarmSize = 2
-
-    override protected def stopped(cause: Actor.Stop, complete: Boolean) =
-      writeln(s"stop:$complete")
-      done()
 
     protected def sizeAlarm(full: Boolean): Unit =
       writeln(s"alarm:$full")
@@ -31,7 +24,7 @@ object ProtectAidTest extends TestSuite :
   val tests = Tests {
     val buffer = Buffer[String]
     test("overflow mailbox"){
-      val deferred = Deferred(buffer.readlns,timeout=200.millis)
+      val deferred = Deferred(buffer.readlns,timeout=100.millis)
       val digest = new Digest(buffer.writeln,deferred.done)
       def act(i: Int) = digest.send(Digest.Knock(i))
       val accepted  = (1 to 10).map(act).count(identity)
@@ -46,3 +39,8 @@ object ProtectAidTest extends TestSuite :
       test("contains Knock(3)")         - { deferred.compare(_.contains("Knock(3)") ==> true) }
       test("contains Knock(4)")         - { deferred.compare(_.contains("Knock(4)") ==> true) }
       test("accepted >= 4")             - { deferred.compare(_.find(_.contains("accepted")).map(s => Auxiliary.splitAt(s,'=')._2).getOrElse("").toInt >= 4 ==> true) } } }
+
+
+object ProtectAidTestSystem extends TestSuite, ProtectAidTest(using ActorContext.system)
+
+object ProtectAidTestEmulationNJS extends TestSuite, ProtectAidTest(using Helpers.emulatedContext)

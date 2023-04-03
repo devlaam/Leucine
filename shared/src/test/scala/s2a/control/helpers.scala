@@ -1,8 +1,10 @@
 package s2a.control
 
 import scala.annotation.tailrec
+import s2a.leucine.actors.{ActorContext,DefaultSystem}
 
 object Helpers :
+
   @tailrec
   def repeat[T](n: Int)(body: => T): T =
     val result = body
@@ -21,4 +23,6 @@ object Helpers :
 
   extension (value: String)
     def clean(n: Int = 200) = value.replaceAll("\\s","").replaceAll("s2a.leucine.actors.","").take(n)
+
+  def emulatedContext: ActorContext = new ActorContext.ActorContexEmulatedImplementation(DefaultSystem)
 

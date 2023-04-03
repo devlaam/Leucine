@@ -5,12 +5,10 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import utest.*
 
-import s2a.control.{Buffer, Deferred}
+import s2a.control.{Buffer, Deferred, Helpers}
 import s2a.leucine.actors.PlatformContext.Platform
 
-object StashAidTest extends TestSuite :
-
-  implicit val ac: ActorContext = ActorContext.system
+trait StashAidTest(using ac: ActorContext) :
 
   class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor,Stack.State](), StashAid :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
@@ -52,3 +50,7 @@ object StashAidTest extends TestSuite :
       deferred.await()
       deferred.compare(_ ==> expect) } }
 
+
+object StashAidTestSystem extends TestSuite, StashAidTest(using ActorContext.system)
+
+object StashAidTestEmulationNJS extends TestSuite, StashAidTest(using Helpers.emulatedContext)

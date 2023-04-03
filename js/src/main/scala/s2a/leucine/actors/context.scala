@@ -27,7 +27,7 @@ package s2a.leucine.actors
 
 import java.util.concurrent.{Callable, TimeUnit}
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.scalajs.js.timers
 import scala.scalajs.js.timers.SetTimeoutHandle
 
@@ -38,19 +38,19 @@ abstract class ContextImplementation extends PlatformContext :
   private lazy val executionContext = ExecutionContext.global
 
   /** True as long as there has been no Shutdown request. */
-  private var _active = true
-
-  /** Returns the platform that is currentluy running, here Jave Script. */
-  def platform = PlatformContext.Platform.JS
+  private var _active: Boolean = true
 
   /** Save access method on the _active variable */
-  def active = _active
+  def active: Boolean = _active
+
+  /** Indicates if the context runs on system threads or in an emulated environment. */
+  def emulated: Boolean = false
 
   /**
    * True if all treads have completed, for JS this is never the case since the main
    * thread is always running. We cannot probe if the tasks there were scheduled manually
    * all have been completed.  */
-  def terminated = false
+  def terminated: Boolean = false
 
   /** Execute a new task on the current Execution Context directly */
   def execute(runnable: Runnable): Unit = if active then executionContext.execute(runnable)
@@ -76,6 +76,9 @@ abstract class ContextImplementation extends PlatformContext :
    * runnables/callables are scheduled for execution. Eventually all actors will be starved. */
   def shutdown(force: Boolean): Unit = _active = false
 
+  /** This method makes the thread loop ready for reuse after termination. Not required for this platform. */
+  private[s2a] def revive(): Unit =  ()
+
   /**
    * This method enters an endless loop but immedeately returns. Every timeout, it will probe a shutdownrequest.
    * There may be other reasons for shutdown as well. After all threads have completed (by force or not) the method
@@ -92,6 +95,9 @@ abstract class ContextImplementation extends PlatformContext :
 
 object ContextImplementation :
 
+  /** Returns the platform that is currently running, here Java Script. */
+  def platform = PlatformContext.Platform.JS
+
   /**
    * Class which continously retries an attempt until it succeeds or is cancelled. The doAttempt
    * by name reference should return true if it succeedded and false otherwise. The delay between
@@ -103,4 +109,9 @@ object ContextImplementation :
     private def callable: Callable[Unit] = new Callable[Unit] :
       def call() = if continue && !doAttempt then th = schedule(this)
     def cancel() = { continue = false; timers.clearTimeout(th) }
+
+  /** Real sleeps are not possible on JS, so we cheat with a timer. */
+  private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
+    timers.setTimeout(delay)(loop)
+    false
 

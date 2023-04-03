@@ -72,10 +72,10 @@ object BasicActorTest extends TestSuite :
       deferred.await()
       deferred.compare(_ ==> List("D:text6","except(D,1)","D:6","D:text7","except(D,2)","D:7","except(D,3)","D:stop:true")) }
     test("sending letters with random stop"){
+      val deferred = Deferred(buffer.readlns,0,110.millis)
       val writer = new Writer("E",buffer.writeln,() => ())
       def result(processed: Int, accepted: Int) = (1 until processed).map(i => s"E:$i").appended(s"E:stop:${processed-1==accepted}").toList
       ac.delayed(writer.stop(Actor.Stop.Direct), 1.millis)
       val accepted = (1 until 30).map(i => writer.send(Writer.Number(i))).count(identity)
-      val deferred = Deferred(buffer.readlns,0,100.millis)
       deferred.await()
       deferred.compare(l => l ==> result(l.size,accepted) ) } }

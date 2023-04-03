@@ -43,6 +43,9 @@ trait PlatformContext:
   /** True as long as there has been no Shutdown request. */
   def active: Boolean
 
+  /** Indicates if the context runs on system threads or in an emulated environment. */
+  def emulated: Boolean
+
   /**
    * True if all treads have completed, for JS this is never the case since the main
    * thread is always running. We cannot probe if the tasks there were scheduled manually
@@ -70,6 +73,9 @@ trait PlatformContext:
    * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks
    * will be accepted. */
   def shutdown(force: Boolean): Unit
+
+  /** This method makes the thread loop ready for reuse after termination. Only for internal use when testing. */
+  private[s2a] def revive(): Unit
 
   /**
    * This method waits until the application finishes. Every timeout, it will probe a shutdownrequest.

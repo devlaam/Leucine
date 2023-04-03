@@ -33,18 +33,13 @@ private class Console extends BasicActor[Console.Letter](!#) :
 
   /* The welcome message. You may choose your demo. As soon as you type the answer, a message is constructed
    * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
-   * so it also blocks the actor. On JS it works with a callback. */
-  CLI.talk("Please state the demo you want to run (ticker, server or crawler): ",answer => this ! Console.Read(answer))
-
-  /* If the user does not type in an answer in due time, close this actor. (Only works on JS, due to the
-   * blocking of the CLI on other platforms. */
-  stop(Actor.Stop.Silent)
+   * so it also blocks the actor. On JS it works with a callback. Normally you should not program it this way,
+   * but since we are here at the start of the demo, it does not hurt. */
+  CLI.talk("Please state the demo you want to run (ticker, server or crawler): ", answer => this ! Console.Read(answer) )
 
   override protected def stopped(cause: Actor.Stop, complete: Boolean) =
     /* CIS must be closed, otherwise the application cannot terminate. */
     CLI.close()
-    /* Let the user know he was lazy if we closed due to being silent. */
-    if cause == Actor.Stop.Silent then println("You did not make a choice, closing ...")
 
   /* Completing this console. Note that the demo may still run. */
   def stop(goodbye: String = ""): Unit =

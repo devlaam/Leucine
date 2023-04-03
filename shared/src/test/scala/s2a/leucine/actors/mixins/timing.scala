@@ -6,11 +6,9 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Try
 import utest.*
 
-import s2a.control.{Buffer, Deferred}
+import s2a.control.{Buffer, Deferred, Helpers}
 
-object TimingAidTest extends TestSuite :
-
-  implicit val ac: ActorContext = ActorContext.system
+trait TimingAidTest(using ac: ActorContext) :
 
   class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends BasicActor[Clock.Letter](), TimingAid :
 
@@ -93,3 +91,8 @@ object TimingAidTest extends TestSuite :
         list.takeRight(2) ==> List("tada!","stopped:true")
         /* List should only contain missed events */
         list.dropRight(2).map(c => if c=="x" then 0 else 1).sum ==> 0 ) } }
+
+
+object TimingAidTestSystem extends TestSuite, TimingAidTest(using ActorContext.system)
+
+object TimingAidTestEmulationNJS extends TestSuite, TimingAidTest(using Helpers.emulatedContext)

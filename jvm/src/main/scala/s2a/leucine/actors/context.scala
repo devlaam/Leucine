@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory, TimeUnit, Callable, ScheduledFuture}
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 
 /** Context implementation for the JVM */
@@ -41,14 +41,14 @@ abstract class ContextImplementation extends PlatformContext :
   /** Contains the scheduler that we use for delayed tasks. They all fit on one thread. */
   private lazy val scheduler = Executors.newSingleThreadScheduledExecutor(ContextImplementation.threadFactoryDefault)
 
-  /** Returns the platform that is currentluy running, here the JVM. */
-  def platform = PlatformContext.Platform.JVM
-
   /** True as long as there has been no Shutdown request. */
-  def active = !executionContext.isShutdown()
+  def active: Boolean = !executionContext.isShutdown()
+
+  /** Indicates if the context runs on system threads or in an emulated environment. */
+  def emulated: Boolean = false
 
   /** True if all treads have completed */
-  def terminated = executionContext.isTerminated()
+  def terminated: Boolean = executionContext.isTerminated()
 
   /** Execute a new task on the current Execution Context directly */
   def execute(runnable: Runnable): Unit = if active then executionContext.execute(runnable)
@@ -75,6 +75,9 @@ abstract class ContextImplementation extends PlatformContext :
    * will be accepted. */
   def shutdown(force: Boolean): Unit = if force then executionContext.shutdownNow() else executionContext.shutdown()
 
+  /** This method makes the thread loop ready for reuse after termination. Not required for this platform. */
+  private[s2a] def revive(): Unit =  ()
+
   /**
    * This method enters an endless loop until the application finishes. Every timeout, it will probe a shutdownrequest.
    * There may be other reasons for shutdown as well. After all thread have completed (by force or not) the method
@@ -89,6 +92,9 @@ abstract class ContextImplementation extends PlatformContext :
 
 
 object ContextImplementation :
+
+  /** Returns the platform that is currently running, here the JVM. */
+  def platform = PlatformContext.Platform.JVM
 
   /* Class which continously retries an attempt until it succeeds or is cancelled. The doAttempt
    * by name reference should return true if it succeedded and false otherwise. The delay between
@@ -129,4 +135,7 @@ object ContextImplementation :
    * of cores to keep it easy. This multiple can be specified, by the load usage 1 ... */
   def threadPool(daemon: Boolean, load: Int) = Executors.newFixedThreadPool(load*processorCount,threadFactoryDefault)
 
-
+  /** Sleep which returns to the caller */
+  private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
+    if delay != Duration.Zero then Thread.sleep(delay.toMillis)
+    true

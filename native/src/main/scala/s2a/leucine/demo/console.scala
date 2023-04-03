@@ -32,7 +32,7 @@ object CLI :
   def talk(tell: String, listen: String => Unit) =
     print(tell)
     /* Yes, this blocks, but it is only at the start, so for the demo this is acceptable.
-     * Eeven when Native has only one thread ... */
+     * Even when Native has only one thread ... */
     listen(StdIn.readLine)
   /* Actually, there is nothing to close here */
   def close(): Unit = ()
