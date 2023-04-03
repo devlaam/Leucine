@@ -63,7 +63,7 @@ object Main :
     myActor ! MyActor.Terminated
     ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie] (https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg)
+See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg)
 
 ### Advanced features
 The functionality of actors can be extended with mixin's. There are:
