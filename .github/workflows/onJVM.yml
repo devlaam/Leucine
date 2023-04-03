@@ -3,10 +3,10 @@ name: Leucine/JVM
 on:
   push:
     branches: [ "develop" ]
-    path-ignore: [ "**.md"]
+    paths-ignore: [ "*.md"]
   pull_request:
     branches: [ "develop" ]
-    path-ignore: [ "**.md"]
+    paths-ignore: [ "*.md"]
 
 permissions:
   contents: read
