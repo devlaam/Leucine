@@ -39,7 +39,7 @@ class MyActor(name: String) extends BasicActor[MyActor.Letter](name) :
 
   /* Handle all incoming letters. */
   protected def receive(letter: MyActor.Letter): Unit = letter match
-    case MyActor.Text(data) => println(s"Received $data")
+    case MyActor.Text(data) => println(s"Received: $data")
     case MyActor.Terminated => stop(Actor.Stop.Finish)
 
 
@@ -54,12 +54,13 @@ object MyActor :
 You can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
 short form `receiver ! letter` from within the `sender`. For example:
 ```Scala
-val myActor = MyActor("test")
+val myActor = MyActor("Test")
+def complete(): Unit = println("Demo Complete")
 myActor ! MyActor.Text("Hello World")
 myActor ! MyActor.Terminated
-ActorGuard.watch(false,3.seconds)
+ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie](https://scastie.scala-lang.org/Cx3kIAV0RYq8jTuYCVS5tg)(BTW sometimes quits before the other threads were able to complete.)
+See this [run in Scastie] (https://scastie.scala-lang.org/ycWh3Vg1RLqrZAX2sL4hSA)
 
 ### Advanced features
 The functionality of actors can be extended with mixin's. There are:
