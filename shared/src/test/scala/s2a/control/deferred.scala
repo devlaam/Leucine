@@ -30,7 +30,7 @@ class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration 
       delay.cancel()
       tryCall()
   /* Future handling is platform dependent. SBT cannot handle the futures on my actor
-   * execution context in emulated mode. So we treat them seperately with a manual await. */
+   * execution context in emulated mode. So we treat them separately with a manual await. */
   def await(poll: FiniteDuration = 50.millis) = if ac.emulated then
     ac.waitForExit(false,poll)(result.nonEmpty, () => ())
   def compare(expected: Result => Unit) =

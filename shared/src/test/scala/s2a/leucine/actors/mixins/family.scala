@@ -57,7 +57,7 @@ trait ActorTreeSupply :
     case object Stop extends Letter
 
 
-/* Hetrogeneous hierarchy */
+/* Heterogeneous hierarchy */
 object ActorFamilySupply extends TestSuite :
   import TestMethods.*
   implicit val ac: ActorContext = ActorContext.system
@@ -226,9 +226,9 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
 
     /* This tests if the forward (=>>) recursive buildup of children completes, has the correct buildup and
      * the backward (<<=) does not start after a finish command (strict message sequence). Also tests if the
-     * teardown is deterministic (ie. parents only stop after all there children stopped) */
+     * tear down is deterministic (i.e. parents only stop after all there children stopped) */
     test("sending letters, finish directly afterwards"){
-      /* Uncomment to see the result during tests */
+      /* Remove comment to see the result during tests */
       //test("Show result")                          - { deferred.compare(list => println(list)) }
       test("Forward ContainsNoBackwardReferences") - { deferred.compare(list => containsNoBackwardReferences(forward(list)) ==> true)  }
       test("Forward ContainsOnlyUniqueElements")   - { deferred.compare(list => containsOnlyUniqueElements(forward(list)) ==> true) }
@@ -252,10 +252,10 @@ object TreeActorTestFree extends TestSuite, ActorTreeSupply :
 
   val tests = Tests {
     /* This tests if the forward (=>>) recursive buildup of children completes, has the correct buildup and the backward
-     * (<<=) messages are correct in number, which also must be complete before stop. Also tests if the teardown is
-     * deterministic (ie. parents only stop after all there children stopped) */
+     * (<<=) messages are correct in number, which also must be complete before stop. Also tests if the tear down is
+     * deterministic (i.e. parents only stop after all there children stopped) */
     test("sending letters, finish by counting"){
-      /* Uncomment to see the result during tests */
+      /* Remove comment to see the result during tests */
       //test("Show result")                           - { deferred.compare(list => println(list)) }
       test("Forward ContainsNoBackwardReferences")  - { deferred.compare(list => containsNoBackwardReferences(forward(list)) ==> true) }
       test("Forward ContainsOnlyUniqueElements")    - { deferred.compare(list => containsOnlyUniqueElements(forward(list)) ==> true) }
@@ -284,7 +284,7 @@ object TreeActorChildStops extends TestSuite, ActorTreeSupply :
     /* This tests if the forward (=>>) contains width+1 elements and stops with the childeren. The parent stop may come
      * only after all abandon calls have arrived. */
     test("sending letters, finish directly afterwards"){
-      /* Uncomment to see the result during tests */
+      /* Remove comment to see the result during tests */
       //test("Show result")                          - { deferred.compare(list => println(list)) }
       test("Start with parent")                    - { deferred.compare(list => list.take(1) ==> List("=>>F0")) }
       test("Follows with new children")            - { deferred.compare(list => forward(list).drop(1).distinct.size ==> width)  }
