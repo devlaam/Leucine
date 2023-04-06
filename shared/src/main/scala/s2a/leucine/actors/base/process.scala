@@ -63,13 +63,13 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
    * Tries to process the contents of one envelope. If there is an exception, this is delived to
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
-  private[actors] def processEnveloppe(envelope: Env): Unit =
+  private[actors] def processEnvelope(envelope: Env): Unit =
     /* Start measuring the time passed in the user environment, and trace when requested */
     monitorEnter(envelope)
     /* User code is protected by an exception guard.*/
     try
       /* Execute the receiver handler. */
-      state = deliverEnveloppe(envelope,state)
+      state = deliverEnvelope(envelope,state)
       /* stashEnqueue checks if there was a stash request for this message. If so it is enqueued. */
       stashEnqueue(envelope)
     catch
@@ -94,7 +94,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     /* Loop through all envelopes. We try to process as many as we can within this time slice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
-      processEnveloppe(envs.head)
+      processEnvelope(envs.head)
       /* When done, see if we must augment the list with more important envelopes. If there are no
        * events possible then there is no need to synchronize. The stash is always filled within the
        * letter handling. */

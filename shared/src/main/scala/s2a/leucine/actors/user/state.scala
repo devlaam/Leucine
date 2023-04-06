@@ -44,7 +44,7 @@ abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](pr
   private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
 
   /* Deliver the letter in the envelope. The state may also be changed by the user. */
-  private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
+  private[actors] final def deliverEnvelope(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender,state)
 
   /* Deliver the exception to the user, which may return a new state. */

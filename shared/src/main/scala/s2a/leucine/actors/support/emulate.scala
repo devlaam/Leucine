@@ -201,10 +201,10 @@ abstract class ContextEmulation extends PlatformContext :
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
    * digestible process. As longs as there is no result yet, the attempt should produce None */
-  def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
+  def await[M](digestible: Digestible[M], attempt: => Option[M]): Cancellable =
     if _active then
       /* Create the actual attempt as a delayed digest. */
-      val doAttempt = () => attempt.map(digestable.digest)
+      val doAttempt = () => attempt.map(digestible.digest)
       /* Add the attempt to the set of attempts. */
       attempts = attempts + doAttempt
       /* Construct an object that enables the user to retract the attempt. */

@@ -66,7 +66,7 @@ trait PlatformContext:
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
    * digestible process. As longs as there is no result yet, the attempt should produce None */
-  def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable
+  def await[M](digestible: Digestible[M], attempt: => Option[M]): Cancellable
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed

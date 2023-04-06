@@ -45,7 +45,7 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   /**
    * This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
    * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
-  private[actors] def deliverEnveloppe(envelope: Env, state: ActState): ActState
+  private[actors] def deliverEnvelope(envelope: Env, state: ActState): ActState
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the

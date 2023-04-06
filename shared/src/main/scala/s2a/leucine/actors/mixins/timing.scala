@@ -76,13 +76,13 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
    * Construct a new digestible on the fly. The digest method takes the letter given to it, and
    * constructs a new event for the events queue and calls trigger in order to start the loop if
    * needed. */
-  private def digestable(anchor: Object): Digestable[MyLetter] =
+  private def digestible(anchor: Object): Digestible[MyLetter] =
     def handle(letter: MyLetter) = synchronized {
       events.enqueue(Event(anchor,letter))
       anchors.remove(anchor)
       /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true) }
-    new Digestable[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
+    new Digestible[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
 
   /** See if there could be events present.  */
   private[actors] override def eventsPossible: Boolean = true
@@ -146,7 +146,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     /* If we are not active, we may not accept this expectation. Otherwise ... */
     if !activity.active then false else
     /* ... schedule a new expectation and add it to the anchors map. */
-      anchors.addOne(anchor -> context.await(digestable(anchor),fullfil))
+      anchors.addOne(anchor -> context.await(digestible(anchor),fullfil))
       true }
 
 

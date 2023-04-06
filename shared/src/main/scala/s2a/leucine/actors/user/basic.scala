@@ -46,7 +46,7 @@ abstract class BasicActor[ML <: Actor.Letter](prename: String = "")(using val co
   private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = BareActor.Envelope(env,Actor.Anonymous)
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
+  private[actors] final def deliverEnvelope(envelope: Env, state: ActState): ActState =
     receive(envelope)
     state
 
