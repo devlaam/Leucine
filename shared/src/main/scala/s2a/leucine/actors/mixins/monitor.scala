@@ -94,7 +94,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   /** Calculate the gain in time since the last visit. */
   private def gain(newClockTime: Long): Long =
     /* Calculate the increase in time. This should be positive of course, but there never
-     * is an absolute guarantee of the presence of a monotic clock on every OS. So better
+     * is an absolute guarantee of the presence of a monotonic clock on every OS. So better
      * be inaccurate as negative. */
     val result        = math.abs(newClockTime - lastClockTime)
     lastClockTime     = newClockTime
@@ -103,7 +103,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   /** Variable holding the cancel object for probing the actor. */
   private var cancelProbe = Cancellable.empty
 
-  /** Method to create a new scheduable object to probe the actor. */
+  /** Method to create a new schedulable object to probe the actor. */
   private def callProbe = new Callable[Unit] {
     /* Try to make a probe and if successful, schedule a new one. */
     def call(): Unit = if probeNow() then probeRenew() }
@@ -112,7 +112,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private def probeStart() = synchronized {
     /* The probing flag must be set to continue scheduling late probes. But we cannot take probes
      * right away, since the actor may still be in the construction phase (deadlock!). But it will
-     * make no sense eigher, since there is nothing going in at the start. */
+     * make no sense either, since there is nothing going in at the start. */
     probing = true
     /* Start the probe interval timer.  */
     probeRenew() }
@@ -145,14 +145,14 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     /* Return the fact if we made any probes.*/
     probed
 
-  /** Cancel the delayed probe actions, but also perfom one last probe action right now. */
+  /** Cancel the delayed probe actions, but also perform one last probe action right now. */
   private def probeStop() =
     /* Canceling the scheduled next probe is on best effort basis. It cannot be guaranteed,
      * the event will come never the less. So we must be ready for that. */
     cancelProbe.cancel()
     /* Make the last probe manually */
     probeNow()
-    /* Setting this to false prohibits the furter scheduled executions of probes. */
+    /* Setting this to false prohibits the further scheduled executions of probes. */
     synchronized { probing = false }
 
   /* For workers we do not want to use the full name, but a one name for all workers in this family. So
@@ -234,7 +234,7 @@ object MonitorAid :
 
   class Trace(val time: Long, val action: Action, val post: Post) extends Ordered[Trace] :
     var nr = tracer
-    /* Sorting is first on action time and subsequently on trace number. This should be suffient to be unique in
+    /* Sorting is first on action time and subsequently on trace number. This should be sufficient to be unique in
      * all circumstances. */
     def compare(that: Trace): Int =
       if      this.time < that.time then -1
@@ -273,19 +273,19 @@ object MonitorAid :
   sealed trait Sample :
     def show: String
 
-  /** Class to marshall all the KPI's of the bare actor. */
+  /** Class to marshal all the KPI's of the bare actor. */
   case class Bare(phase: BareActor.Phase, stop: Actor.Stop, lettersSum: Int, lettersMax: Int, exceptionsSum: Int, needles: Int, userLoad: Double) extends Sample :
     def userPPM = (userLoad * 1000000).toInt
     def show = s"phase=$phase, stop=$stop, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, needles=$needles, userLoad=${userPPM}ppm"
 
-  /** Class to marshall all the KPI's of the Stash mixin. */
+  /** Class to marshal all the KPI's of the Stash mixin. */
   case class Stash(lettersSum: Int, lettersMax: Int) extends Sample :
     def show = s"stashSum=$lettersSum, stashMax=$lettersMax"
 
-  /** Class to marshall all the KPI's of the Timing mixin. */
+  /** Class to marshal all the KPI's of the Timing mixin. */
   case class Timing(lettersSum: Int, lettersMax: Int, anchorsSize: Int) extends Sample :
     def show = s"timersSum=$lettersSum, timersMax=$lettersMax, timersNow=$anchorsSize"
 
-  /** Class to marshall all the KPI's of the Families mixins. */
+  /** Class to marshal all the KPI's of the Families mixins. */
   case class Family(namedChildrenNow: Int, allChildrenNow: Int, workersSum: Long) extends Sample :
     def show = s"namedChildrenNow=$namedChildrenNow, allChildrenNow=$allChildrenNow, workersSum=$workersSum"

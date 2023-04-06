@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 
-/** Interface to expose a method that digests some input. This is the antogonist of Callable. */
+/** Interface to expose a method that digests some input. This is the antagonist of Callable. */
 trait Digestable[Input] :
   /**
    * A task that digests some input, but does not return a result. It is naturally aimed
@@ -33,5 +33,5 @@ trait Digestable[Input] :
   def digest(input: Input): Unit
 
 object Digestable :
-  /**The dummy Digestable */
+  /**The dummy Digestible */
   def empty[Input] = new Digestable[Input] { def digest(input: Input) = () }

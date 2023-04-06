@@ -64,11 +64,11 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
   def receive(letter: Tree.Letter, sender: Sender) = letter match
     /**/
     case Tree.Create(width,level) =>
-      /* Calculate how many returns we expect, when we close lateron. */
+      /* Calculate how many returns we expect, when we close later on. */
       if parent.isEmpty then returns = (math.pow(width,level)+0.4).toInt
       /* Create 'width' number of new children. */
       (1 to width).foreach(newChild)
-      /* In case we are not yet on the last level, relay this creation oder
+      /* In case we are not yet on the last level, relay this creation order
        * to the next level. */
       if (level > 1) then relay(Tree.Create(width,level - 1),this)
     case Tree.Forward =>

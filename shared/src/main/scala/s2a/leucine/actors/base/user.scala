@@ -49,17 +49,17 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
-   * next letter. Errors are not caught and blubble up. Now, this follows the Java style. */
+   * next letter. Errors are not caught and bubble up. Now, this follows the Java style. */
   private[actors] def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState
 
   /**
    * Called before actor deactivation and guaranteed after the last message is processed. If there were any
-   * unprocessed letters in this actor at teardown, complete is false. These could be in the normal mailbox
+   * unprocessed letters in this actor at tear down, complete is false. These could be in the normal mailbox
    * or on the stash, if present. Cause returns the last stop mode, so the cause of stopping this actor is
    * known.
-   * In case of a actorContext shutdown this is NOT called, for this disruptly terminates the processing loops.
+   * In case of a actorContext shutdown this is NOT called, for this disruptively terminates the processing loops.
    * It is however called when stop(...) is used, or when the actor is shutdown by a parent. The actor may still
    * be around after this method is called, but will never accept new messages. The parent is still defined,
-   * when stopped() is executed (but may already stopped processing messages) but all the childeren
+   * when stopped() is executed (but may already stopped processing messages) but all the children
    * will already be removed from the list, and their stopped() methods have already been called. */
   protected def stopped(cause: Stop, complete: Boolean): Unit = ()

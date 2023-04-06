@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 
-/** The ControlActor implements the methods that may change the behaviour of the actor. */
+/** The ControlActor implements the methods that may change the behavior of the actor. */
 transparent trait ControlActor(using context: ActorContext) extends ProcessActor :
   import Actor.Stop
   import BareActor.Phase
@@ -37,7 +37,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
     /* Dropping needles only makes sense when we are active. */
     val passOn =  synchronized { activity.active && (
       /* See if we are not double booked. This is the case when this actor is requested to
-       * stop on Silent and one of its ancesters is as well. In that case we remove this booking
+       * stop on Silent and one of its ancestors is as well. In that case we remove this booking
        * and ignore the signal. */
       if (stopper == Stop.Silent) && !root then
         /* Remove the booking */
@@ -50,8 +50,8 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
        * the request ourselves, or when it is passed from the parent in a family. */
       else if (stopper == Stop.Silent) || !root then
         /* See if we are indeed doing nothing, in that case drop needle. Note: this test
-         * is essential. Allthough the needles are cleared at every processLoop, this only
-         * happens at the start, on a very busy actor, clearing may be selldom. */
+         * is essential. Although the needles are cleared at every processLoop, this only
+         * happens at the start, on a very busy actor, clearing may be seldom. */
         if (phase == Phase.Start) || (phase == Phase.Pause) then needles = needles + 1
         /* If the limit of needles is reached, the actor is considered silent. We may now
          * stop if there are no children any more. If there still are, we must wait until
@@ -87,7 +87,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       protectRaise(mailbox.size)
       /* ... put the mail in the box */
       mailbox.enqueue(envelope)
-      /* ... trigger the processLoop, so execution starts, if currenly in Pause. */
+      /* ... trigger the processLoop, so execution starts, if currently in Pause. */
       processTrigger(true)
       true }
 
@@ -112,30 +112,30 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       case Phase.Done   => Phase.Done }
 
   /**
-   * Stopping of an actor is organised in levels of sevirity. The lowest level (Direct) terminates directly, the
+   * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
    * possible if the stop action was not yet started. Direct and Finish start immediately, and cannot be retracted. */
   final def stop(value: Stop): Unit =
-    /* Activate/deactivate ther needle dropping, which is there to see if the actor turned silent. */
+    /* Activate/deactivate the needle dropping, which is there to see if the actor turned silent. */
     def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
-    /* Stop with finish if there are no childeren for this actor. */
+    /* Stop with finish if there are no children for this actor. */
     def stopChildless(): Unit = if familySize == 0 then stopWith(true)
     /* All changes to the stopper are protected by a test on the current phase. There can only be one
-     * cause to stop the actor. Once the teardown process has started, this cannot be changed anymore.
+     * cause to stop the actor. Once the tear down process has started, this cannot be changed anymore.
      * This is important for the user can call stop from different threads an the parent actor sometimes
      * tries to stop the child twice. The second time will be ignored. Furthermore, the stop level cannot
      * be increased in most cases. */
     synchronized { stopper = value match
-      /* A request to stop the actor right now is always honoured, unless the actor is allready stopping.
+      /* A request to stop the actor right now is always honored, unless the actor is already stopping.
        * It is allowed to overwrite a Stop.Finish here to accelerate the stopping process. */
       case Stop.Direct  if (stopper >  Stop.Direct) && (phase < Phase.Stop)   => stopWith(false); Stop.Direct
-      /* A request to stop the actor and finish completion of the mailbox is honoured when we are not already doing this.
+      /* A request to stop the actor and finish completion of the mailbox is honored when we are not already doing this.
        * Note that, due to the nested synchronization calls, the situation where (phase >= Phase.Finish) after
        * stopper >  Stop.Finish should not appear. But for consistency and protection this test is kept in. */
       case Stop.Finish  if (stopper >  Stop.Finish) && (phase < Phase.Finish) => stopWith(true);  Stop.Finish
-      /* A stop on Barren (ie stop wheren there are no children, equals a request to finish when there are no children
-       * right now, and otherwise the actor waits until this situation occours. If we were waiting on silence before
-       * this is deleted, since the silence test also waits on the disappearance of the childeren, but Barren is stronger. */
+      /* A stop on Barren (i.e. stop when there are no children, equals a request to finish when there are no children
+       * right now, and otherwise the actor waits until this situation occurs. If we were waiting on silence before
+       * this is deleted, since the silence test also waits on the disappearance of the children, but Barren is stronger. */
       case Stop.Barren  if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); stopChildless(); Stop.Barren
       /* In case we were not waiting on Silent before, we can directly test or wait. */
       case Stop.Barren  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => stopChildless(); Stop.Barren
@@ -148,9 +148,9 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       /* In other cases we just set the stopper to Final, which is probed by the guard. The guard decides if the actor
        * must stop. When the time has come, he will stop the actors by the internal stop call. */
       case Stop.Final   if (stopper >  Stop.Final ) && (phase < Phase.Finish) => Stop.Final
-      /* Just reset the stopper to prohibit stopping, but only when the teardown did not yet start. */
+      /* Just reset the stopper to prohibit stopping, but only when the tear down did not yet start. */
       case Stop.Never   if (stopper == Stop.Barren) && (phase < Phase.Finish) => Stop.Never
-      /* Cancel needle dropping to prohibit stopping, but only when the teardown did not yet start. */
+      /* Cancel needle dropping to prohibit stopping, but only when the tear down did not yet start. */
       case Stop.Never   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); Stop.Never
       /* In all other cases (only Final) reset the stopper. */
       case Stop.Never   if (stopper >  Stop.Silent) && (phase < Phase.Finish) => Stop.Never

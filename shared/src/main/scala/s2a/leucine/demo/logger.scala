@@ -29,7 +29,7 @@ import s2a.leucine.actors.*
 
 /**
  * LogData provides context specific information about the location where
- * the logentry was made. This can be anything like the class name, actor path
+ * the log entry was made. This can be anything like the class name, actor path
  * etc. Extend to your own liking. */
 private class LogData(val value: () => String)
 
@@ -43,7 +43,7 @@ private object LogData :
  * information in the logging. Note, The Logger will also work without. */
 trait LogInfo :
 
-  /* data containts the function the gathers the information on request.
+  /* data contains the function the gathers the information on request.
    * This is needed for two reasons:
    * (1) The info may not be available at the time of construction of this instance.
    * (2) If the logging is ditched, we can prevent its execution.  */
@@ -51,7 +51,7 @@ trait LogInfo :
     case ba: BareActor => () => s"actor:${ba.path}"
     case _             => () => s"class:${getClass.getSimpleName}"
 
-  /* Finally this is the object picked up by the Logger methodes. */
+  /* Finally this is the object picked up by the Logger methods. */
   given LogData(data)
 
 
@@ -70,7 +70,7 @@ private class Logger extends BasicActor[Logger.Letter]("logger") :
   /* Report that this logger has started. */
   println("Started Logger")
 
-  /* receive method that handles the incomming logger and control messages. */
+  /* receive method that handles the incoming logger and control messages. */
   def receive(letter: Logger.Letter) = letter match
     case msg: Message => if msg.level <= this.level then println(msg.show)
     case Switch(level: Level) => this.level = level
@@ -103,8 +103,8 @@ object Logger :
     /* Make a reasonable entry for this log message. This is done in the Logger Actor context. */
     def show: String = s"$timeStamp; $threadStamp; ${data.value()}; $level; $text"
 
-  /* Message to dynamincally switch the level of the messages. Note that this is
-   * expensive since the messages are send to the logger actor anyway. Bettter is
+  /* Message to dynamically switch the level of the messages. Note that this is
+   * expensive since the messages are send to the logger actor anyway. Better is
    * to set this at program start. */
   private case class Switch(level: Level) extends Letter
 

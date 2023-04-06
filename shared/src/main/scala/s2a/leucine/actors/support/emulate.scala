@@ -29,11 +29,11 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.collection.immutable.{Queue,SortedMap}
 
 
-/* For applications where there is no access to the threadling libraries, for
- * example vitual executers, you can use this Context. All tasks are kept in
+/* For applications where there is no access to the threading libraries, for
+ * example virtual executors, you can use this Context. All tasks are kept in
  * collections, and thread libraries are not called. Runs on every platform.
  * The emulator is also protected against use in a multithreaded environment
- * where tasks are schedueld from different threads. */
+ * where tasks are scheduled from different threads. */
 
 /** Context implementation with manual single thread scheduling. */
 abstract class ContextEmulation extends PlatformContext :
@@ -50,7 +50,7 @@ abstract class ContextEmulation extends PlatformContext :
   /** Set for all attempts that need to be tried every cycle. */
   private var attempts: Set[() => Option[Unit]] = Set.empty
 
-  /** Variable that keeps track of the time this application has run since the start. In nanosec */
+  /** Variable that keeps track of the time this application has run since the start. In nano seconds. */
   private var passedTime: Long = 0
 
   /**
@@ -76,7 +76,7 @@ abstract class ContextEmulation extends PlatformContext :
   /* See if there is any attempt that must be tested. */
   private def hasAttempts: Boolean = synchronized(!attempts.isEmpty)
 
-  /** Try all attempts. All succeeded attempts are direcly handled and removed. */
+  /** Try all attempts. All succeeded attempts are directly handled and removed. */
   private def tryAttempts(): Unit = synchronized { attempts = attempts.filter(_().isEmpty) }
 
   /** Main loop with a periodic hook */
@@ -116,10 +116,10 @@ abstract class ContextEmulation extends PlatformContext :
         /* Work done, no need to sleep */
         true
       else
-        /* Iff there are no timers or tasks it makes sense to probe the asynchrone events.
+        /* Iff there are no timers or tasks it makes sense to probe the asynchronous events.
          * This is because they usually result in more work (i/o). If there are attempts, we
-         * try them all. Attemps are supposed to be handled quicky, and they do not have a
-         *  natural ordening like timers of tasks. */
+         * try them all. Attempts are supposed to be handled quickly, and they do not have a
+         *  natural ordering like timers of tasks. */
         if hasAttempts then tryAttempts()
         /* In this situation we must also pause after each round of attempts so that we do
          * not hammer the attempt methods, or consume too much time on this loop when there
@@ -131,7 +131,7 @@ abstract class ContextEmulation extends PlatformContext :
       while
         /* First we test if we must continue the loop. This is the case as long as
          * continue stays true (can be set to false from the outside) and we still have
-         * work or _active remains true. If continue is set to false, we immedeately stop,
+         * work or _active remains true. If continue is set to false, we immediately stop,
          * (forced stop) and if _active is set to false, we complete the remaining work
          * first. */
         if synchronized { continue = continue && (_active || hasWork); continue }
@@ -189,18 +189,18 @@ abstract class ContextEmulation extends PlatformContext :
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable = synchronized {
     if _active then
       var time = passedTime + delay.toNanos
-      /* There may already be a time with this exact delay, so we plan it a few nanosecs later. */
+      /* There may already be a time with this exact delay, so we plan it a few nano seconds later. */
       while timers.contains(time) do time = time + 1
-      /* Add the new timer and action to the exisiting timers. */
+      /* Add the new timer and action to the existing timers. */
       timers = timers + (time -> callable)
-      /* Construct an object that enables the user to retract the actoin. */
+      /* Construct an object that enables the user to retract the action. */
       new Cancellable { def cancel() = timers = timers - time  }
     else Cancellable.empty }
 
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
-   * digestable process. As longs as there is no result yet, the attempt should produce None */
+   * digestible process. As longs as there is no result yet, the attempt should produce None */
   def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable =
     if _active then
       /* Create the actual attempt as a delayed digest. */
@@ -213,8 +213,8 @@ abstract class ContextEmulation extends PlatformContext :
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
-   * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks
-   * will be accepted. Once you have called shutdown, it is no longer possible to restart the mainloop. */
+   * there current tasks. With force=true the current execution is interrupted. In any case, no new tasks
+   * will be accepted. Once you have called shutdown, it is no longer possible to restart the main loop. */
   def shutdown(force: Boolean): Unit = synchronized {
     _active = false
     if force then continue = false }
@@ -223,11 +223,11 @@ abstract class ContextEmulation extends PlatformContext :
   private[s2a] def revive(): Unit =  _active = true
 
   /**
-   * This method enters an (endless) loop until the application finishes. Every timeout, it will probe a shutdownrequest.
+   * This method enters an (endless) loop until the application finishes. Every timeout, it will probe a shutdown request.
    * There may be other reasons for shutdown as well. After all threads have completed (by force or not) the method
    * calls complete() and returns. Call in the main thread as last action there. Normally you should only call this once,
    * but in certain situations (tests) it may be needed to call it multiple times. Once a shutdown request is made, reuse
-   * has become inpossible. */
+   * has become impossible. */
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     /* Method to periodically call to see if we may continue, and how. */
     def hook(): Unit = { if shutdownRequest then shutdown(force) }

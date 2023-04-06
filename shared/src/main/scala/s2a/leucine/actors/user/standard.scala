@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /**
- * The StandardActor is able to respond to messages, but does not keep state. You can of course keep your own in var's.
+ * The StandardActor is able to respond to messages, but does not keep state. You can of course keep your own in variables.
  * If you do, make sure these are private, so there is no risk the leak to the outside world. All possible return types
  * must be specified. If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
  * on the base of its name. Supply !# as name to define this a worker actor.*/
@@ -39,12 +39,12 @@ abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](prename: String = 
   /* The Env type now holds the Letter as well as the Sender type */
   private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
 
-  /* Pack the letter with the sender into one envellope */
+  /* Pack the letter with the sender into one envelope */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
   private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
 
-  /* Deliver the letter in the enveloppe. The state remains unchanged. */
+  /* Deliver the letter in the envelope. The state remains unchanged. */
   private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender)
     state
@@ -96,9 +96,9 @@ abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](prename: String = 
    * (1) Stop the actor, by calling stopDirect() inside the handler.
    * (2) Continue for all or certain types of exceptions.
    * (3) Inform the parent if part of a family...
-   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
+   * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
-   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+   * example, just log the exception. Runtime errors cannot be caught and bubble up. */
   protected def except(letter: MyLetter, sender: Sender, cause: Exception, size: Int): Unit = ()
 
   /**

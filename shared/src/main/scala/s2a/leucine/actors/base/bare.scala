@@ -49,8 +49,8 @@ object BareActor :
    * After construction the phase is Start. When the first message comes in, it calls beforeStart and advances to Play.
    * From there it may oscillate between Play and Pause. The phase is Pause when the message queue is empty and Play
    * as long as there are letters on the queue. If a Finish letter arrives while the loop is running, the phase moves
-   * to Finish, and the current queue is fisished. If stopDirect() is called, the phase advances to Stop, which terminates
-   * the loop asap. Subsequently afterStop() is called, and the pahse becomes Done. It may never be reactivated again.
+   * to Finish, and the current queue is finished. If stopDirect() is called, the phase advances to Stop, which terminates
+   * the loop asap. Subsequently afterStop() is called, and the phase becomes Done. It may never be reactivated again.
    * The first three phases are active (so the actor may accept letters, the last ones are not, and describe the state
    * in various ways of tearing down. */
   private[actors] enum Phase(val active: Boolean) extends EnumOrder[Phase] :

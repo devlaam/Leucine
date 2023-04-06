@@ -31,13 +31,13 @@ private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, Prote
   private[actors] type MyLetter <: Actor.Letter
   /** The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
-  /** The combined type of Letter and Sender (Enveloppe).*/
+  /** The combined type of Letter and Sender (Envelope).*/
   private[actors] type Env
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
   type Sender <: Actor
   /** The name of this actor. */
   def name: String
-  /** The fullname of this actor, contains the full path to the first ancestor.*/
+  /** The full name of this actor, contains the full path to the first ancestor.*/
   def path: String
 
 
@@ -50,8 +50,8 @@ trait Actor :
 
   /**
    * Name of this actor. Note: this is user defined should be unique in a within family among its siblings.
-   * It can be anyting, but if possible exclude . and # Dots are used to build name paths in families and
-   * # are used to make numberd actors, of whom we do not want to keep names. Both chars can be defined
+   * It can be anything, but if possible exclude . and # Dots are used to build name paths in families and
+   * # are used to make numbered actors, of whom we do not want to keep names. Both chars can be defined
    * by your own if needed.  */
   def name: String
 
@@ -74,7 +74,7 @@ trait Actor :
   def activity: Activity
 
   /**
-   * Method to inform the actor to stop its activities directly, or later, depening on the circumstances.
+   * Method to inform the actor to stop its activities directly, or later, depending on the circumstances.
    * Can be called from outside and inside the actor, since the method it is thread safe.
    * The possible values are (part of the enum Actor.Stop) :
    *   Direct:  Stop the actor asap, but complete the running letter. Subsequently stop all children likewise. Terminate afterwards.
@@ -83,8 +83,8 @@ trait Actor :
    *   Silent:  Wait until the actor and all children, if present, are silent for some time, then stop directly.
    *   Final:   This actor may be terminated if all other non final actors are terminated by themselves.
    *   Never:   This actor never stops, this is the default setting.
-   * Whereas Direct stops an actor family immediately, Finish allows for a smooth teardown of the whole family tree.
-   * Note that in both cases is not possible for childeren to send results back to the parent. To that end, Barren or
+   * Whereas Direct stops an actor family immediately, Finish allows for a smooth tear down of the whole family tree.
+   * Note that in both cases is not possible for children to send results back to the parent. To that end, Barren or
    * Silent are the better choice. Silent is also used for actors that wait on external events, but when they do not
    * arrive, the actor is able to stop itself. Lastly, Final is meant for services like logging. They should always
    * be available, but when there are not actors around anymore to send logs, the logger may be closed by the system itself.
@@ -118,7 +118,7 @@ object Actor :
   type Anonymous = Anonymous.type
 
   /**
-   * Stopping of an actor is organised in levels of severity. The lowest level (Direct) terminates directly, the
+   * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
    * possible if the action was not yet started (never for Direct and Finish). */
   enum Stop extends EnumOrder[Stop] :
@@ -156,7 +156,7 @@ object Actor :
   object Anonymous extends Actor :
     /** How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"
-    /** Anonymous actor is not part of a familty. */
+    /** Anonymous actor is not part of a family. */
     def path = name
     /** The Anonymous actor was never in action, so technically it is never terminated, but is certainly not active. */
     def activity: Activity = Activity.Stopping

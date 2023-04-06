@@ -28,7 +28,7 @@ package s2a.leucine.actors
 /** Shared base for BurstQueue and DropQueue */
 class ShareQueue[M] :
 
-  /** The queue that holds all incomming messages */
+  /** The queue that holds all incoming messages */
   protected var queueIn: List[M] = Nil
 
   /** The queue that holds all outgoing messages */

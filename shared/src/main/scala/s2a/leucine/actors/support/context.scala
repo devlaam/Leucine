@@ -41,7 +41,7 @@ trait ActorContext extends PlatformContext with ExecutionContext :
   /** Helper value to switch on/off tracing for debugging. Start your debug lines with if actorTracing then ... */
   def actorTracing: Boolean
 
-  /** The prefix used in actornames for actors that are workers */
+  /** The prefix used in actor names for actors that are workers */
   def workerPrefix: String
 
   /** The character that will be used in the full name definitions of the actors.*/
@@ -84,5 +84,5 @@ object ActorContext :
     export parameters.*
     def platform = ContextImplementation.platform
 
-  /** Provides a default actor implementation that runs on a platform independant emulation layer for threads. */
+  /** Provides a default actor implementation that runs on a platform independent emulation layer for threads. */
   val emulated: ActorContext = new ActorContexEmulatedImplementation(DefaultSystem)

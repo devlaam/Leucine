@@ -36,10 +36,10 @@ import s2a.leucine.actors.*
 
 /**
  * Trans platform Server Socket that is able to accept a connection on a specified port and create
- * a trans platform Client Socket to handle it. The socket only works on the loopback address. */
+ * a trans platform Client Socket to handle it. The socket only works on the loop back address. */
 trait ServerSocket:
 
-  /** Opens the socket on the local loopback address at the given port. */
+  /** Opens the socket on the local loop back address at the given port. */
   def open(port: Int): Unit
 
   /**
@@ -51,7 +51,7 @@ trait ServerSocket:
   /**
    * You may register a callback function that is called when a connection arrives.
    * This will only be called when the platform layer supports this, in which case the
-   * method returns true. When false is returned, the callback function is not untilized,
+   * method returns true. When false is returned, the callback function is not utilized,
    * and you need to use periodic request() + connection to obtain the new connection.*/
   def onConnect(callback: ClientSocket => Unit): Boolean
 
@@ -66,9 +66,9 @@ trait ServerSocket:
    * also be used to test if the last action was successful. */
   def error: String
 
-/* This class captures the incomming connection an creates a new actor for each. It is derived from
+/* This class captures the incoming connection an creates a new actor for each. It is derived from
  * BasicActor because we do no receive letters from others than ourselves. As a best practice we define
- * the letters Server is able to process in the compagnion object, and use Server.Letter as the base
+ * the letters Server is able to process in the companion object, and use Server.Letter as the base
  * type. Furthermore we need to mix TimingAid in for we need letters that arrive after a certain
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
@@ -87,11 +87,11 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
   /* Make sure this server ends after 60 seconds. It is just for testing. */
   post(Server.Terminated,runtime,terminationAnchor)
 
-  /* First create the generiziled serverSocket. This should not fail. */
+  /* First create the generalized serverSocket. This should not fail. */
   private val serverSocket: ServerSocket = new ServerSocketImplementation
 
-  /* Now see if we can use a callback implementation. If so, this is favoured for
-   * it uses less resources compated to io polling by expect. Anytime a new connection
+  /* Now see if we can use a callback implementation. If so, this is favored for
+   * it uses less resources compared to i/o polling by 'expect'. Anytime a new connection
    * arrives we send a letter to ourselves with the connection enclosed. */
   private val useCallback = serverSocket.onConnect(socket =>
     Logger.debug("Callback called.")
@@ -130,7 +130,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
     stop(Actor.Stop.Direct)
 
 
-  /* Handle all incomming letters. */
+  /* Handle all incoming letters. */
   protected def receive(letter: Server.Letter): Unit = letter match
     /* The new connection will come in as a letter. */
     case Server.Connect(socket) =>
@@ -142,7 +142,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
     /* The request has come to close stop this server. */
     case Server.Terminated =>
       Logger.info("Server Termination Request")
-      /* Cancel the expection for a new connection.
+      /* Cancel the expectation for a new connection.
        * BTW, this is automatic in stopDirect, for illustration only. */
       dump(expectationAnchor)
       /* Stop the actor. */

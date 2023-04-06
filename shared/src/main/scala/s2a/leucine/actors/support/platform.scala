@@ -37,7 +37,7 @@ trait PlatformContext:
   /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
   def load: Int = 4
 
-  /** The natural pause time for this context. Its meaning and use is platform dependant. */
+  /** The natural pause time for this context. Its meaning and use is platform dependent. */
   def idleThreadPause: FiniteDuration
 
   /** True as long as there has been no Shutdown request. */
@@ -57,20 +57,20 @@ trait PlatformContext:
 
   /**
    * Plan a new task on the current Execution Context, which is run after some delay.
-   * Depending on the platform, the execution of mutiple delayed tasks can hinder
-   * each other. So it is best to keep the execution time wihtin the callable low,
+   * Depending on the platform, the execution of multiple delayed tasks can hinder
+   * each other. So it is best to keep the execution time within the callable low,
    * and transfer work to the thread pool. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable
 
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
-   * digestable process. As longs as there is no result yet, the attempt should produce None */
+   * digestible process. As longs as there is no result yet, the attempt should produce None */
   def await[M](digestable: Digestable[M], attempt: => Option[M]): Cancellable
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
-   * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks
+   * there current tasks. With force=true the current execution is interrupted. In any case, no new tasks
    * will be accepted. */
   def shutdown(force: Boolean): Unit
 
@@ -78,11 +78,11 @@ trait PlatformContext:
   private[s2a] def revive(): Unit
 
   /**
-   * This method waits until the application finishes. Every timeout, it will probe a shutdownrequest.
+   * This method waits until the application finishes. Every timeout, it will probe a shutdown request.
    * There may be other reasons for shutdown as well. After all threads have completed (by force or not)
    * the method calls complete(). Call waitForExit in the main thread as last action there.
-   * After return some other tasks may still be runnning. This will usually not be a problem, since
-   * when they complete the application will exit, just as intented, or, inside a webapp, keeps running,
+   * After return some other tasks may still be running. This will usually not be a problem, since
+   * when they complete the application will exit, just as intended, or, inside a web app, keeps running,
    * needed to be able to continue to respond on other events. The method may also directly return, if
    * blocking is not supported by the platform (JS). In that case the callback complete provides the
    * correct information. */

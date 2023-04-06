@@ -50,7 +50,7 @@ trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends Fami
 
 /**
  * Mixin you need to create child actors. Actual creation should be done within the parent
- * without enclosing any of its variable state. This is your responsibilty. You need to specify the base
+ * without enclosing any of its variable state. This is your responsibility. You need to specify the base
  * type of all child letters the children of this actor may receive, as well as the parent actor type.
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
@@ -92,9 +92,10 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
 
 
 /**
- * Mixin to construct a family tree where all levels accept the same letters, and which may be build dynamically/recursively.
- * The field 'parent' is an option in this case and the root of the tree should not have a parent. The type of the parent equals
- * the type of the FamilyTree and all letters are derived from one common ancestor. */
+ * Mixin to construct a family tree where all levels accept the same letters, and which may be build
+ * dynamically/recursively. The field 'parent' is an option in this case and the root of the tree
+ * should not have a parent. The type of the parent equals the type of the FamilyTree and all letters
+ * are derived from one common ancestor. */
 trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
   self: BareActor =>
   private[actors] type CL = MyLetter
@@ -121,7 +122,7 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
   /** Register this actor. */
   private[actors] override def register(prename: String): String =
     parent match
-    /* Childeren register at the parent. */
+    /* Children register at the parent. */
       case Some(p) => p.adopt(prename,self)
       /* If this is the root of the family then we register at the guard. */
       case None    => super.register(prename)

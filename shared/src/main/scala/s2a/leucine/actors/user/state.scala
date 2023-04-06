@@ -38,12 +38,12 @@ abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](pr
   /* The Env type now holds the Letter as well as the Sender type */
   private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
 
-  /* Pack the letter with the sender into one envellope */
+  /* Pack the letter with the sender into one envelope */
   private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
 
   private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
 
-  /* Deliver the letter in the enveloppe. The state may also be changed by the user. */
+  /* Deliver the letter in the envelope. The state may also be changed by the user. */
   private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope.letter,envelope.sender,state)
 
@@ -62,7 +62,7 @@ abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](pr
      /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include
-     * auto named children (chidren that were not given an explicit name) or workers. */
+     * auto named children (children that were not given an explicit name) or workers. */
     protected def relay(letter: fc.ChildLetter, sender: fc.ChildSender, include: String => Boolean): Int =
       fc.relayEnvFilter(letter,sender,include)
     /**
@@ -88,7 +88,7 @@ abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](pr
    * to the actor that send the message. To be able to return an answer, you must know the original actor type.
    * This can be obtained by a runtime type match. Use the send method on the senders matched type.
    * You also have to return the new state, which may contain any values that change between each call.
-   * That way, you can steer away from var's in the actors defintion, which should not leak into the open. */
+   * That way, you can steer away from variables in the actors definition, which should not leak into the open. */
   protected def receive(letter: MyLetter, sender: Sender, state: ActState): ActState
 
   /**
@@ -97,11 +97,11 @@ abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](pr
    * experienced. You may decide to:
    * (1) Stop the actor, by calling stopDirect() inside the handler.
    * (2) Continue for all or certain types of exceptions.
-   * (3) Continue but chanche the state to an other one, or even the initial state.
+   * (3) Continue but change the state to an other one, or even the initial state.
    * (4) Inform the parent if part of a family...
-   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
+   * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
-   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+   * example, just log the exception. Runtime errors cannot be caught and bubble up. */
   protected def except(letter: MyLetter, sender: Sender, state: ActState, cause: Exception, size: Int): ActState = state
 
   /**

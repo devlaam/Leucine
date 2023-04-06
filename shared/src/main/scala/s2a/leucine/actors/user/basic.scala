@@ -45,7 +45,7 @@ abstract class BasicActor[ML <: Actor.Letter](prename: String = "")(using val co
 
   private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = BareActor.Envelope(env,Actor.Anonymous)
 
-  /* Deliver the letter in the enveloppe. The state remains unchanged. */
+  /* Deliver the letter in the envelope. The state remains unchanged. */
   private[actors] final def deliverEnveloppe(envelope: Env, state: ActState): ActState =
     receive(envelope)
     state
@@ -63,7 +63,7 @@ abstract class BasicActor[ML <: Actor.Letter](prename: String = "")(using val co
     /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include
-     * auto named children (chidren that were not given an explicit name) or workers. */
+     * auto named children (children that were not given an explicit name) or workers. */
     protected def relay(letter: fc.ChildLetter, include: String => Boolean): Int =
       fc.relayEnvFilter(letter,Actor.Anonymous,include)
     /**
@@ -98,9 +98,9 @@ abstract class BasicActor[ML <: Actor.Letter](prename: String = "")(using val co
    * (1) Stop the actor, by calling stopDirect() inside the handler.
    * (2) Continue for all or certain types of exceptions.
    * (3) Inform the parent if part of a family...
-   * This can all be defined in this handler, so there is no need to configure some general actor behaviour. If actors
+   * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
-   * example, just log the exception. Runtime errors cannot be caught and blubble up. */
+   * example, just log the exception. Runtime errors cannot be caught and bubble up. */
   protected def except(letter: MyLetter, cause: Exception, size: Int): Unit = ()
 
   /** Send a letter to the actor, no need to specify the sender. Returns if the letter was accepted

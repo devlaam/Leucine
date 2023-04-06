@@ -6,7 +6,7 @@
 Leucine is a small cross platform actor framework without any dependencies. The idea is that it should provide just enough
 to be of good use, but nothing more. Above the results of the tests on different platforms for this branch. This Readme gives a
 very brief introduction, please see the [wiki](https://github.com/devlaam/Leucine/wiki) for more details (still has to be extended,
-expect this over the comming weeks).
+expect this over the coming weeks).
 
 ## Motivation
 The project is motivated by the recent [change of license](https://www.lightbend.com/akka/license-faq) of [Akka](https://akka.io) and the
@@ -66,16 +66,16 @@ object Main :
 See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg)
 
 ### Advanced features
-The functionality of actors can be extended with mixin's. There are:
-* `Family` mixin's, so you can set up a tree of actors that are accessible through their parents. There can be multiple family root's. An actor family has a
-deterministic buildup and teardown sequence.
+The functionality of actors can be extended with mixins. There are:
+* `Family` mixins, so you can set up a tree of actors that are accessible through their parents. There can be multiple family root's. An actor family has a
+deterministic buildup and tear down sequence.
 * `Stash` mixin, so you can put away a letter for handling later.
 * `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place
-* `Protect` mixin, to create backpressure when the mailbox reaches some threshold.
+* `Protect` mixin, to create back pressure when the mailbox reaches some threshold.
 * `Monitor` mixin and related class, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see: the time spend in each actor, number of children or worker actors, the messages being send around etc.
 
 ## Status
-To explore what the possibilities are the best is to clone the repro:
+To explore what the possibilities are the best is to clone the repository:
 ```
 $ git clone https://github.com/devlaam/Leucine
 $ cd leucine
@@ -90,7 +90,7 @@ The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/develop
 There are three demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
 * Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
-* Crawler: Spawns some actors in a hyarchical fashion and sends messages up and down the pyramid.
+* Crawler: Spawns some actors in a hierarchical fashion and sends messages up and down the pyramid.
 
 All implementations (JVM,JS,Native) have their own Execution Context so you are isolated from the underlying threading model.
 In an actor you may never block of course, but with `expect` you can handle waiting for external events.
@@ -148,19 +148,19 @@ Please state the demo you want to run (ticker, server or crawler):
 and then choose one of them.  The `ticker` and `crawler` are stand alone demo's,  the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
 And although projectNative (currently 0.4.11) is still single threaded, the Actor implementation runs as if it is
-working in parallel. When 0.5.0 comes out, we should have multithreading, but from the user of the actors point
+working in parallel. When 0.5.0 comes out, we should have multi threading, but from the user of the actors point
 of view, you will not notice the difference, except a higher execution speed.
 
 
 Although compilation takes a lot longer on Native the run times are amazing.
-The crawler demo on Native runned in 0.7ms on my laptop (compiled with 'release-full', see the file
+The crawler demo on Native ran in 0.7ms on my laptop (compiled with 'release-full', see the file
 [build.sbt](https://github.com/devlaam/Leucine/blob/develop/build.sbt)),
 whereas the java version needed around 48ms!
 
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment. But Leucine will not try to
 copy all of Akka or follow its conventions. Changes in the design may still happen, at least until release 1.0 is reached.
-The featues I need myself are incorporated by now, so the comming months are devoted to testing.
+The features I need myself are incorporated by now, so the coming months are devoted to testing.
 Feature requests are welcome if motivated, and of course, bug reports. Please do not send a PR without consultation.
 
 

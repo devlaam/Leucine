@@ -30,13 +30,13 @@ import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 
 
-/* The provider class sends a timestamp to the connection every two seconds. Since it isn part of a family we must define the
+/* The provider class sends a timestamp to the connection every two seconds. Since it is not part of a family we must define the
  * parent actor in its declaration. Further, it cannot have a constant name, so that is a parameter too. Lastly since the
- * socket is also fixed during its livetime, this is also made a parameter. An other option would have been to send it in
- * a letter. The StandardActor is used as a base actor, but since we do not realy care who send the messages to the provider,
- * we could have chosen the BasicActor as well. This actor is part of a family but does not have childeren of its own. So
+ * socket is also fixed during its lifetime, this is also made a parameter. An other option would have been to send it in
+ * a letter. The StandardActor is used as a base actor, but since we do not really care who send the messages to the provider,
+ * we could have chosen the BasicActor as well. This actor is part of a family but does not have children of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
- * simply ignoring the childeren. But less is more. */
+ * simply ignoring the children. But less is more. */
 class Provider(protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter,Actor](!#), TimingAid, FamilyLeaf[Server], LogInfo :
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")

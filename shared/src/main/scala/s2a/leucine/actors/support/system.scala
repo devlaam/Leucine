@@ -35,9 +35,9 @@ final val !# = DefaultSystem.workerPrefix * 3
 trait SystemParameters :
   /** Helper value to switch on/off tracing for debugging. Start your debug lines with if trace then ... */
   def actorTracing: Boolean
-  /** The natural time the system pauses when there are no tasks. The use is platform dependant. */
+  /** The natural time the system pauses when there are no tasks. The use is platform dependent. */
   def idleThreadPause: FiniteDuration
-  /** The prefix used in actornames for actors that are workers */
+  /** The prefix used in actor names for actors that are workers */
   def workerPrefix: String
   /** The character that will be used in the full name definitions of the actors. */
   def familyPathSeparator: Char
@@ -49,7 +49,7 @@ trait SystemParameters :
 
 /**
  * Default parameters for the system you may use. If other values are needed, construct an instance
- * of your own and initialise the ActorImplementation with that. You may of course also write a
+ * of your own and initialize the ActorImplementation with that. You may of course also write a
  * completely new ActorImplementation */
 object DefaultSystem extends SystemParameters :
   val actorTracing: Boolean           = false

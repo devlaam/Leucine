@@ -53,7 +53,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
     if context.actorTracing then println(s"In actor=$path: processPlay() called in phase=${phase}")
-    /* Reset the dropped needles counter (note we only call processPlay synchronised.) if
+    /* Reset the dropped needles counter (note we only call processPlay synchronized.) if
      * requested, otherwise make sure it does not exceed the silentStop value. */
     if reset then needles = 0 else needles = needles min context.silentStop
     /* Put the processLoop() on the context. */
@@ -86,12 +86,12 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   private[actors] def processLoop(): Unit =
     if context.actorTracing then println(s"In actor=$path: enter processLoop() in phase=${phase}")
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
-     * destashed evenlopes if any and possibly one event. Since the eventsDequeue and the
+     * de-stashed envelopes if any and possibly one event. Since the eventsDequeue and the
      * mailbox.dequeue both need synchronization we do that on once. */
     var envs: List[Env] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
     /* Test if must report an empty mailbox */
     if envs.isEmpty then protectReset()
-    /* Loop through all envelopes. We try to process as many as we can within this timeslice. */
+    /* Loop through all envelopes. We try to process as many as we can within this time slice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
       processEnveloppe(envs.head)
@@ -149,13 +149,13 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
   private[actors] def processExit(dropped: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
-    /* There are regular (core) tasks that handle some envelopped message. There can stem from the
-     * the mailbox, the stash or the eventqueue. These are all handled in normal operation and when
-     * we are finishing, the eventqueue is ignored. So we first calculate these coreFinishTasks */
+    /* There are regular (core) tasks that handle some enveloped message. There can stem from the
+     * the mailbox, the stash or the event queue. These are all handled in normal operation and when
+     * we are finishing, the event queue is ignored. So we first calculate these coreFinishTasks */
     val coreFinishTasks = stashFlush      || !mailbox.isEmpty
     /* and then the corePlayTasks are found by adding the events if present. */
     val corePlayTasks   = coreFinishTasks || eventsPresent
-    /* Appart from the core tasks there are reports (callbacks) on situations that occur. We report
+    /* Apart from the core tasks there are reports (callbacks) on situations that occur. We report
      * a child was removed or if the mailbox is empty again. These are called report tasks. */
     val reportTasks     = !protectIdle    || familyRemoved
     /* So we start play again when we are in Finish mode if there are coreFinishTasks or reportTasks.
@@ -171,9 +171,9 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
       case Phase.Play   => if withPlayTasks then { processPlay(corePlayTasks); Phase.Play } else Phase.Pause
       /* This situation cannot occur, a running loop may not be paused. */
       case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
-      /* If there are finish tasks, start the loop again, and reset does not realy matter, since needle dropping has stopped. */
+      /* If there are finish tasks, start the loop again, and reset does not really matter, since needle dropping has stopped. */
       case Phase.Finish => if withFinishTasks then  { processPlay(coreFinishTasks); Phase.Finish } else { processStop(dropped,true); Phase.Stop }
-      /* If we got an exteral stop request, make an end to this. */
+      /* If we got an external stop request, make an end to this. */
       case Phase.Stop   => processStop(dropped,false); Phase.Stop
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
       case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop"); Phase.Done }

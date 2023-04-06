@@ -137,8 +137,8 @@ abstract class ActorMonitor[Config] :
 
   /**
    * Callback function that reports that new traces of an actor were integrated to the traces log. They
-   * do not need to be consequtive. minTime is the lowest timeindex fo change. Returns a snapshot
-   * of the whole tracelog, directly after this event. Below minTime, there will be no changes.
+   * do not need to be consecutive. minTime is the lowest time index to change. Returns a snapshot
+   * of the whole trace log, directly after this event. Below minTime, there will be no changes.
    * Implement this method to make this event visible. */
   def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit
 

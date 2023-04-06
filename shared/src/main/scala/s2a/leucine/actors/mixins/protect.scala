@@ -67,12 +67,12 @@ trait ProtectAid(using context: ActorContext) extends ActorDefs :
       case Alarm.Issued  => alarm = Alarm.Idle; true }
     if call then sizeAlarm(false)
 
-  /** See if an alarm was raised of issued. If neigher is the case this returns true. */
+  /** See if an alarm was raised of issued. If neither is the case this returns true. */
   private[actors] override def protectIdle: Boolean = synchronized { alarm == Alarm.Idle }
 
   /**
    * The number of letters in the mailbox that issues an alarm. This must be a constant, since
-   * it is called in a synchronised environment, and is called on every letter posted. */
+   * it is called in a synchronized environment, and is called on every letter posted. */
   protected val alarmSize: Int
 
   /**

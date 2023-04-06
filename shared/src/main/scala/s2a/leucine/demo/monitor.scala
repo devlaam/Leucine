@@ -42,13 +42,13 @@ val monitor = new ActorMonitor[Config] {
   def added(path: String, actors: Map[String,Record]): Unit = ()
   /* This callback is directly called in case an actor is removed. Not used in this example. */
   def removed(path: String, actors: Map[String,Record]): Unit = ()
-  /* This callback is periodically called on the actor to update the actor matrics. Not used in this example. */
+  /* This callback is periodically called on the actor to update the actor metrics. Not used in this example. */
   def sampled(path: String, actors: SortedMap[String,Record]): Unit = ()
   /* This callback is periodically called on the actor collect all posts. Not used in this example. */
   def posted(path: String, posts: SortedMap[Post,Long]): Unit = ()
   /* This callback is periodically called on the actor collect all tracing. Not used in this example. */
   def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit = ()
-  /* Method you can implement to show the results obtained sofar. Since this example only has one short
+  /* Method you can implement to show the results obtained so far. Since this example only has one short
    * run the results are show an the end. */
   def show(config: Config): Unit =
     val writer: PrintWriter = new PrintWriter(System.out)

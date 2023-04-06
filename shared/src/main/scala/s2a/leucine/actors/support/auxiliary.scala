@@ -41,19 +41,19 @@ object Auxiliary :
    * be empty. Otherwise the tuple is: (part_before_separator , part_after_separator).
    * The separator itself is never present in the first part, and maybe present in
    * the second, if there were multiple occasions. This routine is NOT equivalent
-   * with value.splitAt(value.indexOf(sepatator)) */
+   * with value.splitAt(value.indexOf(separator)) */
   private[actors] def splitAt(value: String, separator: Char): (String,String) =
     /* The index is -1 if the separator is not found, and a value between (including)
      * 0 and size-1 if it is present. */
     val index = value.indexOf(separator)
-    /* If the seperator is not present, return the whole string at the start, otherwise
+    /* If the separator is not present, return the whole string at the start, otherwise
      * return the prefix in front and the rest at the back. The rest may contain further
      * occasions of the separator. */
     if index < 0 then (value,"") else (value.substring(0,index), value.substring(index+1))
 
-  /** Generates a new name based on a preliminairy name and tells you if this name should be indexed. */
+  /** Generates a new name based on a preliminary name and tells you if this name should be indexed. */
   private[actors] def rename(prename: String, actor: NameActor, worker: Worker, prefix: String): Rename =
-    /* If there is no prename, generate a unique name, based on the childs class name, but prohibit indexing. */
+    /* If there is no prename, generate a unique name, based on the child's class name, but prohibit indexing. */
     if      prename.isEmpty            then Rename(actor.uniqueName,false)
     /* If we want a worker, generate a new free worker name and  prohibit indexing. */
     else if prename.startsWith(prefix) then Rename(worker.name(prefix),false)

@@ -45,13 +45,13 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   this: ProcessActor =>
   import TimingAid.Event
 
-  /** Actor dependend packing of letter and sender into one enveloppe. */
+  /** Actor dependent packing of letter and sender into one envelope. */
   private[actors] def pack(letter: MyLetter, sender: Sender | this.type): Env
 
-  /** Holds all references to the runnig timers, so we can cancel them when needed. */
+  /** Holds all references to the running timers, so we can cancel them when needed. */
   private val anchors: mutable.Map[Object,Cancellable] = mutable.Map.empty
 
-  /** Holds the evenvelopes waiting to get scheduled */
+  /** Holds the envelopes waiting to get scheduled */
   private val events: DropQueue[Event[MyLetter]] = new DropQueue[Event[MyLetter]]()
 
   /** Take a snapshot of the internals of this actor. */
@@ -61,26 +61,26 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
    * Construct a new callable on the fly. The call method puts the event on the events queue and
    * calls trigger in order to start the loop if needed. */
   private def callable(event: Event[MyLetter]) =
-    /* The handle takes an achored event and puts it on the event queue. Due to the synchronization
+    /* The handle takes an anchored event and puts it on the event queue. Due to the synchronization
      * eventsCancel() and handle cannot interfere. But it is possible that the call() was made before
      * the cancel but the handle afterwards. In that situation cancel() did miss its effect.
      * So we may only proceed if the anchor is still present. */
     def handle() = synchronized { if anchors.contains(event.anchor) then
       events.enqueue(event)
       anchors.remove(event.anchor)
-      /* The process may be in pause, so we must kittle it. Events are a core process.*/
+      /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true) }
     new Callable[Unit] { def call(): Unit = handle() }
 
   /**
-   * Construct a new digestable on the fly. The digest method takes the letter given to it, and
+   * Construct a new digestible on the fly. The digest method takes the letter given to it, and
    * constructs a new event for the events queue and calls trigger in order to start the loop if
    * needed. */
   private def digestable(anchor: Object): Digestable[MyLetter] =
     def handle(letter: MyLetter) = synchronized {
       events.enqueue(Event(anchor,letter))
       anchors.remove(anchor)
-      /* The process may be in pause, so we must kittle it. Events are a core process.*/
+      /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true) }
     new Digestable[MyLetter] { def digest(letter: MyLetter): Unit = handle(letter) }
 
@@ -96,7 +96,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     anchors.clear()
     events.clear() }
 
-  /** Obtain a single event from the eventqueu, get the letter and put it in an envelope. */
+  /** Obtain a single event from the event queue, get the letter and put it in an envelope. */
   private[actors] override def eventsDequeue(tail: List[Env]): List[Env] = synchronized {
     val event = events.dequeue.map(event => pack(event.letter,this))
     if       tail.isEmpty  then event
@@ -114,30 +114,30 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     dump(anchor)
     /* If we are not active, we may not accept this post. Otherwise ... */
     if !activity.active then false else
-      /* ... schedule a new timer and add it to the achors map. */
+      /* ... schedule a new timer and add it to the anchors map. */
       anchors.addOne(anchor -> context.schedule(callable(Event(anchor,letter)),delay))
       true }
 
   /**
-   * Stop a scheduled letter, after dump() it is guaranteed that no letters will arive on this
+   * Stop a scheduled letter, after dump() it is guaranteed that no letters will arrive on this
    * anchor, even if the timer has already expired during execution of this letter. */
   protected def dump(anchor: Object = this): Unit = synchronized {
     /* We are going to cancel the timer and remove the event. This must be synchronized
      * with the execution of the callable when the timer expires. So that we are sure that the timer
-     * is or cancelled of has expired and put its event on the events queueu. Thus, call
+     * is or cancelled of has expired and put its event on the events queue. Thus, call
      * cancel on the timer and remove. It can be that the event was already scheduled so that the anchor
      * is already gone. In that case the remove returns none. If so remove the event from the events queue. */
     anchors.remove(anchor).map(_.cancel()).getOrElse(events.remove(_.anchor == anchor)) }
 
-  /** Stop all timers and make sure no delayed letters arive any more */
+  /** Stop all timers and make sure no delayed letters arrive any more */
   protected def dumpAll(): Unit = eventsCancel()
 
   /**
    * Send a letter to yourself the moment an event takes place. When this happens the method
-   * fullfil should produce this letter to be put on the events queue.  The fullfil should
+   * fulfill should produce this letter to be put on the events queue.  The fulfill should
    * not block, if it does, it will hold the current thread. This may also hold the whole
    * application in a single threaded environment. As long as the event did not yet arrive,
-   * fullfill should produce None asap. It will be probed somewhat later once more. If the actor
+   * fulfill should produce None asap. It will be probed somewhat later once more. If the actor
    * was asked to finish, the request will be ignored AND any former timer/expectation on
    * this anchor is cleared as well, if present. Returns if the expectation was accepted. */
   protected def expect(fullfil: => Option[MyLetter], anchor: Object = this): Boolean = synchronized {
@@ -145,11 +145,11 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
     dump(anchor)
     /* If we are not active, we may not accept this expectation. Otherwise ... */
     if !activity.active then false else
-    /* ... schedule a new expectation and add it to the achors map. */
+    /* ... schedule a new expectation and add it to the anchors map. */
       anchors.addOne(anchor -> context.await(digestable(anchor),fullfil))
       true }
 
 
 object TimingAid :
-  /** Auxiliarly class that holds the relevant elements of an event. */
+  /** Auxiliary class that holds the relevant elements of an event. */
   private class Event[L](val anchor: Object, val letter: L)

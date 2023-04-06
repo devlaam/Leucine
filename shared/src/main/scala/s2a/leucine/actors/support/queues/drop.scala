@@ -52,25 +52,25 @@ class DropQueue[M] extends ShareQueue[M] :
       queueOut = queueOut.drop(1)
       sizeNow  = sizeNow - 1
     /* If queueOut is empty, there could be elements in queueIn, we take
-     * oppertunity to reverse the queueIn, which must happen anyway. */
+     * opportunity to reverse the queueIn, which must happen anyway. */
     else if !queueIn.isEmpty then
       queueOut = queueIn.reverse
       queueIn  = Nil
       result   = queueOut.take(1)
       queueOut = queueOut.drop(1)
       sizeNow  = sizeNow - 1
-    /* The last situation implies sizeNow == 0 and all is allready
+    /* The last situation implies sizeNow == 0 and all is already
      * good in that case. Now return the result */
     result
 
-  /** Remove all elements that fullfil the test. This is an expensive operation, may be 2xO(1). */
+  /** Remove all elements that fulfill the test. This is an expensive operation, may be 2xO(1). */
   def remove(test: M => Boolean): Unit =
     /* If we have only one element, and one of the queues has it (most often case)
      * we can just clear. Otherwise nothing changes. */
     if sizeNow == 1 then
       if queueIn.exists(test) || queueOut.exists(test) then clear()
     /* now if we have a situation were there are no elements in queueOut we
-     * take the opertunity to filter and reverse in one go: */
+     * take the opportunity to filter and reverse in one go: */
     else if queueOut.isEmpty then
       val rr   = removeReverse(test,queueIn)
       queueIn  = Nil
@@ -95,14 +95,14 @@ class DropQueue[M] extends ShareQueue[M] :
 
 object DropQueue :
 
-  /* Unfortunately there is no filterRevese in the List defnition.
-   * we take the opertunity to return the new size and an removal indicator
+  /* Unfortunately there is no filterRevese in the List definition.
+   * we take the opportunity to return the new size and an removal indicator
    * as well */
 
   /** Helper Class to communicate the removeReverse result. */
   private[actors] case class RemovedReversed[M](val result: List[M], val size: Int, val changed: Boolean)
 
-  /** Remove elements that fullfil the predicate and reverse the list in the process. */
+  /** Remove elements that fulfill the predicate and reverse the list in the process. */
   private[actors] def removeReverse[M](p: M => Boolean, in: List[M]): RemovedReversed[M] =
     var size = 0
     var changed = false

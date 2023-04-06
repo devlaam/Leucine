@@ -39,7 +39,7 @@ transparent private trait FamilyChild extends ActorDefs :
   /** The type for all Senders for messages that can be relayed between parent and child. */
   type ChildSender = RS
 
-  /** The super type for the letters the childeren may receive. */
+  /** The super type for the letters the children may receive. */
   type ChildLetter = CL
 
   /** The actor type of the combined children. */
@@ -94,7 +94,7 @@ transparent private trait FamilyChild extends ActorDefs :
    * actual stopping takes place after the current letter/mailbox has finished processing, and
    * the children may finish their letters after the parents. This truth also holds recursively.
    * If the parent is the only actor that sends letters to the children, all mailboxes are
-   * cleaned from the bottom up. Afterwards, the actors are removed from the childrens
+   * cleaned from the bottom up. Afterwards, the actors are removed from the children's
    * map, by there own doing. So it may take a little while before there references are
    * removed. */
   private[actors] override def familyStop(finish: Boolean): Unit = synchronized {
@@ -102,7 +102,7 @@ transparent private trait FamilyChild extends ActorDefs :
     _children.foreach(_.stop(stop)) }
 
   /**
-   * Called when this actor still has childeren (_children guaranteed to be non empty). Defers
+   * Called when this actor still has children (_children guaranteed to be non empty). Defers
    * the termination to the moment the last child says goodbye. */
   private[actors] override def familyTerminate(complete: Boolean): Unit = termination = Some(complete)
 
@@ -116,10 +116,10 @@ transparent private trait FamilyChild extends ActorDefs :
     val rename = Auxiliary.rename(prename,child,worker,context.workerPrefix)
     synchronized {
       if context.actorTracing then println(s"In actor=$name:  adopting: $name")
-      /* All childeren are added. */
+      /* All children are added. */
       _children += child
       /* If required add it to the index. If the name already exists, overwrite the entry.
-       * There is nothing we can realisticly do to save the  day. */
+       * There is nothing we can realistically do to save the  day. */
       if rename.inIndex then _index += rename.name -> child }
     rename.name
 
@@ -128,8 +128,8 @@ transparent private trait FamilyChild extends ActorDefs :
    * for the user to do so, but when you want to prohibit the termination of an actor when the
    * parent stops, this could be one. The parent cannot be removed from the child you reject,
    * so the parent may stop, but will be disposed off only after the child has stopped as well.
-   * A manual call to reject while active also issues a callback 'abandoned' with the childs
-   * name lateron.  */
+   * A manual call to reject while active also issues a callback 'abandoned' with the children's
+   * name later on.  */
   private[actors] def reject(child: ChildActor, keep: Boolean): Boolean = synchronized {
     /* Test if the child is even present. The user may also call this and misspell the name. */
     if !_children.contains(child) then false else
@@ -144,7 +144,7 @@ transparent private trait FamilyChild extends ActorDefs :
         case None =>
           if keep then ActorGuard.add(child)
           /* In case we are still active, put them on the list to be reported as abandoned. A process
-           * kittle may be needed in case the mailbox is empty so the callbacks are still handled.
+           * tickle may be needed in case the mailbox is empty so the callbacks are still handled.
            * This is no core process however. */
           if activity.active then { removed = child.name :: removed ; processTrigger(false) }
       true }
@@ -152,11 +152,11 @@ transparent private trait FamilyChild extends ActorDefs :
   /** See if there are any children removed that we did not yet report. */
   private[actors] override def familyRemoved: Boolean = synchronized { !removed.isEmpty }
 
-  /** Report all childeren that rejected themselves (abandoned the parent) as gone. */
+  /** Report all children that rejected themselves (abandoned the parent) as gone. */
   private[actors] override def familyReport(): Unit =
     /* Get the removed names and clear the list. Note that the order of the callbacks is
      * reversed to the order of removal, but since the addition of the names to the removed
-     * childeren list can be any, there is no rationale for reversing this list. */
+     * children list can be any, there is no rationale for reversing this list. */
     val (report,barren) = synchronized {
       val result = removed
       removed = Nil
@@ -169,7 +169,7 @@ transparent private trait FamilyChild extends ActorDefs :
    * later as the actual removal. Every child that has been removed when the actor was still active
    * will generate a callback. However, there may be removals between deactivation of the actor and
    * the complete termination, for example after a stopDirect() or stopFinish() call. These will
-   * not generate a callback. Also, the number of childeren may not decrease by one each call.
+   * not generate a callback. Also, the number of children may not decrease by one each call.
    * More children could be removed in the mean time. However, as long as no new children are adopted,
    * you may assume the number of children will never increase. Once it is zero, all children are
    * gone, although there still may be callbacks queued up. The order of removal does not correspond
@@ -224,7 +224,7 @@ private[actors] object FamilyChild :
         case Some(fc: FamilyChild) => Right(fc: FamilyChild,rest)
         /* If not, this actor does not exists. */
         case _                     => Left(None)
-    /* In order to make sure we get no nested stackframes we must end with the drill down call on the child. */
+    /* In order to make sure we get no nested stack frames we must end with the drill down call on the child. */
     match
       case Left(actorOpt) => actorOpt
       case Right(fc,rest) => fc.get(rest)

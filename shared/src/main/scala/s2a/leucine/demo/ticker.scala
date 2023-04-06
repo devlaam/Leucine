@@ -27,11 +27,11 @@ package s2a.leucine.demo
 import s2a.leucine.actors.*
 
 /* We of course also need some code to let the logger do its job. At the same time this serves as
- * a minimal example of Statefull actors. Since this actor is the main motor of this 'application' it
+ * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
 class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
 
-  /* The inital state of of a state actor must be defined. */
+  /* The initial state of of a state actor must be defined. */
   def initial = Ticker.Tick(0)
 
   /* We just log the fact that this actor stops. */
@@ -43,7 +43,7 @@ class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
   /* Log that the ticker has commenced its operations. */
   Logger.warn("Ticker Actor created")
 
-  /* In receive we handle the incomming letters. */
+  /* In receive we handle the incoming letters. */
   def receive(letter: Ticker.Letter, sender: Sender, state: Ticker.State): Ticker.State =
     /* In this example, we do not care about the letters that much, but more
      * about the state. */

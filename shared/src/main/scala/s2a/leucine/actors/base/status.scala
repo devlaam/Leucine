@@ -31,14 +31,14 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
 
   /**
    * Holds all the envelops send to this actor in the mutable MQueue. Note that the Finish
-   * letter is not on the queueu but a separate state. This is because we cannot post Finish
+   * letter is not on the queue but a separate state. This is because we cannot post Finish
    * on type E and when we make a union type we must type match on every letter being processed. */
   private[actors] val mailbox: BurstQueue[Env] = new BurstQueue[Env]
 
   /**
    * Variable that keeps track of the phase the actor is in. All actions on phase must be synchronized
    * since it may be reached from different threads at equal times. Synchronization is done at the place
-   * of use for maximal efficientcy */
+   * of use for maximal efficiency */
   private[actors] var phase: Phase = Phase.Start
 
   /**
@@ -48,7 +48,7 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
 
   /**
    * Variable that keeps track of the transient state between processes.
-   * Note that allthough access on state may be from different threads, it is strictly sequential, so
+   * Note that although access on state may be from different threads, it is strictly sequential, so
    * there is no need to protect manipulations. */
   private[actors] var state: ActState = initialState
 

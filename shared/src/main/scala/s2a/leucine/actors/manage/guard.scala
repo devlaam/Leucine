@@ -32,13 +32,13 @@ import scala.concurrent.duration.DurationInt
 /**
  * This object is meant to be run in the main thread and enables you to exit the application
  * when all actors have finished. Put all the actors you create under guard by calling add
- * on them direcly after creation. For families only the root actor should to be added. Note
+ * on them directly after creation. For families only the root actor should to be added. Note
  * that if you create actors within other actors which are not a adopted by a family you must
  * add them as well, or call watch(force = true), if you want to properly close the application
  * at termination. */
 object ActorGuard :
 
-  /** Collection of all actors that are relevant for keeping the threadpool alive. */
+  /** Collection of all actors that are relevant for keeping the thread pool alive. */
   private var actors: Set[Actor] = Set.empty
 
   /* Index with with all named actors to find them on their name. Not all actors of
@@ -80,7 +80,7 @@ object ActorGuard :
       /* ... otherwise see if the actor has already stopped. */
       else activity == Terminated
     /* Loop all actors to see if they have stopped or may be stopped. Terminate the loop
-     * as soon as one actor does not fullful this test. Note, usually this loop is very
+     * as soon as one actor does not fulfill this test. Note, usually this loop is very
      * short. Terminated actors remove themselves from the list when they are done. */
     val mayTerminate = actors.forall(act)
     /* If we may terminate the actor system ... */
@@ -95,9 +95,9 @@ object ActorGuard :
 
   /** Put an actor under guard. If requested add it to the index as well. */
   private[actors] def add(actor: Actor, rename: Auxiliary.Rename = Auxiliary.Rename.empty): Unit =
-    /* We had some problems with null names here due to a design flaw regaring the
+    /* We had some problems with null names here due to a design flaw regarding the
      * order of object construction. These should be gone now. Lets verify for a while. */
-    assert(rename.name != null, "uninitialised name in ActorGuard|add")
+    assert(rename.name != null, "uninitialized name in ActorGuard|add")
     synchronized {
       /* Put it in the index if required. */
       if rename.inIndex then index += rename.name -> actor
@@ -128,7 +128,7 @@ object ActorGuard :
    * the actors are all completed to shutdown. Note that if some actors have not stopped by themselves,
    * but are not able to receive any messages any more, the application may run indefinitely, and this
    * is platform dependent. In that case you may need to call context.showdown(true/false) somewhere
-   * manually. Calling the watch method may be needed to start the actor system  depening on the
+   * manually. Calling the watch method may be needed to start the actor system  depending on the
    * platform. */
   def watch(force: Boolean, pollInterval: FiniteDuration, complete: () => Unit = () => ())(using context: ActorContext): Unit =
     /* Make sure we wait at least one second. */
