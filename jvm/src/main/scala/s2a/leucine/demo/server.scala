@@ -41,7 +41,7 @@ class ServerSocketImplementation extends ServerSocket:
   /* A possible connection is stored here. */
   private var _client: Option[ClientSocket] = None
 
-  /** Opens the socket on the local loopback address at the given port. */
+  /** Opens the socket on the local loop back address at the given port. */
   def open(port: Int): Unit =
     _error = ""
     try
@@ -99,10 +99,10 @@ object ServerSocketImplementation :
     /* Be ready to accept the first connection. */
     serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT)
 
-    /* See if there is a new key available. This method has to probeb regulary to handle
-     * the incomming connection. */
+    /* See if there is a new key available. This method has to probe regularly to handle
+     * the incoming connection. */
     private def nextKey: Option[SelectionKey] =
-      /* SelectNow selects the new key if avaliable and immedeately returns. So only connections
+      /* SelectNow selects the new key if available and immediately returns. So only connections
        * that are already queued are captured. We handle only the first connection in line here. */
       if selector.selectNow() <= 0 then None else
         val iterator = selector.selectedKeys().iterator()
@@ -121,16 +121,16 @@ object ServerSocketImplementation :
         val sc: SocketChannel = serverSocketChannel.accept()
         /* Also here, we do not want blocking, for it will be handled in separate actor. */
         sc.configureBlocking(false);
-        /* In this example we only write to the channel, so we wait for an writeble channel. */
+        /* In this example we only write to the channel, so we wait for an writable channel. */
         sc.register(selector, SelectionKey.OP_WRITE)
         None
 
-    /* Once we get a writeable channel we can connect ... */
+    /* Once we get a writable channel we can connect ... */
     private def tryConnect(key: SelectionKey): Option[ClientSocket] =
       if !key.isWritable() then None else
         /* ... and create a client socket for further handling. */
         val sc: SocketChannel = key.channel().asInstanceOf[SocketChannel]
-        /* It is importand to deregister this channel, for otherwise it will keep popping up
+        /* It is important to deregister this channel, for otherwise it will keep popping up
          * in the next round of iterations. */
         sc.register(selector, 0)
         /* Return the client socket. */

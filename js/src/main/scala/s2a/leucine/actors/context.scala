@@ -72,7 +72,7 @@ abstract class ContextImplementation extends PlatformContext :
     else Cancellable.empty
 
   /**
-   * In JavaScript it is not possible to shutdown the only executer, so this just makes sure that no new
+   * In JavaScript it is not possible to shutdown the only executor, so this just makes sure that no new
    * runnables/callables are scheduled for execution. Eventually all actors will be starved. */
   def shutdown(force: Boolean): Unit = _active = false
 
@@ -80,7 +80,7 @@ abstract class ContextImplementation extends PlatformContext :
   private[s2a] def revive(): Unit =  ()
 
   /**
-   * This method enters an endless loop but immedeately returns. Every timeout, it will probe a shutdownrequest.
+   * This method enters an endless loop but immediately returns. Every timeout, it will probe a shutdown request.
    * There may be other reasons for shutdown as well. After all threads have completed (by force or not) the method
    * calls complete(). Call in the main thread as last action there. In JavaScript it is not possible to block,
    * so this uses a schedule timer to see if we are complete. */
@@ -99,8 +99,8 @@ object ContextImplementation :
   def platform = PlatformContext.Platform.JS
 
   /**
-   * Class which continously retries an attempt until it succeeds or is cancelled. The doAttempt
-   * by name reference should return true if it succeedded and false otherwise. The delay between
+   * Class which continuously retries an attempt until it succeeds or is cancelled. The doAttempt
+   * by name reference should return true if it succeeded and false otherwise. The delay between
    * each attempt should be in ms. The attempt itself should not block. */
   private class Awaitable(doAttempt: => Boolean, delay: FiniteDuration) extends Cancellable :
     private var continue = true

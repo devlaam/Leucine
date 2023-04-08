@@ -31,7 +31,7 @@ import java.net.{ServerSocket => JavaServerSocket, InetAddress, SocketTimeoutExc
 class ServerSocketImplementation extends ServerSocket:
 
   /* Note: Normally we would not use the blocking ServerSocket but ServerSocketChannel from the java.nio libs. However,
-   * this is not supported under Scala Native yet, and besides, this code is just to for illustrational purposes. */
+   * this is not supported under Scala Native yet, and besides, this code is just to for illustration purposes. */
   private var javaServerSocket: Option[JavaServerSocket] = None
 
   /* Here we keep the last error for checking. If empty, no error occurred. */
@@ -40,7 +40,7 @@ class ServerSocketImplementation extends ServerSocket:
   /* A possible connection is stored here. */
   private var _client: Option[ClientSocket] = None
 
-  /** Opens the socket on the local loopback address at the given port. */
+  /** Opens the socket on the local loop back address at the given port. */
   def open(port: Int): Unit =
     _error = ""
     try

@@ -79,7 +79,7 @@ abstract class ContextImplementation extends PlatformContext :
   private[s2a] def revive(): Unit =  ()
 
   /**
-   * This method enters an endless loop until the application finishes. Every timeout, it will probe a shutdownrequest.
+   * This method enters an endless loop until the application finishes. Every timeout, it will probe a shutdown request.
    * There may be other reasons for shutdown as well. After all thread have completed (by force or not) the method
    * returns. Call in the main thread as last action there. This method blocks until finished, after which complete()
    * is called. */
@@ -96,8 +96,8 @@ object ContextImplementation :
   /** Returns the platform that is currently running, here the JVM. */
   def platform = PlatformContext.Platform.JVM
 
-  /* Class which continously retries an attempt until it succeeds or is cancelled. The doAttempt
-   * by name reference should return true if it succeedded and false otherwise. The delay between
+  /* Class which continuously retries an attempt until it succeeds or is cancelled. The doAttempt
+   * by name reference should return true if it succeeded and false otherwise. The delay between
    * each attempt should be in ms. The attempt itself should not block. */
   private class Awaitable(doAttempt: => Boolean, delay: FiniteDuration, scheduler: ScheduledExecutorService) extends Cancellable :
     private var continue = true
@@ -118,10 +118,10 @@ object ContextImplementation :
    * terminates daemon threads nevertheless). Daemon threads run at lower priority.
    * Thus this means they may still run after the exit. This might be the intention, but usually
    * it is not and produce strange effects. In an orderly system you want all threads to have
-   * finished before you relinguish control to the user. Or you must be sure to be the sole process
+   * finished before you relinquish control to the user. Or you must be sure to be the sole process
    * in the JVM. */
 
-  /** Custum  thread factory with the ability to determine if the thread is run as daemon. */
+  /** Custom thread factory with the ability to determine if the thread is run as daemon. */
   def threadFactory(daemon: Boolean) = new ThreadFactory :
     override def newThread(runnable: Runnable) =
       val thread = new Thread(runnable)
@@ -131,7 +131,7 @@ object ContextImplementation :
   /**
    * The number of threads you desire in an application should be so that all the cores are
    * kept busy (or if you have many, you can leave a few for other tasks). Blocking threads do
-   * not keep the cory busy, so add these to the requested number. The round to the nearest multiple
+   * not keep the core busy, so add these to the requested number. The round to the nearest multiple
    * of cores to keep it easy. This multiple can be specified, by the load usage 1 ... */
   def threadPool(daemon: Boolean, load: Int) = Executors.newFixedThreadPool(load*processorCount,threadFactoryDefault)
 

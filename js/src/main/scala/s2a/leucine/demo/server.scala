@@ -45,7 +45,7 @@ class ServerSocketImplementation extends ServerSocket:
     /* Call the custom callback function. */
     callback.zip(_client).foreach(_(_))
 
-  /** Opens the socket on the local loopback address at the given port. */
+  /** Opens the socket on the local loop back address at the given port. */
   def open(port: Int): Unit =
     _error = ""
     try
