@@ -70,7 +70,7 @@ trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: 
 
 /**
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
- * but without the posibility to define children. */
+ * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
   private[actors] type PA = Parent { type CL <: self.MyLetter; type RS <: self.Sender }

@@ -24,17 +24,45 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+// TIJDELIJK ZONDER FAMILY
+trait FamilyChild
+private[actors] trait FamilyDefs :
+  private[actors] def familySize: Int = 0
+  private[actors] def familyDropNeedle(): Unit = ()
+  private[actors] def familyRemoved: Boolean = false
+  private[actors] def familyStop(finish: Boolean): Unit = ()
+  private[actors] def familyTerminate(complete: Boolean): Unit = ()
+  private[actors] def familyAbandon(): Boolean = false
+  private[actors] def familyReport(): Unit = ()
+private[actors] object FamilyChild :
+  /** General method to search a the family tree. */
+  def searchFor(path: String, separator: Char, actors: Map[String,Actor]): Option[Actor] = ???
 
-/** Used as a type-parameter free base trait for all mixins. */
-private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:
+
+private[actors] trait BareDefs :
+  /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
+  type Sender <: Actor
   /** The super type for the letters you may receive. */
-  private[actors] type MyLetter <: Actor.Letter
+  //private[actors] type MyLetter <: Actor.Letter
+  private[actors] type MyLetter[T <: Sender] <: Actor.Letter //{ type Accept = T }
   /** The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Sender (Envelope).*/
-  private[actors] type Env
-  /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
-  type Sender <: Actor
+  //private[actors] type Env[T <: Sender]
+  private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
+
+/** Used as a type-parameter free base trait for all mixins. */
+private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:
+  // /** The super type for the letters you may receive. */
+  // //private[actors] type MyLetter <: Actor.Letter
+  // private[actors] type MyLetter[T <: Actor] <: Actor.Letter { type Accept = T }
+  // /** The super type for the state the actor can be in. */
+  // private[actors] type ActState <: Actor.State
+  // /** The combined type of Letter and Sender (Envelope).*/
+  // //private[actors] type Env[T <: Sender]
+  // private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
+  // /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
+  // type Sender <: Actor
   /** The name of this actor. */
   def name: String
   /** The full name of this actor, contains the full path to the first ancestor.*/
@@ -105,7 +133,9 @@ object Actor :
   type Parent = Actor with FamilyChild
 
   /** This is the base type for all your mail. */
-  trait Letter
+  trait Letter :
+    /* This is the type that defines which actors may send you letters */
+    type Accept <: Actor
 
   /** This is the base type for all your states. */
   trait State

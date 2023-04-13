@@ -60,10 +60,11 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     deferred(processLoop())
 
   /**
-   * Tries to process the contents of one envelope. If there is an exception, this is delived to
+   * Tries to process the contents of one envelope. If there is an exception, this is delivered to
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
-  private[actors] def processEnvelope(envelope: Env): Unit =
+  //private[actors] def processEnvelope[T <: Sender](envelope: Env[T]): Unit =
+  private[actors] def processEnvelope(envelope: Env[?]): Unit =
     /* Start measuring the time passed in the user environment, and trace when requested */
     monitorEnter(envelope)
     /* User code is protected by an exception guard.*/
@@ -81,14 +82,14 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     finally monitorExit(envelope)
 
   /**
-   * Primairy process loop. As soon as there are any letters, this loop runs
+   * Primary process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queues are exhausted. */
   private[actors] def processLoop(): Unit =
     if context.actorTracing then println(s"In actor=$path: enter processLoop() in phase=${phase}")
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
      * de-stashed envelopes if any and possibly one event. Since the eventsDequeue and the
      * mailbox.dequeue both need synchronization we do that on once. */
-    var envs: List[Env] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
+    var envs: List[Env[?]] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
     /* Test if must report an empty mailbox */
     if envs.isEmpty then protectReset()
     /* Loop through all envelopes. We try to process as many as we can within this time slice. */

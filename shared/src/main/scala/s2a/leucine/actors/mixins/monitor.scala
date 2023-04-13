@@ -28,15 +28,16 @@ import java.util.concurrent.Callable
 
 
 /* Methods stub for when there is no monitor mixin used. */
-private[actors] trait MonitorDefs :
-  private[actors] type Env
+private[actors] trait MonitorDefs  extends BareDefs:
+  //private[actors] type Env[T]
+  //private[actors] type Sender
   private[actors] def probeBare(): Option[MonitorAid.Bare]  = None
   private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
   private[actors] def probeFamily(): Option[MonitorAid.Family]  = None
-  private[actors] def monitorSend(isActive: Boolean, envelope: Env): Unit = ()
-  private[actors] def monitorEnter(envelope: Env): Unit = ()
-  private[actors] def monitorExit(envelope: Env): Unit = ()
+  private[actors] def monitorSend[T <: Sender](isActive: Boolean, envelope: Env[T]): Unit = ()
+  private[actors] def monitorEnter[T <: Sender](envelope: Env[T]): Unit = ()
+  private[actors] def monitorExit[T <: Sender](envelope: Env[T]): Unit = ()
   private[actors] def monitorStop(): Unit = ()
   private[actors] def userLoad: Double = 0
 
@@ -86,7 +87,8 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private def mayTraceCount: Boolean = tracing.ordinal + monitor.tracing.ordinal > 1
 
   /* Provisional way to regain the letters/senders from the envelope. */
-  private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender]
+  //private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Envelope[MyLetter,Sender]
+  private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card
 
   /** Method called from the actor store its activity */
   private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
@@ -175,12 +177,12 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     probeStart()
 
   /** Method called from the actor to indicate that it receives a new letter */
-  private[actors] override def monitorSend(isActive: Boolean, envelope: Env): Unit =
+  private[actors] override def monitorSend[T <: Sender](isActive: Boolean, envelope: Env[T]): Unit =
     /* Trace if requested, the letter is received or rejected. */
     if mayTraceCount then addTrace(Trace(System.nanoTime-monitor.baseline,isActive,path,repack(envelope)))
 
   /** Method called from the actor to indicate that it starts processing a letter. */
-  private[actors] override def monitorEnter(envelope: Env): Unit =
+  private[actors] override def monitorEnter[T <: Sender](envelope: Env[T]): Unit =
     val time = System.nanoTime
     /* Trace if requested, the letter processing is initiated */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,path,repack(envelope)))
@@ -188,7 +190,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     treadPauseTime += gain(time)
 
   /** Method called from the actor to indicate that it finished processing a letter. */
-  private[actors] override def monitorExit(envelope: Env): Unit  =
+  private[actors] override def monitorExit[T <: Sender](envelope: Env[T]): Unit  =
     val time = System.nanoTime
     /* The time past since has to be added to the total time in play. */
     threadPlayTime += gain(time)
@@ -248,9 +250,11 @@ object MonitorAid :
 
   object Trace :
     def empty(time: Long) = new Trace(time,Action.Created,Post.empty)
-    def apply[L,S <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Envelope[L,S]): Trace =
+    //def apply[L,S <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Envelope[L,S]): Trace = //BareActor.Envelope[Sender,T,MyLetter[T]]
+    def apply(time: Long, accept: Boolean, receiver: String, env: BareActor.Card): Trace =
       apply(time,Action.handOver(accept),receiver,env)
-    def apply[L,S <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Envelope[L,S]): Trace =
+    //def apply[L,S <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Envelope[L,S]): Trace =
+    def apply[L,S <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card): Trace =
       new Trace(time,action,Post(receiver,env.letter.toString,env.sender.path))
     def apply[L,S <: Actor](time: Long, action: Action, receiver: String): Trace =
       new Trace(time,action,Post(receiver,"",""))

@@ -32,7 +32,7 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
    * //TODO For the moment, this is only used in at message relaying among
    * children. This is not ideal design, since we do not want to know anything
    * about the sender in the BareActor. However, i see no solution right now. */
-  private[actors] def pack(letter: MyLetter, sender: Sender): Env
+  private[actors] def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T]
 
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
@@ -45,12 +45,12 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   /**
    * This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
    * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
-  private[actors] def deliverEnvelope(envelope: Env, state: ActState): ActState
+  private[actors] def deliverEnvelope[T <: Sender](envelope: Env[T], state: ActState): ActState
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
    * next letter. Errors are not caught and bubble up. Now, this follows the Java style. */
-  private[actors] def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState
+  private[actors] def deliverException[T <: Sender](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState
 
   /**
    * Called before actor deactivation and guaranteed after the last message is processed. If there were any

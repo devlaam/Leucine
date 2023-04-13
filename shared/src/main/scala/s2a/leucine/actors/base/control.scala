@@ -75,7 +75,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may have stopped.
    * A letter is accepted if the actor is still active and if there is room in the mailbox to store it. */
-  final private[actors] def sendEnvelope(envelope: Env): Boolean = synchronized {
+  final private[actors] def sendEnvelope[T <: Sender](envelope: Env[T]): Boolean = synchronized {
     if context.actorTracing then println(s"In actor=$path: Enqueue message $envelope, phase=${phase}")
     /* A letter is only accepted as long as we are active and the mailbox is not too full. */
     val accept = phase.active && mailbox.size < maxMailboxSize
@@ -154,5 +154,5 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       case Stop.Never   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); Stop.Never
       /* In all other cases (only Final) reset the stopper. */
       case Stop.Never   if (stopper >  Stop.Silent) && (phase < Phase.Finish) => Stop.Never
-      /* In all other situations the call cannot be honoured and nothing is changed. */
+      /* In all other situations the call cannot be honored and nothing is changed. */
       case _            => stopper }

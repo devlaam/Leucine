@@ -26,22 +26,24 @@ package s2a.leucine.actors
 
 
 /* Methods stub for when there is no stash mixin used. */
-private[actors] trait StashDefs :
-  private[actors] type Env
+private[actors] trait StashDefs extends BareDefs:
+  //private[actors] type Env[T]
+  //private[actors] type Sender
   private[actors] def stashFlush: Boolean = false
-  private[actors] def stashEnqueue(envelope: Env): Unit = ()
-  private[actors] def stashDequeue(tail: List[Env]): List[Env] = tail
+  //private[actors] def stashEnqueue[T <: Sender](envelope: Env[T]): Unit = ()
+  private[actors] def stashEnqueue(envelope: Env[?]): Unit = ()
+  private[actors] def stashDequeue(tail: List[Env[?]]): List[Env[?]] = tail
   private[actors] def stashEmpty: Boolean = true
   private[actors] def stashClear(): Unit = ()
   trait StashOps :
-    private[actors] def storeEnv(envelope: Env): Unit
+    private[actors] def storeEnv[T <: Sender](envelope: Env[T]): Unit
 
 
 /** Mixin if you need to store letters away.  */
 trait StashAid extends ActorDefs :
 
   /** The queue for the letters/senders. */
-  private val stashbox: BurstQueue[Env] = new BurstQueue[Env]
+  private val stashbox: BurstQueue[Env[?]] = new BurstQueue[Env[?]]
 
   /**
    * flushRequest holds if the user has requested a flush during processing current the letter
@@ -69,14 +71,15 @@ trait StashAid extends ActorDefs :
   /**
    * Internal enqueue operation for the stash. This handles the storeRequest for
    * the last letter that was processed. */
-  private[actors] override def stashEnqueue(envelope: Env): Unit = if storeRequest then
+  //private[actors] override def stashEnqueue[T <: Sender](envelope: Env[T]): Unit = if storeRequest then
+  private[actors] override def stashEnqueue(envelope: Env[?]): Unit = if storeRequest then
     /* This call handles the store(), so we are done. Reset the storeRequest */
     storeRequest = false
     /* Put the letter/sender on the stash. */
     stashbox.enqueue(envelope)
 
   /** Internal dequeue operation for the stash. */
-  private[actors] override def stashDequeue(tail: List[Env]): List[Env] = if !flushRequest then tail else
+  private[actors] override def stashDequeue(tail: List[Env[?]]): List[Env[?]] = if !flushRequest then tail else
     /* Test if there are no outstanding storeRequests. */
     assert(storeRequest == false)
     /* This call handles the flush, so we are done. Reset the flushRequest */
@@ -92,7 +95,7 @@ trait StashAid extends ActorDefs :
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
-    private[actors] def storeEnv(envelope: Env): Unit = stashbox.enqueue(envelope)
+    private[actors] def storeEnv[T <: Sender](envelope: Env[T]): Unit = stashbox.enqueue(envelope)
 
     /**
      * Automatically stores the current letter (and sender) that is processed on the stash. If the

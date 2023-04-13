@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  */
 
 /* Set to 1 for publishing to exclude the demo/test files. */
-val publishMe: Int = 0
+val publishMe: Int = 1
 
 ThisBuild / version       :=  "0.3.0"
 ThisBuild / scalaVersion  :=  "3.2.1"
@@ -18,7 +18,8 @@ val sharedSettings = Seq(
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain"),
   libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.8.1" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
-  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
+  //Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
+  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) || f.getPath.containsSlice("/family/")},
   )
 
 val jvmSettings = Seq(
