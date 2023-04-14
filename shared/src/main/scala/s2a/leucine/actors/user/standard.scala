@@ -97,7 +97,7 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
    * Implement this method in your actor to process the letters send to you. There sender contains a reference
    * to the actor that send the message. To be able to return an answer, you must know the original actor type.
    * This can be obtained by a runtime type match. Use the send method on the senders matched type.  */
-  protected def receive[T <: Sender](letter: MyLetter[T], sender: Sender): Unit
+  protected def receive[T <: Sender](letter: MyLetter[T], sender: T): Unit
 
   /**
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
@@ -109,7 +109,7 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  protected def except[T <: Sender](letter: MyLetter[T], sender: Sender, cause: Exception, size: Int): Unit = ()
+  protected def except[T <: Sender](letter: MyLetter[T], sender: T, cause: Exception, size: Int): Unit = ()
 
   /**
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context
