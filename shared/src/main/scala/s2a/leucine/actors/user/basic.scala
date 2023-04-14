@@ -74,23 +74,23 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
   private[actors] final def initialState: ActState = Actor.State.Default
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  // extension (fc: FamilyChild {type ChildLetter <: Actor.Letter; type ChildSender = Actor} )
-  //   /**
-  //    * Forward a message to children of which the name passes the test 'include'.
-  //    * Returns the number of children that accepted the letter. Does not include
-  //    * auto named children (children that were not given an explicit name) or workers. */
-  //   protected def relay(letter: fc.ChildLetter, include: String => Boolean): Int =
-  //     fc.relayEnvFilter(letter,Actor.Anonymous,include)
-  //   /**
-  //    * Forward a message to children that are indexed and/or workers and or children that were given
-  //    * an automatic name, i.e. children that were not given an explicit name.
-  //    * Returns the number of children that accepted the letter.  */
-  //   protected def relay(letter: fc.ChildLetter, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
-  //     fc.relayEnvGrouped(letter,Actor.Anonymous,toIndexed, toWorkers,toAutoNamed)
-  //   /**
-  //    * Forward a message to one specific child on the basis of its name. Returns true if successful and
-  //    * false if that child is not present or does not accept the letter. */
-  //   protected def pass(letter: fc.ChildLetter, name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
+  extension (fc: FamilyChild {type ChildLetter <: Actor.Letter; type ChildSender = Actor} )
+    /**
+     * Forward a message to children of which the name passes the test 'include'.
+     * Returns the number of children that accepted the letter. Does not include
+     * auto named children (children that were not given an explicit name) or workers. */
+    protected def relay(letter: fc.ChildLetter, include: String => Boolean): Int =
+      fc.relayEnvFilter(letter,Actor.Anonymous,include)
+    /**
+     * Forward a message to children that are indexed and/or workers and or children that were given
+     * an automatic name, i.e. children that were not given an explicit name.
+     * Returns the number of children that accepted the letter.  */
+    protected def relay(letter: fc.ChildLetter, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
+      fc.relayEnvGrouped(letter,Actor.Anonymous,toIndexed, toWorkers,toAutoNamed)
+    /**
+     * Forward a message to one specific child on the basis of its name. Returns true if successful and
+     * false if that child is not present or does not accept the letter. */
+    protected def pass(letter: fc.ChildLetter, name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (stash: StashOps)
@@ -137,7 +137,7 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
   final val name = register(prename)
 
 
-abstract class BasicDefine :
+trait BasicDefine :
   type Letter <: Actor.Letter
   trait BaseLetter extends Actor.Letter { type Accept = Actor }
   // type Accept <: Actor
