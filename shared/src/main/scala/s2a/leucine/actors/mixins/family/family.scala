@@ -40,10 +40,14 @@ private[actors] trait FamilyDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends FamilyChild, FamilyMain :
+//trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends FamilyChild, FamilyMain :
+// Kan dit niet gewoon define zijn (de val moet dan weg bij basic/standard/state actors)
+trait FamilyRoot(val familyDefine: FamilyDefine) extends FamilyChild, FamilyMain :
   self: BareActor =>
-  private[actors] type CL = ChildLetter
-  private[actors] type RS = ChildSender
+  // private[actors] type CL = ChildLetter
+  // private[actors] type RS = ChildSender
+  private[actors] type RS = familyDefine.ChildAccept
+  private[actors] type CL[T <: RS] = familyDefine.ChildLetter[T]
 
   final override def path: String = name
 
@@ -55,11 +59,15 @@ trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends Fami
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
+//trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
+trait FamilyBranch[Parent <: Actor.Parent](val familyDefine: FamilyDefine) extends FamilyChild, FamilyMain, FamilyParent :
   self: BareActor =>
-  private[actors] type CL = ChildLetter
-  private[actors] type RS = ChildSender
-  private[actors] type PA = Parent { type CL <: self.MyLetter; type RS <: self.Sender }
+  // private[actors] type CL = ChildLetter
+  // private[actors] type RS = ChildSender
+  private[actors] type RS = familyDefine.ChildAccept
+  private[actors] type CL[T <: RS] = familyDefine.ChildLetter[T]
+
+  private[actors] type PA = Parent { type RS <: self.Sender; type CL[T <: RS] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -73,7 +81,7 @@ trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: 
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
-  private[actors] type PA = Parent { type CL <: self.MyLetter; type RS <: self.Sender }
+  private[actors] type PA = Parent { type RS <: self.Sender; type CL[T <: RS] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -98,9 +106,11 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * are derived from one common ancestor. */
 trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
   self: BareActor =>
-  private[actors] type CL = MyLetter
+  // private[actors] type CL = MyLetter
+  // private[actors] type RS = Sender
   private[actors] type RS = Sender
-  private[actors] type Parent = Tree { type CL <: self.MyLetter; type RS <: self.Sender }
+  private[actors] type CL[T <: RS] = MyLetter[T]
+  private[actors] type Parent = Tree { type RS <: self.Sender; type CL[T <: RS] <: self.MyLetter[T] }
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
@@ -134,3 +144,7 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
     case Some(p) => s"${p.path}${context.familyPathSeparator}$name"
     case None    => name
 
+
+trait FamilyDefine :
+  type ChildAccept <: Actor
+  type ChildLetter[T <: ChildAccept] <: Actor.Letter

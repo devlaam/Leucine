@@ -18,8 +18,7 @@ val sharedSettings = Seq(
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain"),
   libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.8.1" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
-  //Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
-  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) || f.getPath.containsSlice("/family/")},
+  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
   )
 
 val jvmSettings = Seq(

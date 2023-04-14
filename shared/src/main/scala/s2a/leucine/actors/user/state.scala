@@ -138,5 +138,4 @@ abstract class StateDefine :
   type Letter[T <: Accept] <: Actor.Letter
   type State <: Actor.State
   trait BaseLetter[BA <: Accept] extends Actor.Letter { type Accept = BA }
-  //trait BaseState extends Actor.State
 

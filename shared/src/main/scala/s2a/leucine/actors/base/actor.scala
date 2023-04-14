@@ -24,20 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-// TIJDELIJK ZONDER FAMILY
-trait FamilyChild
-private[actors] trait FamilyDefs :
-  private[actors] def familySize: Int = 0
-  private[actors] def familyDropNeedle(): Unit = ()
-  private[actors] def familyRemoved: Boolean = false
-  private[actors] def familyStop(finish: Boolean): Unit = ()
-  private[actors] def familyTerminate(complete: Boolean): Unit = ()
-  private[actors] def familyAbandon(): Boolean = false
-  private[actors] def familyReport(): Unit = ()
-private[actors] object FamilyChild :
-  /** General method to search a the family tree. */
-  def searchFor(path: String, separator: Char, actors: Map[String,Actor]): Option[Actor] = ???
-
 
 private[actors] trait BareDefs :
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */

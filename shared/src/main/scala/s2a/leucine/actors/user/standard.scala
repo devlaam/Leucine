@@ -123,7 +123,7 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
   final val name = register(prename)
 
-
+// Kan dit ook een trait worden?
 abstract class StandardDefine :
   type Accept <: Actor
   type Letter[T <: Accept] <: Actor.Letter
