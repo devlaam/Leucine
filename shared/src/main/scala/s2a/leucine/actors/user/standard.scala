@@ -68,7 +68,8 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
   private[actors] final def initialState: ActState = Actor.State.Default
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  extension (fc: FamilyChild { type ChildSender <: Actor; type ChildLetter[T <: ChildSender] <: Actor.Letter; } )
+  //extension (fc: FamilyChild { type ChildSender <: Actor; type ChildLetter[T <: ChildSender] <: Actor.Letter; } )
+  extension (fc: FamilyChild )
      /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include
@@ -127,6 +128,9 @@ trait StandardDefine :
   type Accept <: Actor
   type Letter[T <: Accept] <: Actor.Letter
   trait BaseLetter[BA <: Accept] extends Actor.Letter { type Accept = BA }
+
+  /** Use this inside the actor to allow the anonymous sender in Accept */
+  type Anonymous = Actor.Anonymous.type
 
   // voorbeeld
   //type Accept = ActorStr | ActorInt

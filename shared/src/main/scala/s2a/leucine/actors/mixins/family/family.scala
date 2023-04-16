@@ -42,12 +42,12 @@ private[actors] trait FamilyDefs :
  * trees in your system, each with its own root. */
 //trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends FamilyChild, FamilyMain :
 // Kan dit niet gewoon define zijn (de val moet dan weg bij basic/standard/state actors)
-trait FamilyRoot(val familyDefine: FamilyDefine) extends FamilyChild, FamilyMain :
+trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain :
   self: BareActor =>
   // private[actors] type CL = ChildLetter
   // private[actors] type RS = ChildSender
-  private[actors] type RS = familyDefine.ChildAccept
-  private[actors] type CL[T <: RS] = familyDefine.ChildLetter[T]
+  type ChildSender = familyDefine.ChildAccept
+  type ChildLetter[T <: ChildSender] = familyDefine.ChildLetter[T]
 
   final override def path: String = name
 
@@ -60,14 +60,14 @@ trait FamilyRoot(val familyDefine: FamilyDefine) extends FamilyChild, FamilyMain
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
 //trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
-trait FamilyBranch[Parent <: Actor.Parent](val familyDefine: FamilyDefine) extends FamilyChild, FamilyMain, FamilyParent :
+trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
   self: BareActor =>
   // private[actors] type CL = ChildLetter
   // private[actors] type RS = ChildSender
-  private[actors] type RS = familyDefine.ChildAccept
-  private[actors] type CL[T <: RS] = familyDefine.ChildLetter[T]
+  type ChildSender = familyDefine.ChildAccept
+  type ChildLetter[T <: ChildSender] = familyDefine.ChildLetter[T]
 
-  private[actors] type PA = Parent { type RS <: self.Sender; type CL[T <: RS] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -81,7 +81,7 @@ trait FamilyBranch[Parent <: Actor.Parent](val familyDefine: FamilyDefine) exten
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
-  private[actors] type PA = Parent { type RS <: self.Sender; type CL[T <: RS] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -108,9 +108,9 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
   self: BareActor =>
   // private[actors] type CL = MyLetter
   // private[actors] type RS = Sender
-  private[actors] type RS = Sender
-  private[actors] type CL[T <: RS] = MyLetter[T]
-  private[actors] type Parent = Tree { type RS <: self.Sender; type CL[T <: RS] <: self.MyLetter[T] }
+  type ChildSender = Sender
+  type ChildLetter[T <: ChildSender] = MyLetter[T]
+  private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
