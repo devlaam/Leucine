@@ -53,6 +53,9 @@ class Noise extends StandardActor(Noise,"Noise") :
       val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
       source ! Text.Lipsum(key,result)
 
+    /* This cannot be reached, but the compiler is not able to verify. */
+    case (_,_) => assert(false,"Code should not come here.")
+
 
 object Noise extends StandardDefine :
 
@@ -85,6 +88,8 @@ class Access extends StandardActor(Access,"Server") :
     /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
     case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
 
+    /* This cannot be reached, but the compiler is not able to verify. */
+    case (_,_) => assert(false,"Code should not come here.")
 
 
 object Access extends StandardDefine :
@@ -105,12 +110,9 @@ class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
 
     case (Text.Lipsum(name,password),source: Anonymous) => access ! Access.Pair(name,password)
     case (Text.Lipsum(name,text),source: Noise)         => println(s"Some text for $name: $text")
-    case (Text.Lipsum(name,password),source: Access)    => assert(false,"Illegal mail Text.Lipsum from Access")
-
-    case (Text.User(name,allow),source: Access)    => if allow then noise ! Noise.Request(name,20,6) else println(s"User $name refused.")
-    case (Text.User(name,allow),source: Anonymous) => assert(false,"Illegal mail Text.User from Anonymous")
-    case (Text.User(name,allow),source: Noise)     => assert(false,"Illegal mail Text.User from Noise")
-
+    case (Text.User(name,allow),source: Access)         => if allow then noise ! Noise.Request(name,20,6) else println(s"User $name refused.")
+    /* This cannot be reached, but the compiler is not able to verify. */
+    case (_,_) => assert(false,"Code should not come here.")
 
 object Text  extends StandardDefine :
 
@@ -137,9 +139,7 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
 
 
   def receive[T <: Sender](letter: Register.Letter[T], sender: T) = (letter,sender) match
-    case (Register.Passwords(values),source: Anonymous) => assert(false,"Illegal mail Register.Passwords from Anonymous")
-    case (Register.Passwords(values),source: Noise)     => supply = values
-    case (Register.Passwords(values),source: Access)    => assert(false,"Illegal mail Register.Passwords from Access")
+    case (Register.Passwords(values),source: Noise) => supply = values
 
     case (Register.Request(name),source: Anonymous) =>
       if supply.isEmpty
@@ -150,13 +150,13 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
         println(s"Welcome $name, you may now use this service with the password: ${supply.head}")
         access ! Access.Pair(name,supply.head)
         supply = supply.tail
-    case (Register.Request(name),source: Noise)     => assert(false,"Illegal mail Register.Request from Noise")
-    case (Register.Request(name),source: Access)    => assert(false,"Illegal mail Register.Request from Access")
 
+    /* This cannot be reached, but the compiler is not able to verify. */
+    case (_,_) => assert(false,"Code should not come here.")
 
 object Register extends StandardDefine :
 
-  type Accept = Access | Noise | Anonymous
+  type Accept = Noise | Anonymous
 
   /* Logger.Letter is the base type for all letters: */
   sealed trait Letter[T <: Accept] extends BaseLetter[T]
