@@ -43,10 +43,11 @@ private[actors] trait TimingDefs extends BareDefs :
  * This actor sends messages to itself. For the moment, you must explicitly allow this in the sender
  * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
 trait TimingAid(using context: ActorContext) extends ActorDefs :
-  this: ProcessActor =>
-  //this: BareActor =>
+  this: BareActor =>
+  /* Do not use 'This' instead of this.type in the definition of Sender => Conflicting bounds compiler error. */
+  type Sender >: this.type <: Actor
+  /* Below we may use the This type variable. */
   private type This = this.type
-  type Sender >: This <: Actor
   private type Event[T >: This <: Sender] = TimingAid.Event[Sender,This,T,MyLetter]
 
   /** Actor dependent packing of letter and sender into one envelope. */
