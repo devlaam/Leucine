@@ -32,7 +32,7 @@ import s2a.leucine.actors.Actor.Anonymous
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Letter,Actor](name), FamilyTree[Tree], TimingAid, MonitorAid(monitor) :
+class Tree(name: String, val parent: Option[Tree]) extends StandardActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(monitor) :
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) = println(s"$kind $path")
@@ -61,7 +61,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
     stop(Actor.Stop.Silent)
 
 
-  def receive(letter: Tree.Letter, sender: Sender) = letter match
+  def receive[T <: Sender](letter: Tree.Letter[T], sender: T) = letter match
     /**/
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */
@@ -91,16 +91,17 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor[Tree.Le
     case Tree.Report => monitor.show(Config(samples = true))
 
 
-object Tree :
-  sealed trait Letter extends Actor.Letter
+object Tree extends StandardDefine :
+  type Accept = Actor
+  sealed trait Letter[T <: Accept] extends BaseLetter[T]
   /* Message to create the tree structure. The maximal number of levels
    * is given by depth, the number of actors created in each level given
    * by width. */
-  case class  Create(width: Int, depth: Int) extends Letter
+  case class  Create(width: Int, depth: Int) extends Letter[Accept]
   /* Message to traverse the tree in forward direction. */
-  case object Forward extends Letter
+  case object Forward extends Letter[Accept]
   /* Message to traverse the tree in backwards direction. */
-  case object Backward extends Letter
+  case object Backward extends Letter[Accept]
   /* Message report the samples once. */
-  case object Report extends Letter
+  case object Report extends Letter[Accept]
 

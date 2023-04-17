@@ -58,7 +58,7 @@ trait LogInfo :
 /**
  * The logger will only receive messages and never send one. Also, we do not
  * care from whom the message is originating. */
-private class Logger extends BasicActor[Logger.Letter]("logger") :
+private class Logger extends BasicActor(Logger,"logger") :
   import Logger.*
 
   /* Soft level of the messages that are printed. Can be changed by during runtime. */
@@ -77,7 +77,7 @@ private class Logger extends BasicActor[Logger.Letter]("logger") :
     case Stop                 => stop(Actor.Stop.Direct)
 
 
-object Logger :
+object Logger extends BasicDefine:
   import PlatformContext.Platform
 
   /* This are the levels the logger is able to handle. */
@@ -86,7 +86,7 @@ object Logger :
 
   /* Make this class sealed so that the compile can check at the receiver method if
    * we were complete in the implementation of all message types */
-  sealed trait Letter extends Actor.Letter
+  sealed trait Letter extends BaseLetter
 
   /* See if we are running in a multithreaded environment. */
   val multithreaded: Boolean = actorContext.platform match

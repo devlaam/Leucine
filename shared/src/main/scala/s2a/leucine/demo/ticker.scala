@@ -29,7 +29,7 @@ import s2a.leucine.actors.*
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
+class Ticker extends StateActor(Ticker), LogInfo :
 
   /* The initial state of of a state actor must be defined. */
   def initial = Ticker.Tick(0)
@@ -44,7 +44,7 @@ class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
   Logger.warn("Ticker Actor created")
 
   /* In receive we handle the incoming letters. */
-  def receive(letter: Ticker.Letter, sender: Sender, state: Ticker.State): Ticker.State =
+  def receive[T <: Sender](letter: Ticker.Letter[T], sender: T, state: Ticker.State): Ticker.State =
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match
@@ -70,10 +70,11 @@ class Ticker extends StateActor[Ticker.Letter,Actor,Ticker.State](), LogInfo :
         /* Change the state to a new one. This is obligatory. */
         Ticker.Tick(value+1)
 
-object Ticker :
+object Ticker extends StateDefine :
+  type Accept = Actor
   /* The ticker only excepts one letter */
-  sealed trait Letter extends Actor.Letter
-  object Work extends Letter
+  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  object Work extends Letter[Accept]
   /* This actor can be in two 'states' */
   sealed trait State extends Actor.State
   case class Tick(value: Int) extends State

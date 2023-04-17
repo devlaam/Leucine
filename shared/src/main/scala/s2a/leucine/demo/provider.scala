@@ -37,7 +37,7 @@ import s2a.leucine.actors.*
  * we could have chosen the BasicActor as well. This actor is part of a family but does not have children of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the children. But less is more. */
-class Provider(protected val socket: ClientSocket, protected val parent: Server) extends StandardActor[Provider.Letter,Actor](!#), TimingAid, FamilyLeaf[Server], LogInfo :
+class Provider(protected val socket: ClientSocket, protected val parent: Server) extends StandardActor(Provider,!#), TimingAid, FamilyLeaf[Server], LogInfo :
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */
@@ -47,7 +47,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
   post(Provider.Send,2.seconds)
 
   /* Handle the messages, which is only the posted letter in this case. */
-  def receive(letter: Provider.Letter, sender: Sender): Unit = letter match
+  def receive[T <: Sender](letter: Provider.Letter[T], sender: T): Unit = letter match
     case Provider.Send =>
       val datetime = new Date().toString
       val message  = s"Provider $path says: $datetime"
@@ -61,6 +61,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
     println(s"Provider $path stopped.")
     socket.close()
 
-object Provider :
-  sealed trait Letter extends Actor.Letter
-  case object Send extends Letter
+object Provider extends StandardDefine:
+  type Accept = Provider //| Actor
+  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  case object Send extends Letter[Accept]

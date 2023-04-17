@@ -29,13 +29,16 @@ import s2a.leucine.actors.*
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends BasicActor[Console.Letter](!#) :
+private class Console extends BasicActor(Console,!#) :
+
+  /* Send a letter to yourself */
+  def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message)
 
   /* The welcome message. You may choose your demo. As soon as you type the answer, a message is constructed
    * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
    * so it also blocks the actor. On JS it works with a callback. Normally you should not program it this way,
    * but since we are here at the start of the demo, it does not hurt. */
-  CLI.talk("Please state the demo you want to run (ticker, server or crawler): ", answer => this ! Console.Read(answer) )
+  CLI.talk("Please state the demo you want to run (ticker, server, crawler or chatgrt): ", selfie(Console.Demo(_)))
 
   override protected def stopped(cause: Actor.Stop, complete: Boolean) =
     /* CIS must be closed, otherwise the application cannot terminate. */
@@ -47,20 +50,24 @@ private class Console extends BasicActor[Console.Letter](!#) :
     /* If the user may a choice, this actor is no longer required. */
     stop(Actor.Stop.Direct)
 
-  /* Method to start the demo of choice. */
-  def start(actor: Actor): Unit =
+  /* Method to start the demo of choice for one time */
+  def once(actor: Actor): Unit =
     /* stop the console, this is okay, cause the demo is already running. */
     stop()
 
   /* Start the demo of choice but staring its corresponding actor. */
   def receive(letter: Console.Letter) = letter match
-    case Console.Read("ticker")  =>  start(new Ticker)
-    case Console.Read("server")  =>  start(new Server)
-    case Console.Read("crawler") =>  start(new Tree("F0",None))
-    case Console.Read(unknown)   =>  stop(s"Unknown demo '$unknown', closing ...")
+    case Console.Demo("ticker")  =>  once(new Ticker)
+    case Console.Demo("server")  =>  once(new Server)
+    case Console.Demo("crawler") =>  once(new Tree("F0",None))
+    case Console.Demo("chatgrt") =>  Chatgrt.request(selfie(Console.Cmd(_)))
+    case Console.Demo(unknown)   =>  stop(s"Unknown demo '$unknown', closing ...")
+    case Console.Cmd("exit")     =>  Chatgrt.stop(); stop();
+    case Console.Cmd(command)    =>  Chatgrt.process(command); Chatgrt.request(selfie(Console.Cmd(_)))
 
 
-object Console :
+object Console extends BasicDefine :
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
-  sealed trait Letter extends Actor.Letter
-  case class Read(text: String) extends Letter
+  sealed trait Letter extends BaseLetter
+  case class Demo(text: String) extends Letter
+  case class Cmd(text: String) extends Letter

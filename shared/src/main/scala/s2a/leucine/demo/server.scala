@@ -73,7 +73,8 @@ trait ServerSocket:
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[Provider.Letter,Actor], LogInfo :
+//class Server extends BasicActor(Server,"server"), TimingAid, FamilyRoot(Server), LogInfo :
+class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Server), LogInfo :
 
   /* Time this demo will last. */
   val runtime = 60.seconds
@@ -95,11 +96,11 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
    * arrives we send a letter to ourselves with the connection enclosed. */
   private val useCallback = serverSocket.onConnect(socket =>
     Logger.debug("Callback called.")
-    send(Server.Connect(socket)))
+    send(Server.Connect(socket),Actor.Anonymous))
 
   /* See if there anyone knocking on the door. We need this if there is no callback
    * function on the platform available. */
-  def connect: Option[Server.Letter] =
+  def connect: Option[Server.Letter[Server.Accept]] =
     /* Test if we have a request for a connection. */
     serverSocket.request()
     /* This may result in an error, if ... */
@@ -131,7 +132,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
 
 
   /* Handle all incoming letters. */
-  protected def receive(letter: Server.Letter): Unit = letter match
+  protected def receive[T <: Sender](letter: Server.Letter[T], sender: T): Unit = letter match
     /* The new connection will come in as a letter. */
     case Server.Connect(socket) =>
       Logger.info("Accepted a connection.")
@@ -148,7 +149,7 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
       /* Stop the actor. */
       stop(Actor.Stop.Direct)
 
-  protected override def except(letter: Server.Letter, cause: Exception, size: Int): Unit =
+  protected override def except[T <: Sender](letter: Server.Letter[T], sender: T, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   override def stopped(cause: Actor.Stop, complete: Boolean) =
@@ -158,11 +159,15 @@ class Server extends BasicActor[Server.Letter]("server"), TimingAid, FamilyRoot[
 
 
 /* This is the natural location to define all the letters the actor may receive. */
-object Server :
+object Server extends StandardDefine, FamilyDefine :
+  // TODO: At the moment there are no common messages, extend!
+  type ChildAccept = Server & Provider
+  type ChildLetter[T <: ChildAccept] = Nothing
+  type Accept = Server | Anonymous //| Actor
   /* Base type of all Server Letters, sealed because that enables the compiler to see
    * if we handled them all. */
-  sealed trait Letter extends Actor.Letter
+  sealed trait Letter[T <: Accept] extends BaseLetter[T]
   /* Letter that transfers a connection */
-  case class Connect(socket: ClientSocket) extends Letter
+  case class Connect(socket: ClientSocket) extends Letter[Accept]
   /* Letter that indicates the connection is over. */
-  case object Terminated extends Letter
+  case object Terminated extends Letter[Accept]
