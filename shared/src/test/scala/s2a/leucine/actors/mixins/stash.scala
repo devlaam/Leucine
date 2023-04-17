@@ -10,23 +10,24 @@ import s2a.leucine.actors.PlatformContext.Platform
 
 trait StashAidTest(using ac: ActorContext) :
 
-  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor[Stack.Letter,Actor,Stack.State](), StashAid :
+  class Stack(val writeln: String => Unit, val done: () => Unit) extends StateActor(Stack), StashAid :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stop:$complete")
       done()
     protected def initial = Stack.State(Nil,true)
-    def receive(letter: Stack.Letter, sender: Sender, state: Stack.State) = letter match
+    def receive[T <: Sender](letter: Stack.Letter[T], sender: T, state: Stack.State) = letter match
       case  Stack.Write(value)  => if state.block && value%2==0 then { Stash.store(); state } else state.copy(value::state.values)
       case  Stack.Push(value)   => Stash.store(Stack.Write(value),sender); state
       case  Stack.Pop           => Stash.flush(); state.copy(block=false)
       case  Stack.Print         => writeln(state.values.toString); initial
 
-  object Stack :
-    sealed trait Letter extends Actor.Letter
-    case class Write(value: Int) extends Letter
-    case class Push(value: Int) extends Letter
-    case object Pop extends Letter
-    case object Print extends Letter
+  object Stack extends StateDefine :
+    type Accept = Actor
+    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    case class Write(value: Int) extends Letter[Accept]
+    case class Push(value: Int) extends Letter[Accept]
+    case object Pop extends Letter[Accept]
+    case object Print extends Letter[Accept]
 
     case class State(values: List[Int], block: Boolean) extends Actor.State
 

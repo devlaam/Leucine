@@ -11,18 +11,18 @@ object StateActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor[Clock.Letter,Clock.Accept,Clock.State]("clock") :
+  class Clock(val writeln: String => Unit, val done: () => Unit) extends StateActor(Clock,"clock") :
    override protected def stopped(cause: Actor.Stop, complete: Boolean) = done()
    protected def initial = Clock.State(0,0,0)
-   protected def receive(letter: Clock.Letter, sender: Sender, state: Clock.State): Clock.State = letter match
+   protected def receive[T <: Sender](letter: Clock.Letter[T], sender: T, state: Clock.State): Clock.State = letter match
      case Clock.Tick(extraSec) => state.advance(extraSec)
      case Clock.PrintTime      => writeln(state.show); state
 
-  object Clock :
-    sealed trait Letter extends Actor.Letter
-    case class Tick(extraSec: Int) extends Letter
-    case object PrintTime extends Letter
-    type Accept = Actor.Anonymous
+  object Clock extends StateDefine :
+    type Accept = Anonymous
+    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    case class Tick(extraSec: Int) extends Letter[Accept]
+    case object PrintTime extends Letter[Accept]
 
     class State(hour: Int, min: Int, sec: Int) extends Actor.State :
       def advance(eSec: Int): State =

@@ -11,18 +11,18 @@ object BasicActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Writer(name: String, val writeln: String => Unit, val done: () => Unit) extends BasicActor[Writer.Letter](name) :
+  class Writer(name: String, val writeln: String => Unit, val done: () => Unit) extends BasicActor(Writer,name) :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"$name:stop:$complete")
       done()
-    override protected def except(letter: MyLetter, cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
+    override protected def except(letter: MyLetter[Sender], cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
     def receive(letter: Writer.Letter) = letter match
       case  Writer.Text(text: String) => writeln(s"$name:$text")
       case  Writer.Number(int: Int)   => writeln(s"$name:$int")
       case  Writer.Except             => throw new Exception(name)
 
-  object Writer :
-    sealed trait Letter extends Actor.Letter
+  object Writer extends BasicDefine :
+    sealed trait Letter extends BaseLetter
     case class Text(text: String) extends Letter
     case class Number(int: Int) extends Letter
     case object Except extends Letter
