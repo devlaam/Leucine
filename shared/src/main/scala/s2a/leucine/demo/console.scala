@@ -24,12 +24,14 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends BasicActor(Console,!#) :
+private class Console extends BasicActor(Console,!#), TimingAid :
 
   /* Send a letter to yourself */
   def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message)
@@ -60,10 +62,11 @@ private class Console extends BasicActor(Console,!#) :
     case Console.Demo("ticker")  =>  once(new Ticker)
     case Console.Demo("server")  =>  once(new Server)
     case Console.Demo("crawler") =>  once(new Tree("F0",None))
-    case Console.Demo("chatgrt") =>  Chatgrt.request(selfie(Console.Cmd(_)))
+    case Console.Demo("chatgrt") =>  post(Console.Cli,100.millis)
     case Console.Demo(unknown)   =>  stop(s"Unknown demo '$unknown', closing ...")
     case Console.Cmd("exit")     =>  Chatgrt.stop(); stop();
-    case Console.Cmd(command)    =>  Chatgrt.process(command); Chatgrt.request(selfie(Console.Cmd(_)))
+    case Console.Cmd(command)    =>  Chatgrt.process(command); post(Console.Cli,100.millis)
+    case Console.Cli             =>  Chatgrt.request(selfie(Console.Cmd(_)))
 
 
 object Console extends BasicDefine :
@@ -71,3 +74,4 @@ object Console extends BasicDefine :
   sealed trait Letter extends BaseLetter
   case class Demo(text: String) extends Letter
   case class Cmd(text: String) extends Letter
+  case object Cli extends Letter

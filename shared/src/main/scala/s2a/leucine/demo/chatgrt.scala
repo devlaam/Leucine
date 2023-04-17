@@ -181,10 +181,7 @@ object Chatgrt :
     List(noise,access,register,text).foreach(_.stop(Actor.Stop.Direct))
     println("ChatGRT stopped.")
 
-  def request(action: String => Unit): Unit =
-    // TODO: This will not work on JS/Native
-    Thread.sleep(100)
-    CLI.talk("ChatGRT ready, your command: ", action)
+  def request(action: String => Unit): Unit = CLI.talk("ChatGRT ready, your command: ", action)
 
   def process(cmd: String)(using Actor): Unit = cmd.split(" ") match
     case Array("signup",name)    => register ! Register.Request(name)
