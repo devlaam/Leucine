@@ -37,7 +37,7 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
   // private[actors] type ActState = Actor.State
   // type Sender = Actor
 
-  type Sender = Actor
+  type Sender = Actor | this.type
   private[actors] type MyLetter[T <: Sender] = define.Letter
   private[actors] type ActState = Actor.State
 
