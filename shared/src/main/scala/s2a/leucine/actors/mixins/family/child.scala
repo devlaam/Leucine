@@ -32,16 +32,10 @@ package s2a.leucine.actors
 transparent private trait FamilyChild extends ActorDefs :
   this: ControlActor =>
 
-  /* Local types */
-  //private[actors] type RS <: Actor
-  //private[actors] type CL[T <: RS] <: Actor.Letter
-
   /** The type for all Senders for messages that can be relayed between parent and child. */
-  //type ChildSender = RS
   type ChildSender <: Actor
 
   /** The super type for the letters the children may receive. */
-  //type ChildLetter[T <: ChildSender] = CL[T]
   type ChildLetter[T <: ChildSender] <: Actor.Letter
 
   /** The actor type of the combined children. */

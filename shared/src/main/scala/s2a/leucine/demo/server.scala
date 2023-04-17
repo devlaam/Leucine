@@ -73,7 +73,6 @@ trait ServerSocket:
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-//class Server extends BasicActor(Server,"server"), TimingAid, FamilyRoot(Server), LogInfo :
 class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Server), LogInfo :
 
   /* Time this demo will last. */

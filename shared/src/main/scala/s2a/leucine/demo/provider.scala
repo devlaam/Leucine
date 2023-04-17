@@ -62,6 +62,6 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
     socket.close()
 
 object Provider extends StandardDefine:
-  type Accept = Provider //| Actor
+  type Accept = Provider
   sealed trait Letter[T <: Accept] extends BaseLetter[T]
   case object Send extends Letter[Accept]

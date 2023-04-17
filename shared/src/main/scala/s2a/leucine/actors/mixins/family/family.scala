@@ -40,12 +40,9 @@ private[actors] trait FamilyDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-//trait FamilyRoot[ChildLetter <: Actor.Letter, ChildSender <: Actor] extends FamilyChild, FamilyMain :
-// Kan dit niet gewoon define zijn (de val moet dan weg bij basic/standard/state actors)
+// TODO: Kan dit niet gewoon define zijn (de val moet dan weg bij basic/standard/state actors)
 trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain :
   self: BareActor =>
-  // private[actors] type CL = ChildLetter
-  // private[actors] type RS = ChildSender
   type ChildSender = familyDefine.ChildAccept
   type ChildLetter[T <: ChildSender] = familyDefine.ChildLetter[T]
 
@@ -59,11 +56,8 @@ trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends Famil
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-//trait FamilyBranch[ChildLetter <: Actor.Letter, ChildSender <: Actor, Parent <: Actor.Parent] extends FamilyChild, FamilyMain, FamilyParent :
 trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
   self: BareActor =>
-  // private[actors] type CL = ChildLetter
-  // private[actors] type RS = ChildSender
   type ChildSender = familyDefine.ChildAccept
   type ChildLetter[T <: ChildSender] = familyDefine.ChildLetter[T]
 
@@ -106,8 +100,6 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * are derived from one common ancestor. */
 trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
   self: BareActor =>
-  // private[actors] type CL = MyLetter
-  // private[actors] type RS = Sender
   type ChildSender = Sender
   type ChildLetter[T <: ChildSender] = MyLetter[T]
   private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }

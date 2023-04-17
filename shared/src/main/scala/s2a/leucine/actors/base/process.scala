@@ -63,7 +63,6 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
    * Tries to process the contents of one envelope. If there is an exception, this is delivered to
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
-  //private[actors] def processEnvelope[T <: Sender](envelope: Env[T]): Unit =
   private[actors] def processEnvelope(envelope: Env[?]): Unit =
     /* Start measuring the time passed in the user environment, and trace when requested */
     monitorEnter(envelope)

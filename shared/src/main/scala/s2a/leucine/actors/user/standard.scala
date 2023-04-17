@@ -30,31 +30,18 @@ package s2a.leucine.actors
  * If you do, make sure these are private, so there is no risk the leak to the outside world. All possible return types
  * must be specified. If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
  * on the base of its name. Supply !# as name to define this a worker actor.*/
-//abstract class StandardActor[ML <: Actor.Letter, SD <: Actor](prename: String = "")(using val context: ActorContext) extends BareActor :
 abstract class StandardActor[Define <: StandardDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
-
-  // private[actors] type MyLetter = ML
-  // private[actors] type ActState = Actor.State
-  // type Sender = SD
 
   type Sender = define.Accept
   private[actors] type MyLetter[T <: Sender] = define.Letter[T]
   private[actors] type ActState = Actor.State
 
-  /* The Env type now holds the Letter as well as the Sender type */
-  //private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
-  //private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
-
   /* Pack the letter with the sender into one envelope */
-  //private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
   private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
 
-  //private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
-  //private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Envelope[Sender,T,MyLetter] = env
   private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card = BareActor.Card(env.letter,env.sender)
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  //private[actors] final def deliverEnvelope(envelope: Env, state: ActState): ActState =
   private[actors] final def deliverEnvelope[T <: Sender](envelope: Env[T], state: ActState): ActState =
     receive(envelope.letter,envelope.sender)
     state
@@ -68,8 +55,7 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
   private[actors] final def initialState: ActState = Actor.State.Default
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  //extension (fc: FamilyChild { type ChildSender <: Actor; type ChildLetter[T <: ChildSender] <: Actor.Letter; } )
-  extension (fc: FamilyChild )
+  extension (fc: FamilyChild)
      /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include
@@ -81,7 +67,7 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
      * an automatic name, i.e. children that were not given an explicit name.
      * Returns the number of children that accepted the letter.  */
     protected def relay[T <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
-      fc.relayEnvGrouped(letter,sender,toIndexed, toWorkers,toAutoNamed)
+      fc.relayEnvGrouped(letter,sender,toIndexed,toWorkers,toAutoNamed)
     /**
      * Forward a message to one specific child on the basis of its name. Returns true if successful and
      * false if that child is not present or does not accept the letter. */
@@ -131,11 +117,3 @@ trait StandardDefine :
 
   /** Use this inside the actor to allow the anonymous sender in Accept */
   type Anonymous = Actor.Anonymous.type
-
-  // voorbeeld
-  //type Accept = ActorStr | ActorInt
-  //sealed trait Letter[BA <: Accept] extends BaseLetter[BA]
-  //case class BriefStr(i: String) extends Letter[ActorStr]
-
-  //private[actors] class Envelope[T, A <: Actor, L[T <: A] <: Actor.Letter](val letter: L[T] { type Accept = T }, val sender: T)
-

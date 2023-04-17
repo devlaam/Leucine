@@ -31,8 +31,6 @@ import scala.concurrent.duration.FiniteDuration
 
 /* Methods stub for when there is no timing mixin used. */
 private[actors] trait TimingDefs extends BareDefs :
-  //private[actors] type Env[T]
-  //private[actors] type Sender
   private[actors] def eventsPossible: Boolean = false
   private[actors] def eventsPresent: Boolean = false
   private[actors] def eventsCancel(): Unit = ()
@@ -51,15 +49,12 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   private type Event[T >: This <: Sender] = TimingAid.Event[Sender,This,T,MyLetter]
 
   /** Actor dependent packing of letter and sender into one envelope. */
-  //private[actors] def pack[T <: Sender](letter: MyLetter[T], sender: T | This): Env[T]
-  //private[actors] def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T]
   private[actors] def pack[T >: This <: Sender](letter: MyLetter[T], sender: T): Env[T]
 
   /** Holds all references to the running timers, so we can cancel them when needed. */
   private val anchors: mutable.Map[Object,Cancellable] = mutable.Map.empty
 
   /** Holds the envelopes waiting to get scheduled */
-  //private val events: DropQueue[Event[MyLetter[?]]] = new DropQueue[Event[MyLetter[?]]]()
   private val events: DropQueue[Event[?]] = new DropQueue[Event[?]]()
 
   /** Take a snapshot of the internals of this actor. */
@@ -68,7 +63,6 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   /**
    * Construct a new callable on the fly. The call method puts the event on the events queue and
    * calls trigger in order to start the loop if needed. */
-  //private def callable[T <: Sender](event: Event[MyLetter[T]]) =
   private def callable[T >: This <: Sender](event: Event[T]) =
     /* The handle takes an anchored event and puts it on the event queue. Due to the synchronization
      * eventsCancel() and handle cannot interfere. But it is possible that the call() was made before
@@ -108,8 +102,6 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   /** Obtain a single event from the event queue, get the letter and put it in an envelope. */
   private[actors] override def eventsDequeue(tail: List[Env[?]]): List[Env[?]] = synchronized {
     val event = events.dequeue.map(event => pack(event.letter,this))
-    //val event = events.dequeue.map(event => pack(event.letter,???))
-    //val event = events.dequeue.map(event => ???)
     if       tail.isEmpty  then event
     else if  event.isEmpty then tail
     else                        event.head :: tail }
@@ -163,6 +155,4 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
 
 object TimingAid :
   /** Auxiliary class that holds the relevant elements of an event. */
-  //private class Event[L](val anchor: Object, val letter: L)
-  //private class EventNEW[A <: Actor, T <: A, L[T <: A] <: Actor.Letter](val anchor: Object, val letter: L[T])
   private class Event[A <: Actor, B <: A, T >: B <: A, L[T >: B <: A] <: Actor.Letter](val anchor: Object, val letter: L[T])

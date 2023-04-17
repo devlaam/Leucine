@@ -29,36 +29,22 @@ package s2a.leucine.actors
  * The StateActor is able to respond to messages, and keeps state between all calls. You are obliged to return the same
  * or a new state upon every call. This is better than using vars.  If no name is given, an unique name is generated, but
  * the actor is not indexed to be retrieved on the base of its name. Supply !# as name to define this a worker actor. */
-//abstract class StateActor[ML <: Actor.Letter, SD <: Actor, AS <: Actor.State](prename: String = "")(using val context: ActorContext) extends BareActor :
 abstract class StateActor[Define <: StateDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
-
-  // private[actors] type MyLetter  = ML
-  // private[actors] type ActState  = AS
-  // type Sender = SD
 
   type Sender = define.Accept
   private[actors] type MyLetter[T <: Sender] = define.Letter[T]
   private[actors] type ActState = define.State
 
-  /* The Env type now holds the Letter as well as the Sender type */
-  //private[actors] type Env = BareActor.Envelope[MyLetter,Sender]
-  //private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
-
   /* Pack the letter with the sender into one envelope */
-  //private[actors] final def pack(letter: MyLetter, sender: Sender): Env = BareActor.Envelope(letter,sender)
   private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
 
-  //private[actors] def repack(env: Env): BareActor.Envelope[MyLetter,Sender] = env
-  //private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Envelope[Sender,T,MyLetter] = env
   private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card = BareActor.Card(env.letter,env.sender)
 
   /* Deliver the letter in the envelope. The state may also be changed by the user. */
-  //private[actors] final def deliverEnvelope(envelope: Env, state: ActState): ActState =
   private[actors] final def deliverEnvelope[T <: Sender](envelope: Env[T], state: ActState): ActState =
     receive(envelope.letter,envelope.sender,state)
 
   /* Deliver the exception to the user, which may return a new state. */
-  //private[actors] final def deliverException(envelope: Env, state: ActState, exception: Exception, exceptionCounter: Int): ActState =
   private[actors] final def deliverException[T <: Sender](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,envelope.sender,state,exception,exceptionCounter)
 
@@ -69,8 +55,7 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
   protected def initial: ActState
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  //extension (fc: FamilyChild { type ChildSender <: Actor; type ChildLetter[T <: ChildSender] <: Actor.Letter; } )
-  extension (fc: FamilyChild )
+  extension (fc: FamilyChild)
      /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include
@@ -82,7 +67,7 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
      * an automatic name, i.e. children that were not given an explicit name.
      * Returns the number of children that accepted the letter.  */
     protected def relay[T <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
-      fc.relayEnvGrouped(letter,sender,toIndexed, toWorkers,toAutoNamed)
+      fc.relayEnvGrouped(letter,sender,toIndexed,toWorkers,toAutoNamed)
     /**
      * Forward a message to one specific child on the basis of its name. Returns true if successful and
      * false if that child is not present or does not accept the letter. */
@@ -93,7 +78,6 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
-    //protected def store(letter: MyLetter, sender: Sender): Unit = stash.storeEnv(pack(letter,sender))
     protected def store[T <: Sender](letter: MyLetter[T], sender: T): Unit = stash.storeEnv(pack(letter,sender))
 
   /**
@@ -102,7 +86,6 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
    * This can be obtained by a runtime type match. Use the send method on the senders matched type.
    * You also have to return the new state, which may contain any values that change between each call.
    * That way, you can steer away from variables in the actors definition, which should not leak into the open. */
-  //protected def receive(letter: MyLetter, sender: Sender, state: ActState): ActState
   protected def receive[T <: Sender](letter: MyLetter[T], sender: T, state: ActState): ActState
 
   /**
@@ -116,18 +99,15 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  //protected def except(letter: MyLetter, sender: Sender, state: ActState, cause: Exception, size: Int): ActState = state
   protected def except[T <: Sender](letter: MyLetter[T], sender: T, state: ActState, cause: Exception, size: Int): ActState = state
 
   /**
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context of an actor
    * and to self inside an actor. Returns if the letter was accepted for delivery. Note, this does not mean it also
    * processed. In the mean time the actor may stop. */
-  //def send(letter: MyLetter, sender: Sender): Boolean = sendEnvelope(pack(letter,sender))
   def send[T <: Sender](letter: MyLetter[T], sender: T): Boolean = sendEnvelope(pack(letter,sender))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
-  //def ! (letter: MyLetter)(using sender: Sender): Unit = sendEnvelope(pack(letter,sender))
   def ![T <: Sender](letter: MyLetter[T])(using sender: T): Unit = sendEnvelope(pack(letter,sender))
 
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */

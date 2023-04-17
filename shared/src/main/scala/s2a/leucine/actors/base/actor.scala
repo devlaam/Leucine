@@ -29,26 +29,14 @@ private[actors] trait BareDefs :
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
   type Sender <: Actor
   /** The super type for the letters you may receive. */
-  //private[actors] type MyLetter <: Actor.Letter
-  private[actors] type MyLetter[T <: Sender] <: Actor.Letter //{ type Accept = T }
+  private[actors] type MyLetter[T <: Sender] <: Actor.Letter
   /** The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Sender (Envelope).*/
-  //private[actors] type Env[T <: Sender]
   private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
 
 /** Used as a type-parameter free base trait for all mixins. */
 private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:
-  // /** The super type for the letters you may receive. */
-  // //private[actors] type MyLetter <: Actor.Letter
-  // private[actors] type MyLetter[T <: Actor] <: Actor.Letter { type Accept = T }
-  // /** The super type for the state the actor can be in. */
-  // private[actors] type ActState <: Actor.State
-  // /** The combined type of Letter and Sender (Envelope).*/
-  // //private[actors] type Env[T <: Sender]
-  // private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
-  // /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
-  // type Sender <: Actor
   /** The name of this actor. */
   def name: String
   /** The full name of this actor, contains the full path to the first ancestor.*/

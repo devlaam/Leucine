@@ -29,8 +29,6 @@ import java.util.concurrent.Callable
 
 /* Methods stub for when there is no monitor mixin used. */
 private[actors] trait MonitorDefs  extends BareDefs:
-  //private[actors] type Env[T]
-  //private[actors] type Sender
   private[actors] def probeBare(): Option[MonitorAid.Bare]  = None
   private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
@@ -87,7 +85,6 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private def mayTraceCount: Boolean = tracing.ordinal + monitor.tracing.ordinal > 1
 
   /* Provisional way to regain the letters/senders from the envelope. */
-  //private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Envelope[MyLetter,Sender]
   private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card
 
   /** Method called from the actor store its activity */
@@ -250,10 +247,8 @@ object MonitorAid :
 
   object Trace :
     def empty(time: Long) = new Trace(time,Action.Created,Post.empty)
-    //def apply[L,S <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Envelope[L,S]): Trace = //BareActor.Envelope[Sender,T,MyLetter[T]]
     def apply(time: Long, accept: Boolean, receiver: String, env: BareActor.Card): Trace =
       apply(time,Action.handOver(accept),receiver,env)
-    //def apply[L,S <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Envelope[L,S]): Trace =
     def apply[L,S <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card): Trace =
       new Trace(time,action,Post(receiver,env.letter.toString,env.sender.path))
     def apply[L,S <: Actor](time: Long, action: Action, receiver: String): Trace =

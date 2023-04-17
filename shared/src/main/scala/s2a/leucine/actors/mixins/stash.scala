@@ -27,10 +27,7 @@ package s2a.leucine.actors
 
 /* Methods stub for when there is no stash mixin used. */
 private[actors] trait StashDefs extends BareDefs:
-  //private[actors] type Env[T]
-  //private[actors] type Sender
   private[actors] def stashFlush: Boolean = false
-  //private[actors] def stashEnqueue[T <: Sender](envelope: Env[T]): Unit = ()
   private[actors] def stashEnqueue(envelope: Env[?]): Unit = ()
   private[actors] def stashDequeue(tail: List[Env[?]]): List[Env[?]] = tail
   private[actors] def stashEmpty: Boolean = true
@@ -71,7 +68,6 @@ trait StashAid extends ActorDefs :
   /**
    * Internal enqueue operation for the stash. This handles the storeRequest for
    * the last letter that was processed. */
-  //private[actors] override def stashEnqueue[T <: Sender](envelope: Env[T]): Unit = if storeRequest then
   private[actors] override def stashEnqueue(envelope: Env[?]): Unit = if storeRequest then
     /* This call handles the store(), so we are done. Reset the storeRequest */
     storeRequest = false
