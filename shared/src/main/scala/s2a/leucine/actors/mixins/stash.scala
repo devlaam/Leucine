@@ -33,7 +33,7 @@ private[actors] trait StashDefs extends BareDefs:
   private[actors] def stashEmpty: Boolean = true
   private[actors] def stashClear(): Unit = ()
   trait StashOps :
-    private[actors] def storeEnv[T <: Sender](envelope: Env[T]): Unit
+    private[actors] def storeEnv[T >: Common <: Sender](envelope: Env[T]): Unit
 
 
 /** Mixin if you need to store letters away.  */
@@ -91,7 +91,7 @@ trait StashAid extends ActorDefs :
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
-    private[actors] def storeEnv[T <: Sender](envelope: Env[T]): Unit = stashbox.enqueue(envelope)
+    private[actors] def storeEnv[T >: Common <: Sender](envelope: Env[T]): Unit = stashbox.enqueue(envelope)
 
     /**
      * Automatically stores the current letter (and sender) that is processed on the stash. If the

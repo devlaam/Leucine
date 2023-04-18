@@ -131,7 +131,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 
 
   /* Handle all incoming letters. */
-  protected def receive[T <: Sender](letter: Server.Letter[T], sender: T): Unit = letter match
+  protected def receive[T >: Common <: Sender](letter: Server.Letter[T], sender: T): Unit = letter match
     /* The new connection will come in as a letter. */
     case Server.Connect(socket) =>
       Logger.info("Accepted a connection.")
@@ -148,7 +148,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
       /* Stop the actor. */
       stop(Actor.Stop.Direct)
 
-  protected override def except[T <: Sender](letter: Server.Letter[T], sender: T, cause: Exception, size: Int): Unit =
+  protected override def except[T >: Common <: Sender](letter: Server.Letter[T], sender: T, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   override def stopped(cause: Actor.Stop, complete: Boolean) =

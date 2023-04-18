@@ -47,7 +47,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
   post(Provider.Send,2.seconds)
 
   /* Handle the messages, which is only the posted letter in this case. */
-  def receive[T <: Sender](letter: Provider.Letter[T], sender: T): Unit = letter match
+  def receive[T >: Common <: Sender](letter: Provider.Letter[T], sender: T): Unit = letter match
     case Provider.Send =>
       val datetime = new Date().toString
       val message  = s"Provider $path says: $datetime"

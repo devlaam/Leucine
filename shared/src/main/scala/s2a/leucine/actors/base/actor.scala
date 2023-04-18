@@ -28,12 +28,13 @@ package s2a.leucine.actors
 private[actors] trait BareDefs :
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
   type Sender <: Actor
+  type Common <: Sender
   /** The super type for the letters you may receive. */
-  private[actors] type MyLetter[T <: Sender] <: Actor.Letter[T]
+  private[actors] type MyLetter[T >: Common <: Sender] <: Actor.Letter[T]
   /** The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Sender (Envelope).*/
-  private[actors] type Env[T <: Sender] = BareActor.Envelope[Sender,T,MyLetter]
+  private[actors] type Env[T >: Common <: Sender] = BareActor.Envelope[Sender,Common,T,MyLetter]
 
 /** Used as a type-parameter free base trait for all mixins. */
 private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:

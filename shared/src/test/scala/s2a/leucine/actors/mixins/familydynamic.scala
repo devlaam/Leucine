@@ -29,7 +29,7 @@ trait ActorTreeSupply :
     def newChild(i: Int) = Tree(s"F$i",Some(this),writeln,None)
 
     private var returns: Int = 0
-    def receive[T <: Sender](letter: Tree.Letter[T], sender: T) = letter match
+    def receive[T >: Common <: Sender](letter: Tree.Letter[T], sender: T) = letter match
       case Tree.Create(width,level) =>
         if parent.isEmpty then returns = -(width**level)
         (1 to width).foreach(newChild)

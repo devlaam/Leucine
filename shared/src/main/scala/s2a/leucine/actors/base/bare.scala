@@ -68,5 +68,5 @@ object BareActor :
     case Done   extends Phase(false)
 
   /** The Envelope is responsible for holding the letter and the sender together. */
-  private[actors] class Envelope[A <: Actor, T <: A, L[T <: A] <: Actor.Letter[T]](val letter: L[T], val sender: T)
+  private[actors] class Envelope[A <: Actor, C <: A, T >: C <: A, L[T >: C <: A] <: Actor.Letter[T]](val letter: L[T], val sender: T)
   private[actors] class Card[T <: Actor](val letter: Actor.Letter[T], val sender: Actor)

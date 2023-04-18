@@ -43,8 +43,9 @@ private[actors] trait FamilyDefs :
 // TODO: Kan dit niet gewoon define zijn (de val moet dan weg bij basic/standard/state actors)
 trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain :
   self: BareActor =>
+  type ChildCommon = familyDefine.ChildCommon
   type ChildSender = familyDefine.ChildAccept
-  type ChildLetter[T <: ChildSender] = familyDefine.ChildLetter[T]
+  type ChildLetter[T >: ChildCommon <: ChildSender] = familyDefine.ChildLetter[T]
 
   final override def path: String = name
 
@@ -58,10 +59,11 @@ trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends Famil
  * after creation manually. */
 trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
   self: BareActor =>
+  type ChildCommon = familyDefine.ChildCommon
   type ChildSender = familyDefine.ChildAccept
-  type ChildLetter[T <: ChildSender] = familyDefine.ChildLetter[T]
+  type ChildLetter[T >: ChildCommon <: ChildSender] = familyDefine.ChildLetter[T]
 
-  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -75,7 +77,7 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](val familyDef
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
-  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -98,45 +100,47 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * dynamically/recursively. The field 'parent' is an option in this case and the root of the tree
  * should not have a parent. The type of the parent equals the type of the FamilyTree and all letters
  * are derived from one common ancestor. */
-trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
-  self: BareActor =>
-  type ChildSender = Sender
-  type ChildLetter[T <: ChildSender] = MyLetter[T]
-  private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildLetter[T <: ChildSender] <: self.MyLetter[T] }
+// trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
+//   self: BareActor =>
+//   type ChildCommon = self.Common
+//   type ChildSender = self.Sender
+//   type ChildLetter[T >: ChildCommon <: ChildSender] = MyLetter[T]
+//   private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
-  /**
-   * Access to the parent of this actor. It should be implemented as value parameter in the
-   * class definition of this actor. That way the parent is an stable reference. The root
-   * of the family tree should not have a parent (supply none)*/
-  protected def parent: Option[Parent]
+//   /**
+//    * Access to the parent of this actor. It should be implemented as value parameter in the
+//    * class definition of this actor. That way the parent is an stable reference. The root
+//    * of the family tree should not have a parent (supply none)*/
+//   protected def parent: Option[Parent]
 
-  /** Internally called to remove an actor from its parents list, just before termination. */
-  private[actors] override def familyAbandon(): Boolean = parent.map(_.reject(self,false)).getOrElse(false)
+//   /** Internally called to remove an actor from its parents list, just before termination. */
+//   private[actors] override def familyAbandon(): Boolean = parent.map(_.reject(self,false)).getOrElse(false)
 
-  /**
-   * Abandon the parent when present. Normally, there should not be a reason for the user to do so, but when
-   * you want to prohibit the termination of this actor when the parent stops, this could be one. Note that
-   * you should not call this when the actor itself has children.
-   * The parent itself cannot be removed from the child that is rejected. When the actor is still
-   * active it will be put under guard. There is no way to reunite the child and parent later on. */
-  protected def abandon(): Boolean = parent.map(_.reject(self,activity.active)).getOrElse(false)
+//   /**
+//    * Abandon the parent when present. Normally, there should not be a reason for the user to do so, but when
+//    * you want to prohibit the termination of this actor when the parent stops, this could be one. Note that
+//    * you should not call this when the actor itself has children.
+//    * The parent itself cannot be removed from the child that is rejected. When the actor is still
+//    * active it will be put under guard. There is no way to reunite the child and parent later on. */
+//   protected def abandon(): Boolean = parent.map(_.reject(self,activity.active)).getOrElse(false)
 
-  /** Register this actor. */
-  private[actors] override def register(prename: String): String =
-    parent match
-    /* Children register at the parent. */
-      case Some(p) => p.adopt(prename,self)
-      /* If this is the root of the family then we register at the guard. */
-      case None    => super.register(prename)
+//   /** Register this actor. */
+//   private[actors] override def register(prename: String): String =
+//     parent match
+//     /* Children register at the parent. */
+//       case Some(p) => p.adopt(prename,self)
+//       /* If this is the root of the family then we register at the guard. */
+//       case None    => super.register(prename)
 
-  /**
-   * The path returns the full lineage of this actor: dot separated names of all parents.
-   * The dot can be replaced by your own char by overriding the familySepChar. */
-  final override val path: String = parent match
-    case Some(p) => s"${p.path}${context.familyPathSeparator}$name"
-    case None    => name
+//   /**
+//    * The path returns the full lineage of this actor: dot separated names of all parents.
+//    * The dot can be replaced by your own char by overriding the familySepChar. */
+//   final override val path: String = parent match
+//     case Some(p) => s"${p.path}${context.familyPathSeparator}$name"
+//     case None    => name
 
 
 trait FamilyDefine :
   type ChildAccept <: Actor
-  type ChildLetter[T <: ChildAccept] <: Actor.Letter[T]
+  type ChildCommon <: ChildAccept
+  type ChildLetter[T >: ChildCommon <: ChildAccept] <: Actor.Letter[T]

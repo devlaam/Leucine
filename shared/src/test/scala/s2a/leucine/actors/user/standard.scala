@@ -18,7 +18,7 @@ object StandardActorTest extends TestSuite :
     def sendJoni(text: String, depth: Int) = this ! Joni.Text(s"${text}J",depth+1)
     def sendMary(text: String, depth: Int) = mary.foreach(_ ! Mary.Text(s"${text}J",depth+1))
     def sendSara(text: String, depth: Int) = sara.foreach(_ ! Sara.Text(s"${text}J",depth+1))
-    def receive[T <: Sender](letter: Joni.Letter[T], sender: T) = (letter,sender) match
+    def receive[T >: Common <: Sender](letter: Joni.Letter[T], sender: T) = (letter,sender) match
       case (Joni.Config(mary,sara),_)        => this.mary=Some(mary); this.sara=Some(sara)
       case (Joni.Text(text,depth), _: Joni)  => writeln(s"$text$depth"); done()
       case (Joni.Text(text,depth), _: Mary)  => if depth< 5 then sendSara(text,depth) else sendJoni(text,depth)
@@ -41,7 +41,7 @@ object StandardActorTest extends TestSuite :
     def sendMary(text: String, depth: Int) = this ! Mary.Text(s"${text}M",depth+1)
     def sendSara(text: String, depth: Int) = sara.foreach(_ ! Sara.Text(s"${text}M",depth+1))
 
-    def receive[T <: Sender](letter: Mary.Letter[T], sender: T) = (letter,sender) match
+    def receive[T >: Common <: Sender](letter: Mary.Letter[T], sender: T) = (letter,sender) match
       case (Mary.Config(joni,sara),_)        => this.joni=Some(joni); this.sara=Some(sara)
       case (Mary.Text(text,depth), _: Joni)  => if depth< 5 then sendSara(text,depth) else sendMary(text,depth)
       case (Mary.Text(text,depth), _: Mary)  => writeln(s"$text$depth"); done()
@@ -63,7 +63,7 @@ object StandardActorTest extends TestSuite :
     def sendMary(text: String, depth: Int) = mary.foreach(_ ! Mary.Text(s"${text}S",depth+1))
     def sendSara(text: String, depth: Int) = this ! Sara.Text(s"${text}S",depth+1)
 
-    def receive[T <: Sender](letter: Sara.Letter[T], sender: T) = (letter,sender) match
+    def receive[T >: Common <: Sender](letter: Sara.Letter[T], sender: T) = (letter,sender) match
       case (Sara.Config(joni,mary),_)        => this.joni=Some(joni); this.mary=Some(mary)
       case (Sara.Text(text,depth), _: Joni)  => if depth< 5 then sendMary(text,depth) else sendSara(text,depth)
       case (Sara.Text(text,depth), _: Mary)  => if depth< 5 then sendJoni(text,depth) else sendSara(text,depth)

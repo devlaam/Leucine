@@ -33,27 +33,28 @@ package s2a.leucine.actors
 abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
 
   // type Sender = Actor | this.type
-  // private[actors] type MyLetter[T <: Sender] = define.Letter
+  // private[actors] type MyLetter[T >: Common <: Sender] = define.Letter
   // private[actors] type ActState = Actor.State
   //type Sender = define.Accept
   type Sender = Actor
-  private[actors] type MyLetter[T <: Sender] = define.Letter[T]
+  type Common = Actor
+  private[actors] type MyLetter[T >: Common <: Sender] = define.Letter[T]
   private[actors] type ActState = Actor.State
 
   type BasicLetter = MyLetter[Actor]
 
   // /* Pack the letter with the sender. Here the sender is ignored. */
-  // private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
+  // private[actors] final def pack[T >: Common <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
 
-  // private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
+  // private[actors] def repack[T >: Common <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  private[actors] final def deliverEnvelope[T <: Sender](envelope: Env[T], state: ActState): ActState =
+  private[actors] final def deliverEnvelope[T >: Common <: Sender](envelope: Env[T], state: ActState): ActState =
     receive(envelope.letter)
     state
 
   /* Deliver the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[T <: Sender](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  private[actors] final def deliverException[T >: Common <: Sender](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,exception,exceptionCounter)
     state
 
@@ -86,14 +87,14 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
      * letter with an other and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
     protected def store(letter: MyLetter[Sender]): Unit = stash.storeEnv(pack(letter,Actor.Anonymous))
-    //protected def store[T <: Sender](letter: MyLetter[T]): Unit = stash.storeEnv(pack(letter,Actor.Anonymous))
+    //protected def store[T >: Common <: Sender](letter: MyLetter[T]): Unit = stash.storeEnv(pack(letter,Actor.Anonymous))
 
   /**
    * Implement this method in your actor to process the letters send to you. There is no sender, so it is not
    * possible to see who send the letter, except from the content of the letter itself. Likewise it is not
    * possible to send back an answer. */
   //protected def receive(letter: MyLetter[Sender]): Unit
-  protected def receive[T <: Sender](letter: MyLetter[T]): Unit
+  protected def receive[T >: Common <: Sender](letter: MyLetter[T]): Unit
 
   /**
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
@@ -106,16 +107,16 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
   //protected def except(letter: MyLetter[Sender], cause: Exception, size: Int): Unit = ()
-  protected def except[T <: Sender](letter: MyLetter[T], cause: Exception, size: Int): Unit = ()
+  protected def except[T >: Common <: Sender](letter: MyLetter[T], cause: Exception, size: Int): Unit = ()
 
   /** Send a letter to the actor, no need to specify the sender. Returns if the letter was accepted
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may stop. */
   def send(letter: MyLetter[Sender]): Boolean = sendEnvelope(pack(letter,Actor.Anonymous))
-  //def send[T <: Sender](letter: MyLetter[T]): Boolean = sendEnvelope(pack(letter,Actor.Anonymous))
+  //def send[T >: Common <: Sender](letter: MyLetter[T]): Boolean = sendEnvelope(pack(letter,Actor.Anonymous))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
   def ! (letter: MyLetter[Sender]): Unit = sendEnvelope(pack(letter,Actor.Anonymous))
-  //def ![T <: Sender](letter: MyLetter[T]): Unit = sendEnvelope(pack(letter,Actor.Anonymous))
+  //def ![T >: Common <: Sender](letter: MyLetter[T]): Unit = sendEnvelope(pack(letter,Actor.Anonymous))
 
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
   final val name = register(prename)
