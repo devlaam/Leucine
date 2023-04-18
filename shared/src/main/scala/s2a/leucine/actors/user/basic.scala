@@ -32,14 +32,20 @@ package s2a.leucine.actors
  * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. */
 abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
 
-  type Sender = Actor | this.type
-  private[actors] type MyLetter[T <: Sender] = define.Letter
+  // type Sender = Actor | this.type
+  // private[actors] type MyLetter[T <: Sender] = define.Letter
+  // private[actors] type ActState = Actor.State
+  //type Sender = define.Accept
+  type Sender = Actor
+  private[actors] type MyLetter[T <: Sender] = define.Letter[T]
   private[actors] type ActState = Actor.State
 
-  /* Pack the letter with the sender. Here the sender is ignored. */
-  private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
+  type BasicLetter = MyLetter[Actor]
 
-  private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card = BareActor.Card(env.letter,env.sender)
+  // /* Pack the letter with the sender. Here the sender is ignored. */
+  // private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
+
+  // private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
   private[actors] final def deliverEnvelope[T <: Sender](envelope: Env[T], state: ActState): ActState =
@@ -55,23 +61,23 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
   private[actors] final def initialState: ActState = Actor.State.Default
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  extension (fc: FamilyChild { type ChildSender = Actor } )
-    /**
-     * Forward a message to children of which the name passes the test 'include'.
-     * Returns the number of children that accepted the letter. Does not include
-     * auto named children (children that were not given an explicit name) or workers. */
-    protected def relay(letter: fc.ChildLetter[fc.ChildSender], include: String => Boolean): Int =
-      fc.relayEnvFilter(letter,Actor.Anonymous,include)
-    /**
-     * Forward a message to children that are indexed and/or workers and or children that were given
-     * an automatic name, i.e. children that were not given an explicit name.
-     * Returns the number of children that accepted the letter.  */
-    protected def relay(letter: fc.ChildLetter[fc.ChildSender], toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
-      fc.relayEnvGrouped(letter,Actor.Anonymous,toIndexed,toWorkers,toAutoNamed)
-    /**
-     * Forward a message to one specific child on the basis of its name. Returns true if successful and
-     * false if that child is not present or does not accept the letter. */
-    protected def pass(letter: fc.ChildLetter[fc.ChildSender], name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
+  // extension (fc: FamilyChild { type ChildSender = Actor } )
+  //   /**
+  //    * Forward a message to children of which the name passes the test 'include'.
+  //    * Returns the number of children that accepted the letter. Does not include
+  //    * auto named children (children that were not given an explicit name) or workers. */
+  //   protected def relay(letter: fc.ChildLetter[fc.ChildSender], include: String => Boolean): Int =
+  //     fc.relayEnvFilter(letter,Actor.Anonymous,include)
+  //   /**
+  //    * Forward a message to children that are indexed and/or workers and or children that were given
+  //    * an automatic name, i.e. children that were not given an explicit name.
+  //    * Returns the number of children that accepted the letter.  */
+  //   protected def relay(letter: fc.ChildLetter[fc.ChildSender], toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
+  //     fc.relayEnvGrouped(letter,Actor.Anonymous,toIndexed,toWorkers,toAutoNamed)
+  //   /**
+  //    * Forward a message to one specific child on the basis of its name. Returns true if successful and
+  //    * false if that child is not present or does not accept the letter. */
+  //   protected def pass(letter: fc.ChildLetter[fc.ChildSender], name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (stash: StashOps)
@@ -80,12 +86,14 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
      * letter with an other and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
     protected def store(letter: MyLetter[Sender]): Unit = stash.storeEnv(pack(letter,Actor.Anonymous))
+    //protected def store[T <: Sender](letter: MyLetter[T]): Unit = stash.storeEnv(pack(letter,Actor.Anonymous))
 
   /**
    * Implement this method in your actor to process the letters send to you. There is no sender, so it is not
    * possible to see who send the letter, except from the content of the letter itself. Likewise it is not
    * possible to send back an answer. */
-  protected def receive(letter: MyLetter[Sender]): Unit
+  //protected def receive(letter: MyLetter[Sender]): Unit
+  protected def receive[T <: Sender](letter: MyLetter[T]): Unit
 
   /**
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
@@ -97,19 +105,27 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  protected def except(letter: MyLetter[Sender], cause: Exception, size: Int): Unit = ()
+  //protected def except(letter: MyLetter[Sender], cause: Exception, size: Int): Unit = ()
+  protected def except[T <: Sender](letter: MyLetter[T], cause: Exception, size: Int): Unit = ()
 
   /** Send a letter to the actor, no need to specify the sender. Returns if the letter was accepted
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may stop. */
   def send(letter: MyLetter[Sender]): Boolean = sendEnvelope(pack(letter,Actor.Anonymous))
+  //def send[T <: Sender](letter: MyLetter[T]): Boolean = sendEnvelope(pack(letter,Actor.Anonymous))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
   def ! (letter: MyLetter[Sender]): Unit = sendEnvelope(pack(letter,Actor.Anonymous))
+  //def ![T <: Sender](letter: MyLetter[T]): Unit = sendEnvelope(pack(letter,Actor.Anonymous))
 
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
   final val name = register(prename)
 
 
 trait BasicDefine :
-  type Letter <: Actor.Letter
-  trait BaseLetter extends Actor.Letter { type Accept = Actor }
+  //type Accept <: Actor
+  //type Letter[T <: Accept] <: Actor.Letter[T]
+
+  //type Accept = Actor
+  type Letter[T <: Actor] <: Actor.Letter[T]
+  //type Letter <: Actor.Letter[Actor]
+  //trait BaseLetter extends Actor.Letter[T] { type Accept = Actor }

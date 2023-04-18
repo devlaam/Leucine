@@ -18,7 +18,7 @@ trait ProtectAidTest(using ac: ActorContext) :
       case Digest.Knock(i) =>  writeln(s"Knock($i)")
 
   object Digest extends BasicDefine :
-     sealed trait Letter extends BaseLetter
+     sealed trait Letter extends Actor.Letter[Actor]
      case class Knock(i: Int) extends Letter
 
   val tests = Tests {

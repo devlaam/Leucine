@@ -165,7 +165,7 @@ object Server extends StandardDefine, FamilyDefine :
   type Accept = Server | Anonymous //| Actor
   /* Base type of all Server Letters, sealed because that enables the compiler to see
    * if we handled them all. */
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
   /* Letter that transfers a connection */
   case class Connect(socket: ClientSocket) extends Letter[Accept]
   /* Letter that indicates the connection is over. */

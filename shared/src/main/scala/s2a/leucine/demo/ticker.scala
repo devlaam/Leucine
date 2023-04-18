@@ -73,7 +73,7 @@ class Ticker extends StateActor(Ticker), LogInfo :
 object Ticker extends StateDefine :
   type Accept = Actor
   /* The ticker only excepts one letter */
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
   object Work extends Letter[Accept]
   /* This actor can be in two 'states' */
   sealed trait State extends Actor.State

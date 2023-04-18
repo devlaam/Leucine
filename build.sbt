@@ -10,7 +10,7 @@ val latest  = "3.3.0-RC3"
 val stable  = "3.2.1"
 
 /* Set to 1 for publishing to exclude the demo/test files. */
-val publishMe: Int = 0
+val publishMe: Int = 1
 
 ThisBuild / version       :=  "0.3.0"
 ThisBuild / scalaVersion  :=  stable

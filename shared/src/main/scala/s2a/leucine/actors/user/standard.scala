@@ -36,10 +36,10 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
   private[actors] type MyLetter[T <: Sender] = define.Letter[T]
   private[actors] type ActState = Actor.State
 
-  /* Pack the letter with the sender into one envelope */
-  private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
+  // /* Pack the letter with the sender into one envelope */
+  // private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
 
-  private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card = BareActor.Card(env.letter,env.sender)
+  // private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
   private[actors] final def deliverEnvelope[T <: Sender](envelope: Env[T], state: ActState): ActState =
@@ -112,8 +112,8 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
 
 trait StandardDefine :
   type Accept <: Actor
-  type Letter[T <: Accept] <: Actor.Letter
-  trait BaseLetter[BA <: Accept] extends Actor.Letter { type Accept = BA }
+  type Letter[T <: Accept] <: Actor.Letter[T]
+  //trait BaseLetter[BA <: Accept] extends Actor.Letter[T] { type Accept = BA }
 
   /** Use this inside the actor to allow the anonymous sender in Accept */
   type Anonymous = Actor.Anonymous.type

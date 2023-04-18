@@ -63,7 +63,7 @@ object Noise extends StandardDefine :
   type Accept = Register | Text
 
   /* Noise.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
 
   /* Letter that requests for size new random char strings. */
   case class Request(key: String, size: Int, length: Int) extends Letter[Accept]
@@ -96,7 +96,7 @@ object Access extends StandardDefine :
   type Accept = Register | Text
 
   /* Logger.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
 
   case class Pair(name: String, password: String) extends Letter[Accept]
 
@@ -119,7 +119,7 @@ object Text  extends StandardDefine :
   type Accept = Access | Noise | Anonymous
 
   /* Logger.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
 
   /* Letter that contains information about the user, content is sender related. */
   case class Lipsum(name: String, content: String) extends Letter[Noise | Anonymous]
@@ -159,7 +159,7 @@ object Register extends StandardDefine :
   type Accept = Noise | Anonymous
 
   /* Logger.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
 
   /* Letter that contains new passwords. */
   case class Passwords(values: List[String]) extends Letter[Noise]

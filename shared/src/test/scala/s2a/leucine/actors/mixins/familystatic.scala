@@ -26,13 +26,13 @@ object ActorFamilySupply extends TestSuite :
 
   object Outside_ extends StandardDefine :
     type Accept = Anonymous | Outside
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Text(msg: String) extends Letter[Accept]
     case object Bell extends Letter[Accept]
 
   object Level0_ extends StandardDefine, FamilyDefine :
     type Accept = Anonymous | Outside
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case object Test0 extends Letter[Accept]
     type ChildAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
     type ChildLetter[T <: ChildAccept] = Letter[T] & Level1A_.Letter[T] & Level1B_.Letter[T] & Level1C_.Letter[T]
@@ -41,24 +41,24 @@ object ActorFamilySupply extends TestSuite :
 
   object Level1A_ extends StandardDefine, FamilyDefine :
     type Accept = Anonymous | Outside | Level0
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case object Test1A extends Letter[Accept]
     type ChildAccept = Actor
     type ChildLetter[T <: ChildAccept] =  Level2A_.Letter[T]
 
   object Level1B_ extends StandardDefine :
     type Accept = Anonymous | Outside
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case object Test1B extends Letter[Accept]
 
   object Level1C_ extends StandardDefine :
     type Accept = Anonymous | Outside | Level1A
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Text(msg: String) extends Letter[Accept]
 
   object Level2A_ extends StandardDefine :
     type Accept = Actor
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Text(msg: String) extends Letter[Accept]
 
   class Outside extends StandardActor(Outside_,"boo"), TimingAid :

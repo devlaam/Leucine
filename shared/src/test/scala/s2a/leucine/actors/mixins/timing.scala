@@ -35,7 +35,7 @@ trait TimingAidTest(using ac: ActorContext) :
         post(Clock.Twice(value + 1),19.millis, anchor)
 
   object Clock extends BasicDefine :
-    sealed trait Letter extends BaseLetter
+    sealed trait Letter extends Actor.Letter[Actor]
     case class Result(value: Int) extends Letter
     case class Twice(value: Int) extends Letter
     case object Stop extends Letter
@@ -57,7 +57,7 @@ trait TimingAidTest(using ac: ActorContext) :
         stop(Actor.Stop.Finish)
 
   object Expect extends BasicDefine :
-    sealed trait Letter extends BaseLetter
+    sealed trait Letter extends Actor.Letter[Actor]
     case class Release(msg: String) extends Letter
 
 

@@ -71,7 +71,7 @@ private class Console extends BasicActor(Console,!#), TimingAid :
 
 object Console extends BasicDefine :
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
-  sealed trait Letter extends BaseLetter
+  sealed trait Letter extends Actor.Letter[Actor]
   case class Demo(text: String) extends Letter
   case class Cmd(text: String) extends Letter
   case object Cli extends Letter

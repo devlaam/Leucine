@@ -51,7 +51,7 @@ trait ActorTreeSupply :
 
   object Tree extends StandardDefine :
     type Accept = Actor
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class  Create(width: Int, level: Int) extends Letter[Actor]
     case class  Forward(bounce: Boolean) extends Letter[Actor]
     case object Backward extends Letter[Actor]

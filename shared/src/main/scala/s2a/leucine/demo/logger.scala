@@ -86,7 +86,7 @@ object Logger extends BasicDefine:
 
   /* Make this class sealed so that the compile can check at the receiver method if
    * we were complete in the implementation of all message types */
-  sealed trait Letter extends BaseLetter
+  sealed trait Letter extends Actor.Letter[Actor]
 
   /* See if we are running in a multithreaded environment. */
   val multithreaded: Boolean = actorContext.platform match

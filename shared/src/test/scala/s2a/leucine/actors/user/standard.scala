@@ -28,7 +28,7 @@ object StandardActorTest extends TestSuite :
 
   object Joni extends StandardDefine :
     type Accept = Joni | Mary | Sara | Anonymous
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Text(text: String, depth: Int) extends Letter[Accept]
     case class Config(mary: Mary, sara: Sara) extends Letter[Anonymous]
 
@@ -51,7 +51,7 @@ object StandardActorTest extends TestSuite :
 
   object Mary extends StandardDefine :
     type Accept = Joni | Mary | Sara | Anonymous
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Text(text: String, depth: Int) extends Letter[Accept]
     case class Config(joni: Joni, sara: Sara) extends Letter[Anonymous]
 
@@ -73,7 +73,7 @@ object StandardActorTest extends TestSuite :
 
   object Sara extends StandardDefine :
     type Accept = Joni | Mary | Sara | Anonymous
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Text(text: String, depth: Int) extends Letter[Accept]
     case class Config(joni: Joni, mary: Mary) extends Letter[Anonymous]
 

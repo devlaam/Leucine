@@ -32,7 +32,12 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
    * //TODO For the moment, this is only used in at message relaying among
    * children. This is not ideal design, since we do not want to know anything
    * about the sender in the BareActor. However, i see no solution right now. */
-  private[actors] def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T]
+//  private[actors] def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T]
+
+  /* Pack the letter with the sender. Here the sender is ignored. */
+  private[actors] final def pack[T <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
+
+  private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
 
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize

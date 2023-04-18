@@ -93,7 +93,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor(Tree,na
 
 object Tree extends StandardDefine :
   type Accept = Actor
-  sealed trait Letter[T <: Accept] extends BaseLetter[T]
+  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
   /* Message to create the tree structure. The maximal number of levels
    * is given by depth, the number of actors created in each level given
    * by width. */

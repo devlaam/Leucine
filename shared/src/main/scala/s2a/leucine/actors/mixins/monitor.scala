@@ -85,7 +85,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private def mayTraceCount: Boolean = tracing.ordinal + monitor.tracing.ordinal > 1
 
   /* Provisional way to regain the letters/senders from the envelope. */
-  private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card
+  private[actors] def repack[T <: Sender](env: Env[T]): BareActor.Card[T]
 
   /** Method called from the actor store its activity */
   private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
@@ -247,11 +247,11 @@ object MonitorAid :
 
   object Trace :
     def empty(time: Long) = new Trace(time,Action.Created,Post.empty)
-    def apply(time: Long, accept: Boolean, receiver: String, env: BareActor.Card): Trace =
+    def apply[T <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Card[T]): Trace =
       apply(time,Action.handOver(accept),receiver,env)
-    def apply[L,S <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card): Trace =
+    def apply[T <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card[T]): Trace =
       new Trace(time,action,Post(receiver,env.letter.toString,env.sender.path))
-    def apply[L,S <: Actor](time: Long, action: Action, receiver: String): Trace =
+    def apply(time: Long, action: Action, receiver: String): Trace =
       new Trace(time,action,Post(receiver,"",""))
 
   case class Post(val receiver: String, val letter: String, val sender: String) extends Ordered[Post] :

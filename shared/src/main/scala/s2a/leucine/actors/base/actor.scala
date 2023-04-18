@@ -29,7 +29,7 @@ private[actors] trait BareDefs :
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
   type Sender <: Actor
   /** The super type for the letters you may receive. */
-  private[actors] type MyLetter[T <: Sender] <: Actor.Letter
+  private[actors] type MyLetter[T <: Sender] <: Actor.Letter[T]
   /** The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Sender (Envelope).*/
@@ -107,9 +107,9 @@ object Actor :
   type Parent = Actor with FamilyChild
 
   /** This is the base type for all your mail. */
-  trait Letter :
+  trait Letter[T <: Actor] :
     /* This is the type that defines which actors may send you letters */
-    type Accept <: Actor
+    type Accept = T
 
   /** This is the base type for all your states. */
   trait State

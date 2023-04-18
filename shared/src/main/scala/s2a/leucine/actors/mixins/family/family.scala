@@ -139,4 +139,4 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
 
 trait FamilyDefine :
   type ChildAccept <: Actor
-  type ChildLetter[T <: ChildAccept] <: Actor.Letter
+  type ChildLetter[T <: ChildAccept] <: Actor.Letter[T]

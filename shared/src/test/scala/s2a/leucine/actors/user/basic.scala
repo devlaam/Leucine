@@ -22,7 +22,7 @@ object BasicActorTest extends TestSuite :
       case  Writer.Except             => throw new Exception(name)
 
   object Writer extends BasicDefine :
-    sealed trait Letter extends BaseLetter
+    sealed trait Letter extends Actor.Letter[Actor]
     case class Text(text: String) extends Letter
     case class Number(int: Int) extends Letter
     case object Except extends Letter

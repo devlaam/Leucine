@@ -23,7 +23,7 @@ trait StashAidTest(using ac: ActorContext) :
 
   object Stack extends StateDefine :
     type Accept = Actor
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Write(value: Int) extends Letter[Accept]
     case class Push(value: Int) extends Letter[Accept]
     case object Pop extends Letter[Accept]

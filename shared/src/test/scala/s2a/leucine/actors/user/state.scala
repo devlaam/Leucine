@@ -20,7 +20,7 @@ object StateActorTest extends TestSuite :
 
   object Clock extends StateDefine :
     type Accept = Anonymous
-    sealed trait Letter[T <: Accept] extends BaseLetter[T]
+    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case class Tick(extraSec: Int) extends Letter[Accept]
     case object PrintTime extends Letter[Accept]
 

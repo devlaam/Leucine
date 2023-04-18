@@ -44,12 +44,13 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   this: BareActor =>
   /* Do not use 'This' instead of this.type in the definition of Sender => Conflicting bounds compiler error. */
   type Sender >: this.type <: Actor
+  private[actors] type MyLetter[T <: Sender] <: Actor.Letter[T]
   /* Below we may use the This type variable. */
   private type This = this.type
   private type Event[T >: This <: Sender] = TimingAid.Event[Sender,This,T,MyLetter]
 
   /** Actor dependent packing of letter and sender into one envelope. */
-  private[actors] def pack[T >: This <: Sender](letter: MyLetter[T], sender: T): Env[T]
+  //private[actors] def pack[T >: This <: Sender](letter: MyLetter[T], sender: T): Env[T]
 
   /** Holds all references to the running timers, so we can cancel them when needed. */
   private val anchors: mutable.Map[Object,Cancellable] = mutable.Map.empty
@@ -155,4 +156,4 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
 
 object TimingAid :
   /** Auxiliary class that holds the relevant elements of an event. */
-  private class Event[A <: Actor, B <: A, T >: B <: A, L[T >: B <: A] <: Actor.Letter](val anchor: Object, val letter: L[T])
+  private class Event[A <: Actor, B <: A, T >: B <: A, L[T >: B <: A] <: Actor.Letter[T]](val anchor: Object, val letter: L[T])

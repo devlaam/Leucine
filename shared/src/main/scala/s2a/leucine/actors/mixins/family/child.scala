@@ -36,7 +36,7 @@ transparent private trait FamilyChild extends ActorDefs :
   type ChildSender <: Actor
 
   /** The super type for the letters the children may receive. */
-  type ChildLetter[T <: ChildSender] <: Actor.Letter
+  type ChildLetter[T <: ChildSender] <: Actor.Letter[T]
 
   /** The actor type of the combined children. */
   type ChildActor = BareActor { type Sender >: ChildSender; type MyLetter[T <: ChildSender] >: ChildLetter[T] }
