@@ -44,7 +44,7 @@ class Ticker extends StateActor(Ticker), LogInfo :
   Logger.warn("Ticker Actor created")
 
   /* In receive we handle the incoming letters. */
-  def receive[T >: Common <: Accept](letter: Ticker.Letter[T], sender: T, state: Ticker.State): Ticker.State =
+  def receive[Sender >: Common <: Accept](letter: Ticker.Letter[Sender], sender: Sender, state: Ticker.State): Ticker.State =
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match
@@ -73,7 +73,7 @@ class Ticker extends StateActor(Ticker), LogInfo :
 object Ticker extends StateDefine :
   type Accept = Actor
   /* The ticker only excepts one letter */
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
   object Work extends Letter[Accept]
   /* This actor can be in two 'states' */
   sealed trait State extends Actor.State

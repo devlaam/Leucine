@@ -44,7 +44,7 @@ trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Defin
   self: BareActor =>
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
-  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[T]
+  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[Sender]
 
   final override def path: String = name
 
@@ -60,9 +60,9 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
   self: BareActor =>
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
-  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[T]
+  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[Sender]
 
-  private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -76,7 +76,7 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
-  private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -103,8 +103,8 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
   self: BareActor =>
   type FamilyAccept = Accept
   type FamilyCommon = Common
-  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] = MyLetter[T]
-  private[actors] type Parent = Tree { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: self.MyLetter[T] }
+  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = MyLetter[Sender]
+  private[actors] type Parent = Tree { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
@@ -145,4 +145,4 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
 trait FamilyDefine :
   type FamilyAccept <: Actor
   type FamilyCommon <: FamilyAccept
-  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: Actor.Letter[T]
+  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]

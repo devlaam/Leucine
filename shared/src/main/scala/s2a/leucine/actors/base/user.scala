@@ -29,10 +29,10 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   import Actor.Stop
 
   /** Pack the letter with the sender into an envelope.  */
-  private[actors] final def pack[T >: Common <: Accept](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
+  private[actors] final def pack[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Env[Sender] = BareActor.Envelope(letter,sender)
 
   /** Repacking is for the monitor only. */
-  private[actors] def repack[T >: Common <: Accept](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
+  private[actors] def repack[Sender >: Common <: Accept](env: Env[Sender]): BareActor.Card[Sender] = BareActor.Card(env.letter,env.sender)
 
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
@@ -45,12 +45,12 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   /**
    * This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
    * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
-  private[actors] def deliverEnvelope[T >: Common <: Accept](envelope: Env[T], state: ActState): ActState
+  private[actors] def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState): ActState
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
    * next letter. Errors are not caught and bubble up. Now, this follows the Java style. */
-  private[actors] def deliverException[T >: Common <: Accept](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState
+  private[actors] def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState, exception: Exception, exceptionCounter: Int): ActState
 
   /**
    * Called before actor deactivation and guaranteed after the last message is processed. If there were any

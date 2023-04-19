@@ -30,11 +30,11 @@ private[actors] trait BareDefs :
   type Accept <: Actor
   type Common <: Accept
   /** The super type for the letters you may receive. */
-  private[actors] type MyLetter[T >: Common <: Accept] <: Actor.Letter[T]
+  private[actors] type MyLetter[Sender >: Common <: Accept] <: Actor.Letter[Sender]
   /** The super type for the state the actor can be in. */
   private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Accept (Envelope).*/
-  private[actors] type Env[T >: Common <: Accept] = BareActor.Envelope[Accept,Common,T,MyLetter]
+  private[actors] type Env[Sender >: Common <: Accept] = BareActor.Envelope[Accept,Common,Sender,MyLetter]
 
 /** Used as a type-parameter free base trait for all mixins. */
 private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:
@@ -108,9 +108,9 @@ object Actor :
   type Parent = Actor with FamilyChild
 
   /** This is the base type for all your mail. */
-  trait Letter[T <: Actor] :
+  trait Letter[Sender <: Actor] :
     /* This is the type that defines which actors may send you letters */
-    type Accept = T
+    type Accept = Sender
 
   /** This is the base type for all your states. */
   trait State

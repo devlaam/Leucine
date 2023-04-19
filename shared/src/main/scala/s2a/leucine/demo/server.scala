@@ -131,7 +131,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 
 
   /* Handle all incoming letters. */
-  protected def receive[T >: Common <: Accept](letter: Server.Letter[T], sender: T): Unit = letter match
+  protected def receive[Sender >: Common <: Accept](letter: Server.Letter[Sender], sender: Sender): Unit = letter match
     /* The new connection will come in as a letter. */
     case Server.Connect(socket) =>
       Logger.info("Accepted a connection.")
@@ -148,7 +148,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
       /* Stop the actor. */
       stop(Actor.Stop.Direct)
 
-  protected override def except[T >: Common <: Accept](letter: Server.Letter[T], sender: T, cause: Exception, size: Int): Unit =
+  protected override def except[Sender >: Common <: Accept](letter: Server.Letter[Sender], sender: Sender, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   override def stopped(cause: Actor.Stop, complete: Boolean) =
@@ -161,11 +161,11 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 object Server extends StandardDefine, FamilyDefine :
   // TODO: At the moment there are no common messages, extend!
   type FamilyAccept = Server & Provider
-  type FamilyLetter[T <: FamilyAccept] = Nothing
+  type FamilyLetter[Sender <: FamilyAccept] = Nothing
   type Accept = Server | Anonymous //| Actor
   /* Base type of all Server Letters, sealed because that enables the compiler to see
    * if we handled them all. */
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
   /* Letter that transfers a connection */
   case class Connect(socket: ClientSocket) extends Letter[Accept]
   /* Letter that indicates the connection is over. */

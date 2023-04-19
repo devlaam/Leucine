@@ -61,7 +61,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor(Tree,na
     stop(Actor.Stop.Silent)
 
 
-  def receive[T >: Common <: Accept](letter: Tree.Letter[T], sender: T) = letter match
+  def receive[Sender >: Common <: Accept](letter: Tree.Letter[Sender], sender: Sender) = letter match
     /**/
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */
@@ -93,7 +93,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor(Tree,na
 
 object Tree extends StandardDefine :
   type Accept = Actor
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
   /* Message to create the tree structure. The maximal number of levels
    * is given by depth, the number of actors created in each level given
    * by width. */

@@ -36,17 +36,17 @@ abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine
    * accessibility of the type aliases below. */
   type Accept = Actor | this.type
   type Common = Actor
-  private[actors] type MyLetter[T >: Common <: Accept] = actorDefine.Letter
+  private[actors] type MyLetter[Sender >: Common <: Accept] = actorDefine.Letter
   private[actors] type ActState = Actor.State
   type Letter = MyLetter[Actor]
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  private[actors] final def deliverEnvelope[T >: Common <: Accept](envelope: Env[T], state: ActState): ActState =
+  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState): ActState =
     receive(envelope.letter)
     state
 
   /* Deliver the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[T >: Common <: Accept](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,exception,exceptionCounter)
     state
 

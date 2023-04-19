@@ -29,7 +29,7 @@ trait ActorTreeSupply :
     def newChild(i: Int) = Tree(s"F$i",Some(this),writeln,None)
 
     private var returns: Int = 0
-    def receive[T >: Common <: Accept](letter: Tree.Letter[T], sender: T) = letter match
+    def receive[Sender >: Common <: Accept](letter: Tree.Letter[Sender], sender: Sender) = letter match
       case Tree.Create(width,level) =>
         if parent.isEmpty then returns = -(width**level)
         (1 to width).foreach(newChild)
@@ -51,7 +51,7 @@ trait ActorTreeSupply :
 
   object Tree extends StandardDefine :
     type Accept = Actor
-    sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+    sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class  Create(width: Int, level: Int) extends Letter[Actor]
     case class  Forward(bounce: Boolean) extends Letter[Actor]
     case object Backward extends Letter[Actor]

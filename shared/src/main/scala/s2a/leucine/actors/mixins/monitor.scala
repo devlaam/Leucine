@@ -33,9 +33,9 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
   private[actors] def probeFamily(): Option[MonitorAid.Family]  = None
-  private[actors] def monitorSend[T >: Common <: Accept](isActive: Boolean, envelope: Env[T]): Unit = ()
-  private[actors] def monitorEnter[T >: Common <: Accept](envelope: Env[T]): Unit = ()
-  private[actors] def monitorExit[T >: Common <: Accept](envelope: Env[T]): Unit = ()
+  private[actors] def monitorSend[Sender >: Common <: Accept](isActive: Boolean, envelope: Env[Sender]): Unit = ()
+  private[actors] def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
+  private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorStop(): Unit = ()
   private[actors] def userLoad: Double = 0
 
@@ -85,7 +85,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private def mayTraceCount: Boolean = tracing.ordinal + monitor.tracing.ordinal > 1
 
   /* Provisional way to regain the letters/senders from the envelope. */
-  private[actors] def repack[T >: Common <: Accept](env: Env[T]): BareActor.Card[T]
+  private[actors] def repack[Sender >: Common <: Accept](env: Env[Sender]): BareActor.Card[Sender]
 
   /** Method called from the actor store its activity */
   private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
@@ -174,12 +174,12 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     probeStart()
 
   /** Method called from the actor to indicate that it receives a new letter */
-  private[actors] override def monitorSend[T >: Common <: Accept](isActive: Boolean, envelope: Env[T]): Unit =
+  private[actors] override def monitorSend[Sender >: Common <: Accept](isActive: Boolean, envelope: Env[Sender]): Unit =
     /* Trace if requested, the letter is received or rejected. */
     if mayTraceCount then addTrace(Trace(System.nanoTime-monitor.baseline,isActive,path,repack(envelope)))
 
   /** Method called from the actor to indicate that it starts processing a letter. */
-  private[actors] override def monitorEnter[T >: Common <: Accept](envelope: Env[T]): Unit =
+  private[actors] override def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     val time = System.nanoTime
     /* Trace if requested, the letter processing is initiated */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,path,repack(envelope)))
@@ -187,7 +187,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     treadPauseTime += gain(time)
 
   /** Method called from the actor to indicate that it finished processing a letter. */
-  private[actors] override def monitorExit[T >: Common <: Accept](envelope: Env[T]): Unit  =
+  private[actors] override def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit  =
     val time = System.nanoTime
     /* The time past since has to be added to the total time in play. */
     threadPlayTime += gain(time)
@@ -247,9 +247,9 @@ object MonitorAid :
 
   object Trace :
     def empty(time: Long) = new Trace(time,Action.Created,Post.empty)
-    def apply[T <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Card[T]): Trace =
+    def apply[Sender <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Card[Sender]): Trace =
       apply(time,Action.handOver(accept),receiver,env)
-    def apply[T <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card[T]): Trace =
+    def apply[Sender <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card[Sender]): Trace =
       new Trace(time,action,Post(receiver,env.letter.toString,env.sender.path))
     def apply(time: Long, action: Action, receiver: String): Trace =
       new Trace(time,action,Post(receiver,"",""))

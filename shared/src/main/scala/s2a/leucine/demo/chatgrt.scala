@@ -41,7 +41,7 @@ class Noise extends StandardActor(Noise,"Noise") :
   def make(length: Int): String = Random.alphanumeric.take(length).mkString
 
   /* Receive method that handles the incoming requests. */
-  def receive[T >: Common <: Accept](letter: Noise.Letter[T], sender: T) = (letter,sender) match
+  def receive[Sender >: Common <: Accept](letter: Noise.Letter[Sender], sender: Sender) = (letter,sender) match
 
     /* Return a sequence of size random strings each of the same length. */
     case (Noise.Request(_,size,length), source: Register) =>
@@ -63,7 +63,7 @@ object Noise extends StandardDefine :
   type Accept = Register | Text
 
   /* Noise.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* Letter that requests for size new random char strings. */
   case class Request(key: String, size: Int, length: Int) extends Letter[Accept]
@@ -80,7 +80,7 @@ class Access extends StandardActor(Access,"Server") :
 
   def checkUser(name: String, password: String) = store.get(name).map(_ == password).getOrElse(false)
 
-  def receive[T >: Common <: Accept](letter: Access.Letter[T], sender: T) = (letter,sender) match
+  def receive[Sender >: Common <: Accept](letter: Access.Letter[Sender], sender: Sender) = (letter,sender) match
 
     /* If the pair message comes from the Register actor, we store it as a new/updated user */
     case (Access.Pair(name,password),source: Register) => store += name -> password
@@ -96,7 +96,7 @@ object Access extends StandardDefine :
   type Accept = Register | Text
 
   /* Logger.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   case class Pair(name: String, password: String) extends Letter[Accept]
 
@@ -106,7 +106,7 @@ object Access extends StandardDefine :
 class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
   println("Text Actor Started.")
 
-  def receive[T >: Common <: Accept](letter: Text.Letter[T], sender: T) = (letter,sender) match
+  def receive[Sender >: Common <: Accept](letter: Text.Letter[Sender], sender: Sender) = (letter,sender) match
 
     case (Text.Lipsum(name,password),source: Anonymous) => access ! Access.Pair(name,password)
     case (Text.Lipsum(name,text),source: Noise)         => println(s"Some text for $name: $text")
@@ -119,7 +119,7 @@ object Text  extends StandardDefine :
   type Accept = Access | Noise | Anonymous
 
   /* Logger.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* Letter that contains information about the user, content is sender related. */
   case class Lipsum(name: String, content: String) extends Letter[Noise | Anonymous]
@@ -138,7 +138,7 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
   var supply: List[String] = Nil
 
 
-  def receive[T >: Common <: Accept](letter: Register.Letter[T], sender: T) = (letter,sender) match
+  def receive[Sender >: Common <: Accept](letter: Register.Letter[Sender], sender: Sender) = (letter,sender) match
     case (Register.Passwords(values),source: Noise) => supply = values
 
     case (Register.Request(name),source: Anonymous) =>
@@ -159,7 +159,7 @@ object Register extends StandardDefine :
   type Accept = Noise | Anonymous
 
   /* Logger.Letter is the base type for all letters: */
-  sealed trait Letter[T <: Accept] extends Actor.Letter[T]
+  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* Letter that contains new passwords. */
   case class Passwords(values: List[String]) extends Letter[Noise]
