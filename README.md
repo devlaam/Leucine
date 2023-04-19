@@ -23,8 +23,9 @@ Leucine is typed actor system, with the following properties:
 * Messages (letters) can be send between actors, or from the outside to each actor, to get work done.
 * Messages accepted by the actor are put into the mailbox and are processed in the order of arrival.
 * Messages send between two actors are guaranteed to keep their order.
+* Messages and Senders are typed and can be type-coupled, so you can restrict the message flow at compile time.
 * Actors can be told to stop directly, or after the current mailbox is depleted.
-* Exceptions (and termination) generate callbacks wich you can handle separately from the main line of code, or ignore.
+* Exceptions (and termination) generate callbacks which you can handle separately from the main line of code, or ignore.
 * There is a monitor class which enables you to get insight in the inner working of your code for debugging or system supervision.
 * It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
 
@@ -33,7 +34,7 @@ The three actor base types you can choose from are: `BasicActor`, `StandardActor
 ```Scala
 given actorContext: ActorContext = ActorContext.system
 
-class MyActor(name: String) extends BasicActor[MyActor.Letter](name) :
+class MyActor(name: String) extends BasicActor(MyActor,name) :
   // some startup code
   println(s"Actor $name started.")
 
@@ -43,9 +44,9 @@ class MyActor(name: String) extends BasicActor[MyActor.Letter](name) :
     case MyActor.Terminated => stop(Actor.Stop.Finish)
 
 
-object MyActor :
+object MyActor extends BasicDefine :
   /* Base type of all MyActor Letters, sealed to see if we handled them all. */
-  sealed trait Letter extends Actor.Letter
+  sealed trait Letter extends Actor.Letter[Actor]
   /* Letter that sends some text */
   case class Text(data: String) extends Letter
   /* Letter that indicates we are done. */
@@ -63,7 +64,7 @@ object Main :
     myActor ! MyActor.Terminated
     ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg)
+See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg). Remark: this links to the example in the master thread. There may be minor syntactical differences.
 
 ### Advanced features
 The functionality of actors can be extended with mixins. There are:
@@ -87,10 +88,11 @@ libraryDependencies += "com.sense2act" %% "leucine" % "<latest-version>"
 
 ### Demos
 The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/develop/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
-There are three demo's:
+There are for demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
 * Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
 * Crawler: Spawns some actors in a hierarchical fashion and sends messages up and down the pyramid.
+* ChatGRT: Runs a chat bot that produces random output after you have signed up for an account.
 
 All implementations (JVM,JS,Native) have their own Execution Context so you are isolated from the underlying threading model.
 In an actor you may never block of course, but with `expect` you can handle waiting for external events.
@@ -111,7 +113,7 @@ leucine $ java -jar jvm/target/scala-3.2.1/main.jar
 Started Actor examples on the JVM platform.
 Please state the demo you want to run (ticker, server or crawler):
 ```
-and then choose one of them. The `ticker` and `crawler` are stand alone demo's, the `server` requires an application
+and then choose one of them. The `ticker`,`crawler` and `chatgrt` are stand alone demo's, the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
 
 #### Demos on NodeJS
@@ -127,7 +129,7 @@ leucine $ node js/target/scala-3.2.1/leucine-opt/main.js
 Started Actor examples on the JS platform.
 Please state the demo you want to run (ticker, server or crawler):
 ```
-and then choose one of them. The `ticker` and `crawler` are stand alone demo's, the `server` requires an application
+and then choose one of them. The `ticker`,`crawler` and `chatgrt` are stand alone demo's, the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
 And although projectJS is single threaded, the Actor implementation runs as if it is
 working in parallel.
@@ -145,7 +147,7 @@ leucine $ native/target/scala-3.2.1/leucine-out
 Started Actor examples on the Native platform.
 Please state the demo you want to run (ticker, server or crawler):
 ```
-and then choose one of them.  The `ticker` and `crawler` are stand alone demo's,  the `server` requires an application
+and then choose one of them.  The `ticker`,`crawler` and `chatgrt` are stand alone demo's,  the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
 And although projectNative (currently 0.4.11) is still single threaded, the Actor implementation runs as if it is
 working in parallel. When 0.5.0 comes out, we should have multi threading, but from the user of the actors point
@@ -160,7 +162,7 @@ whereas the java version needed around 48ms!
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment. But Leucine will not try to
 copy all of Akka or follow its conventions. Changes in the design may still happen, at least until release 1.0 is reached.
-The features I need myself are incorporated by now, so the coming months are devoted to testing.
+The features I need myself are incorporated by now, so the coming months are devoted to testing and minor syntax changes.
 Feature requests are welcome if motivated, and of course, bug reports. Please do not send a PR without consultation.
 
 
