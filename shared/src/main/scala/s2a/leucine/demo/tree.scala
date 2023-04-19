@@ -61,7 +61,7 @@ class Tree(name: String, val parent: Option[Tree]) extends StandardActor(Tree,na
     stop(Actor.Stop.Silent)
 
 
-  def receive[T >: Common <: Sender](letter: Tree.Letter[T], sender: T) = letter match
+  def receive[T >: Common <: Accept](letter: Tree.Letter[T], sender: T) = letter match
     /**/
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */

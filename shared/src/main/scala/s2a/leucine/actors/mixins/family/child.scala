@@ -41,7 +41,7 @@ transparent private trait FamilyChild extends ActorDefs :
   type ChildLetter[T >: ChildCommon <: ChildSender] <: Actor.Letter[T]
 
   /** The actor type of the combined children. */
-  type ChildActor = BareActor { type Sender >: ChildSender; type Common <: ChildCommon; type MyLetter[T >: ChildCommon <: ChildSender] >: ChildLetter[T] }
+  type ChildActor = BareActor { type Accept >: ChildSender; type Common <: ChildCommon; type MyLetter[T >: ChildCommon <: ChildSender] >: ChildLetter[T] }
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext

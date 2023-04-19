@@ -15,7 +15,7 @@ object BasicActorTest extends TestSuite :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"$name:stop:$complete")
       done()
-    override protected def except(letter: MyLetter[Sender], cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
+    override protected def except(letter: MyLetter[Accept], cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
     def receive(letter: Writer.Letter) = letter match
       case  Writer.Text(text: String) => writeln(s"$name:$text")
       case  Writer.Number(int: Int)   => writeln(s"$name:$int")

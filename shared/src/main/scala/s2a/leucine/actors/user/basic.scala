@@ -34,19 +34,19 @@ package s2a.leucine.actors
 abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
   /* Very peculiar that you cannot make 'define' fully private, but can make it private[actors]. Does not feel consistent with the
    * accessibility of the type aliases below. */
-  type Sender = Actor | this.type
+  type Accept = Actor | this.type
   type Common = Actor
-  private[actors] type MyLetter[T >: Common <: Sender] = actorDefine.Letter
+  private[actors] type MyLetter[T >: Common <: Accept] = actorDefine.Letter
   private[actors] type ActState = Actor.State
   type Letter = MyLetter[Actor]
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  private[actors] final def deliverEnvelope[T >: Common <: Sender](envelope: Env[T], state: ActState): ActState =
+  private[actors] final def deliverEnvelope[T >: Common <: Accept](envelope: Env[T], state: ActState): ActState =
     receive(envelope.letter)
     state
 
   /* Deliver the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[T >: Common <: Sender](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  private[actors] final def deliverException[T >: Common <: Accept](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,exception,exceptionCounter)
     state
 

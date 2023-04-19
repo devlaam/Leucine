@@ -62,7 +62,7 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
   type ChildSender = familyDefine.ChildAccept
   type ChildLetter[T >: ChildCommon <: ChildSender] = familyDefine.ChildLetter[T]
 
-  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type ChildSender <: self.Accept; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -76,7 +76,7 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
-  private[actors] type PA = Parent { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type ChildSender <: self.Accept; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -101,10 +101,10 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * are derived from one common ancestor. */
 trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
   self: BareActor =>
-  type ChildSender = Sender
+  type ChildSender = Accept
   type ChildCommon = Common
   type ChildLetter[T >: ChildCommon <: ChildSender] = MyLetter[T]
-  private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type Parent = Tree { type ChildSender <: self.Accept; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the

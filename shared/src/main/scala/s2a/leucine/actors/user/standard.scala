@@ -33,20 +33,19 @@ package s2a.leucine.actors
  * contains the necessary type aliases as first parameter. */
 abstract class StandardActor[Define <: StandardDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
 
-  type Sender = actorDefine.Accept
-  type Common = Nothing
-  private[actors] type MyLetter[T >: Common <: Sender] = actorDefine.Letter[T]
-  private[actors] type ActState = Actor.State
   type Accept = actorDefine.Accept
+  type Common = Nothing
+  private[actors] type MyLetter[T >: Common <: Accept] = actorDefine.Letter[T]
+  private[actors] type ActState = Actor.State
   type Letter[T <: Accept] = MyLetter[T]
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  private[actors] final def deliverEnvelope[T >: Common <: Sender](envelope: Env[T], state: ActState): ActState =
+  private[actors] final def deliverEnvelope[T >: Common <: Accept](envelope: Env[T], state: ActState): ActState =
     receive(envelope.letter,envelope.sender)
     state
 
   /* Process the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[T >: Common <: Sender](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  private[actors] final def deliverException[T >: Common <: Accept](envelope: Env[T], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
     except(envelope.letter,envelope.sender,exception,exceptionCounter)
     state
 
@@ -77,13 +76,13 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
      * Store a letter and sender manually on the stash. With this method, you may replace one
      * letter with an other, or spoof the sender, and reprocess later. If the actor was asked to
      * finish, store will still work, since the letter was from before that request. */
-    protected def store[T <: Sender](letter: Letter[T], sender: T): Unit = stash.storeEnv(pack(letter,sender))
+    protected def store[T <: Accept](letter: Letter[T], sender: T): Unit = stash.storeEnv(pack(letter,sender))
 
   /**
    * Implement this method in your actor to process the letters send to you. There sender contains a reference
    * to the actor that send the message. To be able to return an answer, you must know the original actor type.
    * This can be obtained by a runtime type match. Use the send method on the senders matched type.  */
-  protected def receive[T <: Sender](letter: Letter[T], sender: T): Unit
+  protected def receive[T <: Accept](letter: Letter[T], sender: T): Unit
 
   /**
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
@@ -95,7 +94,7 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  protected def except[T <: Sender](letter: Letter[T], sender: T, cause: Exception, size: Int): Unit = ()
+  protected def except[T <: Accept](letter: Letter[T], sender: T, cause: Exception, size: Int): Unit = ()
 
   /**
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context
@@ -104,7 +103,7 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
   def send[T <: Accept](letter: Letter[T], sender: T): Boolean = sendEnvelope(pack(letter,sender))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
-  def ![T <: Sender](letter: Letter[T])(using sender: T): Unit = sendEnvelope(pack(letter,sender))
+  def ![T <: Accept](letter: Letter[T])(using sender: T): Unit = sendEnvelope(pack(letter,sender))
 
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
   final val name = register(prename)

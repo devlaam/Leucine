@@ -15,7 +15,7 @@ trait StashAidTest(using ac: ActorContext) :
       writeln(s"stop:$complete")
       done()
     protected def initial = Stack.State(Nil,true)
-    def receive[T >: Common <: Sender](letter: Stack.Letter[T], sender: T, state: Stack.State) = letter match
+    def receive[T >: Common <: Accept](letter: Stack.Letter[T], sender: T, state: Stack.State) = letter match
       case  Stack.Write(value)  => if state.block && value%2==0 then { Stash.store(); state } else state.copy(value::state.values)
       case  Stack.Push(value)   => Stash.store(Stack.Write(value),sender); state
       case  Stack.Pop           => Stash.flush(); state.copy(block=false)

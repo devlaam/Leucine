@@ -41,7 +41,7 @@ class Noise extends StandardActor(Noise,"Noise") :
   def make(length: Int): String = Random.alphanumeric.take(length).mkString
 
   /* Receive method that handles the incoming requests. */
-  def receive[T >: Common <: Sender](letter: Noise.Letter[T], sender: T) = (letter,sender) match
+  def receive[T >: Common <: Accept](letter: Noise.Letter[T], sender: T) = (letter,sender) match
 
     /* Return a sequence of size random strings each of the same length. */
     case (Noise.Request(_,size,length), source: Register) =>
@@ -80,7 +80,7 @@ class Access extends StandardActor(Access,"Server") :
 
   def checkUser(name: String, password: String) = store.get(name).map(_ == password).getOrElse(false)
 
-  def receive[T >: Common <: Sender](letter: Access.Letter[T], sender: T) = (letter,sender) match
+  def receive[T >: Common <: Accept](letter: Access.Letter[T], sender: T) = (letter,sender) match
 
     /* If the pair message comes from the Register actor, we store it as a new/updated user */
     case (Access.Pair(name,password),source: Register) => store += name -> password
@@ -106,7 +106,7 @@ object Access extends StandardDefine :
 class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
   println("Text Actor Started.")
 
-  def receive[T >: Common <: Sender](letter: Text.Letter[T], sender: T) = (letter,sender) match
+  def receive[T >: Common <: Accept](letter: Text.Letter[T], sender: T) = (letter,sender) match
 
     case (Text.Lipsum(name,password),source: Anonymous) => access ! Access.Pair(name,password)
     case (Text.Lipsum(name,text),source: Noise)         => println(s"Some text for $name: $text")
@@ -138,7 +138,7 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
   var supply: List[String] = Nil
 
 
-  def receive[T >: Common <: Sender](letter: Register.Letter[T], sender: T) = (letter,sender) match
+  def receive[T >: Common <: Accept](letter: Register.Letter[T], sender: T) = (letter,sender) match
     case (Register.Passwords(values),source: Noise) => supply = values
 
     case (Register.Request(name),source: Anonymous) =>
