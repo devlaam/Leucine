@@ -160,8 +160,8 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 /* This is the natural location to define all the letters the actor may receive. */
 object Server extends StandardDefine, FamilyDefine :
   // TODO: At the moment there are no common messages, extend!
-  type ChildAccept = Server & Provider
-  type ChildLetter[T <: ChildAccept] = Nothing
+  type FamilyAccept = Server & Provider
+  type FamilyLetter[T <: FamilyAccept] = Nothing
   type Accept = Server | Anonymous //| Actor
   /* Base type of all Server Letters, sealed because that enables the compiler to see
    * if we handled them all. */

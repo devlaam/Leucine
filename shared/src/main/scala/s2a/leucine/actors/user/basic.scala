@@ -54,23 +54,23 @@ abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine
   private[actors] final def initialState: ActState = Actor.State.Default
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  extension (fc: FamilyChild { type ChildSender = Actor } )
+  extension (fc: FamilyChild { type FamilyAccept = Actor } )
     /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include
      * auto named children (children that were not given an explicit name) or workers. */
-    protected def relay(letter: fc.ChildLetter[fc.ChildSender], include: String => Boolean): Int =
+    protected def relay(letter: fc.FamilyLetter[fc.FamilyAccept], include: String => Boolean): Int =
       fc.relayEnvFilter(letter,Actor.Anonymous,include)
     /**
      * Forward a message to children that are indexed and/or workers and or children that were given
      * an automatic name, i.e. children that were not given an explicit name.
      * Returns the number of children that accepted the letter.  */
-    protected def relay(letter: fc.ChildLetter[fc.ChildSender], toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
+    protected def relay(letter: fc.FamilyLetter[fc.FamilyAccept], toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
       fc.relayEnvGrouped(letter,Actor.Anonymous,toIndexed,toWorkers,toAutoNamed)
     /**
      * Forward a message to one specific child on the basis of its name. Returns true if successful and
      * false if that child is not present or does not accept the letter. */
-    protected def pass(letter: fc.ChildLetter[fc.ChildSender], name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
+    protected def pass(letter: fc.FamilyLetter[fc.FamilyAccept], name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (stash: StashOps)

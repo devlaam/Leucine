@@ -34,8 +34,8 @@ object ActorFamilySupply extends TestSuite :
     type Accept = Anonymous | Outside
     sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case object Test0 extends Letter[Accept]
-    type ChildAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
-    type ChildLetter[T <: ChildAccept] = Letter[T] & Level1A_.Letter[T] & Level1B_.Letter[T] & Level1C_.Letter[T]
+    type FamilyAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
+    type FamilyLetter[T <: FamilyAccept] = Letter[T] & Level1A_.Letter[T] & Level1B_.Letter[T] & Level1C_.Letter[T]
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
@@ -43,8 +43,8 @@ object ActorFamilySupply extends TestSuite :
     type Accept = Anonymous | Outside | Level0
     sealed trait Letter[T <: Accept] extends Actor.Letter[T]
     case object Test1A extends Letter[Accept]
-    type ChildAccept = Actor
-    type ChildLetter[T <: ChildAccept] =  Level2A_.Letter[T]
+    type FamilyAccept = Actor
+    type FamilyLetter[T <: FamilyAccept] =  Level2A_.Letter[T]
 
   object Level1B_ extends StandardDefine :
     type Accept = Anonymous | Outside
@@ -129,8 +129,8 @@ object ActorFamilySupply extends TestSuite :
         /* Testing these hit a compiler bug. */
         //(letter,sender) match
         //  compileError("case (Level0_.Test0, s: Level0) => ()").msg.clean() ==> "Dit kan niet en dat klopt."
-        //  compileError("case (Level1A_.Test1A, rs: ChildSender) => relay(cl,rs,_ => true)").msg.clean() ==> "Dit kan niet en dat klopt."
-        //  compileError("case (Level1B_.Test1B, rs: ChildSender) => relay(cl,rs,_ => true) ").msg.clean() ==> "Dit kan niet en dat klopt."
+        //  compileError("case (Level1A_.Test1A, rs: FamilyAccept) => relay(cl,rs,_ => true)").msg.clean() ==> "Dit kan niet en dat klopt."
+        //  compileError("case (Level1B_.Test1B, rs: FamilyAccept) => relay(cl,rs,_ => true) ").msg.clean() ==> "Dit kan niet en dat klopt."
 
     val outside = new Outside
 

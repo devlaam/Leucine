@@ -42,9 +42,9 @@ private[actors] trait FamilyDefs :
  * trees in your system, each with its own root. */
 trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain :
   self: BareActor =>
-  type ChildCommon = familyDefine.ChildCommon
-  type ChildSender = familyDefine.ChildAccept
-  type ChildLetter[T >: ChildCommon <: ChildSender] = familyDefine.ChildLetter[T]
+  type FamilyCommon = familyDefine.FamilyCommon
+  type FamilyAccept = familyDefine.FamilyAccept
+  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[T]
 
   final override def path: String = name
 
@@ -58,11 +58,11 @@ trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Defin
  * after creation manually. */
 trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
   self: BareActor =>
-  type ChildCommon = familyDefine.ChildCommon
-  type ChildSender = familyDefine.ChildAccept
-  type ChildLetter[T >: ChildCommon <: ChildSender] = familyDefine.ChildLetter[T]
+  type FamilyCommon = familyDefine.FamilyCommon
+  type FamilyAccept = familyDefine.FamilyAccept
+  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[T]
 
-  private[actors] type PA = Parent { type ChildSender <: self.Accept; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -76,7 +76,7 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   self: BareActor =>
-  private[actors] type PA = Parent { type ChildSender <: self.Accept; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+  private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: self.MyLetter[T] }
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -101,10 +101,10 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * are derived from one common ancestor. */
 trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
   self: BareActor =>
-  type ChildSender = Accept
-  type ChildCommon = Common
-  type ChildLetter[T >: ChildCommon <: ChildSender] = MyLetter[T]
-  private[actors] type Parent = Tree { type ChildSender <: self.Accept; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+  type FamilyAccept = Accept
+  type FamilyCommon = Common
+  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] = MyLetter[T]
+  private[actors] type Parent = Tree { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: self.MyLetter[T] }
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
@@ -143,6 +143,6 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
 
 
 trait FamilyDefine :
-  type ChildAccept <: Actor
-  type ChildCommon <: ChildAccept
-  type ChildLetter[T >: ChildCommon <: ChildAccept] <: Actor.Letter[T]
+  type FamilyAccept <: Actor
+  type FamilyCommon <: FamilyAccept
+  type FamilyLetter[T >: FamilyCommon <: FamilyAccept] <: Actor.Letter[T]
