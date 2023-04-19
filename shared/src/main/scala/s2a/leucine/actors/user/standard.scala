@@ -29,14 +29,15 @@ package s2a.leucine.actors
  * The StandardActor is able to respond to messages, but does not keep state. You can of course keep your own in variables.
  * If you do, make sure these are private, so there is no risk the leak to the outside world. All possible return types
  * must be specified. If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
- * on the base of its name. Supply !# as name to define this a worker actor.*/
-abstract class StandardActor[Define <: StandardDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
+ * on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
+ * contains the necessary type aliases as first parameter. */
+abstract class StandardActor[Define <: StandardDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
 
-  type Sender = define.Accept
+  type Sender = actorDefine.Accept
   type Common = Nothing
-  private[actors] type MyLetter[T >: Common <: Sender] = define.Letter[T]
+  private[actors] type MyLetter[T >: Common <: Sender] = actorDefine.Letter[T]
   private[actors] type ActState = Actor.State
-  type Accept = define.Accept
+  type Accept = actorDefine.Accept
   type Letter[T <: Accept] = MyLetter[T]
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
@@ -108,8 +109,12 @@ abstract class StandardActor[Define <: StandardDefine](val define: Define, prena
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
   final val name = register(prename)
 
+
+/** Derive your companion object from this trait, so you can define your own typed letters. */
 trait StandardDefine :
+  /** Your class should contain a union of types you will accept as valid Senders. */
   type Accept <: Actor
+  /** Your class should contain a sealed trait Letter[T<: Accept] derived from Actor.Letter[T]. */
   type Letter[T <: Accept] <: Actor.Letter[T]
   /** Use this inside the actor to allow the anonymous sender in Accept */
   type Anonymous = Actor.Anonymous.type

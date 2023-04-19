@@ -40,7 +40,7 @@ private[actors] trait FamilyDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain :
+trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain :
   self: BareActor =>
   type ChildCommon = familyDefine.ChildCommon
   type ChildSender = familyDefine.ChildAccept
@@ -56,7 +56,7 @@ trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends Famil
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
+trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
   self: BareActor =>
   type ChildCommon = familyDefine.ChildCommon
   type ChildSender = familyDefine.ChildAccept

@@ -28,13 +28,14 @@ package s2a.leucine.actors
 /**
  * The StateActor is able to respond to messages, and keeps state between all calls. You are obliged to return the same
  * or a new state upon every call. This is better than using vars.  If no name is given, an unique name is generated, but
- * the actor is not indexed to be retrieved on the base of its name. Supply !# as name to define this a worker actor. */
-abstract class StateActor[Define <: StateDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
+ * the actor is not indexed to be retrieved on the base of its name. Supply !# as name to define this a worker actor.
+ * Supply the (companion) object which contains the necessary type aliases as first parameter. */
+abstract class StateActor[Define <: StateDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
 
-  type Sender = define.Accept
+  type Sender = actorDefine.Accept
   type Common = Nothing
-  private[actors] type MyLetter[T >: Common <: Sender] = define.Letter[T]
-  private[actors] type ActState = define.State
+  private[actors] type MyLetter[T >: Common <: Sender] = actorDefine.Letter[T]
+  private[actors] type ActState = actorDefine.State
 
   /* Deliver the letter in the envelope. The state may also be changed by the user. */
   private[actors] final def deliverEnvelope[T >: Common <: Sender](envelope: Env[T], state: ActState): ActState =
@@ -110,10 +111,13 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
   final val name = register(prename)
 
 
+/** Derive your companion object from this trait, so you can define your own typed letters. */
 trait StateDefine :
+  /** Your class should contain a union of types you will accept as valid Senders. */
   type Accept <: Actor
+  /** Your class should contain a sealed trait Letter[T<: Accept] derived from Actor.Letter[T]. */
   type Letter[T <: Accept] <: Actor.Letter[T]
+  /** Your class should contain a class derived from Actor.State which keeps state between letters. */
   type State <: Actor.State
   /** Use this inside the actor to allow the anonymous sender in Accept */
   type Anonymous = Actor.Anonymous.type
-

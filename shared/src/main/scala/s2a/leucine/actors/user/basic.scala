@@ -28,14 +28,15 @@ package s2a.leucine.actors
 /**
  * The BasicActor accepts messages from any other actor, but is not able to return an answer, because the sender is not tracked.
  * This simplifies the use, for not all possible return types need to be specified. It is still possible to send a message to
- * a fixed actor though, if the actorRef is known. If no name is given, an unique name is generated, but the actor is not indexed
- * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. */
-//TODO: maak van define => _define. Deze moet val zijn, maar hoort eigenlijk niet naar buiten te komen.
-abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
-
+ * a fixed actor though, if the actor itself is known. If no name is given, an unique name is generated, but the actor is not indexed
+ * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
+ * contains the necessary type aliases as first parameter. */
+abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
+  /* Very peculiar that you cannot make 'define' fully private, but can make it private[actors]. Does not feel consistent with the
+   * accessibility of the type aliases below. */
   type Sender = Actor | this.type
   type Common = Actor
-  private[actors] type MyLetter[T >: Common <: Sender] = define.Letter
+  private[actors] type MyLetter[T >: Common <: Sender] = actorDefine.Letter
   private[actors] type ActState = Actor.State
   type Letter = MyLetter[Actor]
 
@@ -108,5 +109,7 @@ abstract class BasicActor[Define <: BasicDefine](val define: Define, prename: St
   final val name = register(prename)
 
 
+/** Derive your companion object from this trait, so you can define your own typed letters. */
 trait BasicDefine :
+  /** Your class should contain a sealed trait Letter derived from Actor.Letter[Actor]. */
   type Letter <: Actor.Letter[Actor]
