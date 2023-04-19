@@ -37,7 +37,7 @@ object ActorFamilySupply extends TestSuite :
     type ChildAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
     type ChildLetter[T <: ChildAccept] = Letter[T] & Level1A_.Letter[T] & Level1B_.Letter[T] & Level1C_.Letter[T]
     /* TODO: This is still problematic, but we must be able to define common letters. */
-    //case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
+    case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
   object Level1A_ extends StandardDefine, FamilyDefine :
     type Accept = Anonymous | Outside | Level0
@@ -85,8 +85,9 @@ object ActorFamilySupply extends TestSuite :
 
     def receive[T >: Common <: Sender](letter: MyLetter[T], sender: T) = (letter,sender) match
       case (Level0_.Test0, s: Anonymous) => ()
-      case (Level0_.Test0, s: Outside) => ()
-      case (Level0_.Test0, s: Level0) => ()
+      case (Level0_.Test0, s: Outside)   => ()
+      case (Level0_.Test0, s: Level0)    => ()
+      case (Level0_.Common, _)           => ()
       /* Unfortunately the compiler does not understand the case below cannot occur */
       case(Level0_.Test0,_) => ()
 

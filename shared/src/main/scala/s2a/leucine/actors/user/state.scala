@@ -32,13 +32,9 @@ package s2a.leucine.actors
 abstract class StateActor[Define <: StateDefine](val define: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
 
   type Sender = define.Accept
+  type Common = Nothing
   private[actors] type MyLetter[T >: Common <: Sender] = define.Letter[T]
   private[actors] type ActState = define.State
-
-  // /* Pack the letter with the sender into one envelope */
-  // private[actors] final def pack[T >: Common <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
-
-  // private[actors] def repack[T >: Common <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
 
   /* Deliver the letter in the envelope. The state may also be changed by the user. */
   private[actors] final def deliverEnvelope[T >: Common <: Sender](envelope: Env[T], state: ActState): ActState =
@@ -55,23 +51,23 @@ abstract class StateActor[Define <: StateDefine](val define: Define, prename: St
   protected def initial: ActState
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
-  // extension (fc: FamilyChild)
-  //    /**
-  //    * Forward a message to children of which the name passes the test 'include'.
-  //    * Returns the number of children that accepted the letter. Does not include
-  //    * auto named children (children that were not given an explicit name) or workers. */
-  //   protected def relay[T >: fc.ChildCommon <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, include: String => Boolean): Int =
-  //     fc.relayEnvFilter(letter,sender,include)
-  //   /**
-  //    * Forward a message to children that are indexed and/or workers and or children that were given
-  //    * an automatic name, i.e. children that were not given an explicit name.
-  //    * Returns the number of children that accepted the letter.  */
-  //   protected def relay[T >: fc.ChildCommon <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
-  //     fc.relayEnvGrouped(letter,sender,toIndexed,toWorkers,toAutoNamed)
-  //   /**
-  //    * Forward a message to one specific child on the basis of its name. Returns true if successful and
-  //    * false if that child is not present or does not accept the letter. */
-  //   protected def pass[T >: fc.ChildCommon <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, name: String): Boolean = fc.passEnv(letter,sender,name)
+  extension (fc: FamilyChild)
+     /**
+     * Forward a message to children of which the name passes the test 'include'.
+     * Returns the number of children that accepted the letter. Does not include
+     * auto named children (children that were not given an explicit name) or workers. */
+    protected def relay[T >: fc.ChildCommon <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, include: String => Boolean): Int =
+      fc.relayEnvFilter(letter,sender,include)
+    /**
+     * Forward a message to children that are indexed and/or workers and or children that were given
+     * an automatic name, i.e. children that were not given an explicit name.
+     * Returns the number of children that accepted the letter.  */
+    protected def relay[T >: fc.ChildCommon <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, toIndexed: Boolean = true, toWorkers: Boolean = false, toAutoNamed: Boolean = false): Int =
+      fc.relayEnvGrouped(letter,sender,toIndexed,toWorkers,toAutoNamed)
+    /**
+     * Forward a message to one specific child on the basis of its name. Returns true if successful and
+     * false if that child is not present or does not accept the letter. */
+    protected def pass[T >: fc.ChildCommon <: fc.ChildSender](letter: fc.ChildLetter[T], sender: T, name: String): Boolean = fc.passEnv(letter,sender,name)
 
   extension (stash: StashOps)
     /**
@@ -118,8 +114,6 @@ trait StateDefine :
   type Accept <: Actor
   type Letter[T <: Accept] <: Actor.Letter[T]
   type State <: Actor.State
-  //trait BaseLetter[BA <: Accept] extends Actor.Letter[T] { type Accept = BA }
-
   /** Use this inside the actor to allow the anonymous sender in Accept */
   type Anonymous = Actor.Anonymous.type
 

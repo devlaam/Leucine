@@ -40,7 +40,6 @@ private[actors] trait FamilyDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-// TODO: Kan dit niet gewoon define zijn (de val moet dan weg bij basic/standard/state actors)
 trait FamilyRoot[Define <: FamilyDefine](val familyDefine: Define) extends FamilyChild, FamilyMain :
   self: BareActor =>
   type ChildCommon = familyDefine.ChildCommon
@@ -100,44 +99,47 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * dynamically/recursively. The field 'parent' is an option in this case and the root of the tree
  * should not have a parent. The type of the parent equals the type of the FamilyTree and all letters
  * are derived from one common ancestor. */
-// trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
-//   self: BareActor =>
-//   type ChildCommon = self.Common
-//   type ChildSender = self.Sender
-//   type ChildLetter[T >: ChildCommon <: ChildSender] = MyLetter[T]
-//   private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
+trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
+  self: BareActor =>
+  type ChildSender = Sender
+  type ChildCommon = Common
+  type ChildLetter[T >: ChildCommon <: ChildSender] = MyLetter[T]
+  private[actors] type Parent = Tree { type ChildSender <: self.Sender; type ChildCommon >: self.Common; type ChildLetter[T >: ChildCommon <: ChildSender] <: self.MyLetter[T] }
 
-//   /**
-//    * Access to the parent of this actor. It should be implemented as value parameter in the
-//    * class definition of this actor. That way the parent is an stable reference. The root
-//    * of the family tree should not have a parent (supply none)*/
-//   protected def parent: Option[Parent]
+  /**
+   * Access to the parent of this actor. It should be implemented as value parameter in the
+   * class definition of this actor. That way the parent is an stable reference. The root
+   * of the family tree should not have a parent (supply none)*/
+  protected def parent: Option[Parent]
 
-//   /** Internally called to remove an actor from its parents list, just before termination. */
-//   private[actors] override def familyAbandon(): Boolean = parent.map(_.reject(self,false)).getOrElse(false)
+  /** Internally called to remove an actor from its parents list, just before termination. */
+  private[actors] override def familyAbandon(): Boolean = parent.map(_.reject(self,false)).getOrElse(false)
 
-//   /**
-//    * Abandon the parent when present. Normally, there should not be a reason for the user to do so, but when
-//    * you want to prohibit the termination of this actor when the parent stops, this could be one. Note that
-//    * you should not call this when the actor itself has children.
-//    * The parent itself cannot be removed from the child that is rejected. When the actor is still
-//    * active it will be put under guard. There is no way to reunite the child and parent later on. */
-//   protected def abandon(): Boolean = parent.map(_.reject(self,activity.active)).getOrElse(false)
+  /**
+   * Abandon the parent when present. Normally, there should not be a reason for the user to do so, but when
+   * you want to prohibit the termination of this actor when the parent stops, this could be one. Note that
+   * you should not call this when the actor itself has children.
+   * The parent itself cannot be removed from the child that is rejected. When the actor is still
+   * active it will be put under guard. There is no way to reunite the child and parent later on. */
+  protected def abandon(): Boolean = parent.map(_.reject(self,activity.active)).getOrElse(false)
 
-//   /** Register this actor. */
-//   private[actors] override def register(prename: String): String =
-//     parent match
-//     /* Children register at the parent. */
-//       case Some(p) => p.adopt(prename,self)
-//       /* If this is the root of the family then we register at the guard. */
-//       case None    => super.register(prename)
+  /** Register this actor. */
+  private[actors] override def register(prename: String): String =
+    // This works:
+    parent.map(_.adopt(prename,self)).getOrElse(super.register(prename))
+    // Code below gives: Recursion limit exceeded. Maybe there is an illegal cyclic reference?
+    // parent match
+    // /* Children register at the parent. */
+    //   case Some(p) => p.adopt(prename,self)
+    //   /* If this is the root of the family then we register at the guard. */
+    //   case None    => super.register(prename)
 
-//   /**
-//    * The path returns the full lineage of this actor: dot separated names of all parents.
-//    * The dot can be replaced by your own char by overriding the familySepChar. */
-//   final override val path: String = parent match
-//     case Some(p) => s"${p.path}${context.familyPathSeparator}$name"
-//     case None    => name
+  /**
+   * The path returns the full lineage of this actor: dot separated names of all parents.
+   * The dot can be replaced by your own char by overriding the familySepChar. */
+  final override val path: String = parent.map(_.path) match
+    case Some(path) => s"$path${context.familyPathSeparator}$name"
+    case None       => name
 
 
 trait FamilyDefine :

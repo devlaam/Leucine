@@ -5,12 +5,12 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-val nightly = "3.3.1-RC1-bin-20230415-3f611d8-NIGHTLY"
-val latest  = "3.3.0-RC3"
+val nightly = "3.3.1-RC1-bin-20230416-2f4cc4c-NIGHTLY"
+val latest  = "3.3.0-RC4"
 val stable  = "3.2.1"
 
 /* Set to 1 for publishing to exclude the demo/test files. */
-val publishMe: Int = 1
+val publishMe: Int = 0
 
 ThisBuild / version       :=  "0.3.0"
 ThisBuild / scalaVersion  :=  stable

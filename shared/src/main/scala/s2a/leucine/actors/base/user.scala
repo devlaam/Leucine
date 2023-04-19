@@ -28,15 +28,10 @@ package s2a.leucine.actors
 transparent trait UserActor(using context: ActorContext) extends Actor, ActorDefs :
   import Actor.Stop
 
-  /* Pack the letter with the sender. Here the sender is ignored.
-   * //TODO For the moment, this is only used in at message relaying among
-   * children. This is not ideal design, since we do not want to know anything
-   * about the sender in the BareActor. However, i see no solution right now. */
-//  private[actors] def pack[T >: Common <: Sender](letter: MyLetter[T], sender: T): Env[T]
-
-  /* Pack the letter with the sender. Here the sender is ignored. */
+  /** Pack the letter with the sender into an envelope.  */
   private[actors] final def pack[T >: Common <: Sender](letter: MyLetter[T], sender: T): Env[T] = BareActor.Envelope(letter,sender)
 
+  /** Repacking is for the monitor only. */
   private[actors] def repack[T >: Common <: Sender](env: Env[T]): BareActor.Card[T] = BareActor.Card(env.letter,env.sender)
 
   /** The maximum number of letters this actor accepts. Override to change its value. */

@@ -42,15 +42,11 @@ private[actors] trait TimingDefs extends BareDefs :
  * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
 trait TimingAid(using context: ActorContext) extends ActorDefs :
   this: BareActor =>
-  /* Do not use 'This' instead of this.type in the definition of Sender => Conflicting bounds compiler error. */
+  /** Guarantee that Sender is at least able to send a message to itself. */
   type Sender >: this.type <: Actor
-  private[actors] type MyLetter[T >: Common <: Sender] <: Actor.Letter[T]
-  /* Below we may use the This type variable. */
-  private type This = this.type
-  private type Event[T >: Common <: Sender] = TimingAid.Event[Sender,Common,T,MyLetter]
-
-  /** Actor dependent packing of letter and sender into one envelope. */
-  //private[actors] def pack[T >: This <: Sender](letter: MyLetter[T], sender: T): Env[T]
+  /** All methods here only take messages to itself, so the self type is in fact a lower bound. */
+  private type This = Common | this.type
+  private type Event[T >: This <: Sender] = TimingAid.Event[Sender,This,T,MyLetter]
 
   /** Holds all references to the running timers, so we can cancel them when needed. */
   private val anchors: mutable.Map[Object,Cancellable] = mutable.Map.empty
@@ -64,7 +60,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
   /**
    * Construct a new callable on the fly. The call method puts the event on the events queue and
    * calls trigger in order to start the loop if needed. */
-  private def callable[T >: Common <: Sender](event: Event[T]) =
+  private def callable[T >: This <: Sender](event: Event[T]) =
     /* The handle takes an anchored event and puts it on the event queue. Due to the synchronization
      * eventsCancel() and handle cannot interfere. But it is possible that the call() was made before
      * the cancel but the handle afterwards. In that situation cancel() did miss its effect.
@@ -80,9 +76,9 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
    * Construct a new digestible on the fly. The digest method takes the letter given to it, and
    * constructs a new event for the events queue and calls trigger in order to start the loop if
    * needed. */
-  private def digestible[T >: Common <: Sender](anchor: Object): Digestible[MyLetter[T]] =
+  private def digestible[T >: This <: Sender](anchor: Object): Digestible[MyLetter[T]] =
     def handle(letter: MyLetter[T]) = synchronized {
-      events.enqueue(TimingAid.Event(anchor,letter))
+      events.enqueue(TimingAid.Event[Sender,This,T,MyLetter](anchor,letter))
       anchors.remove(anchor)
       /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true) }
@@ -102,8 +98,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
 
   /** Obtain a single event from the event queue, get the letter and put it in an envelope. */
   private[actors] override def eventsDequeue(tail: List[Env[?]]): List[Env[?]] = synchronized {
-    //!!val event = events.dequeue.map(event => pack(event.letter,this))
-    val event = events.dequeue.map(event => pack(event.letter,???))
+    val event = events.dequeue.map(event => pack(event.letter,this))
     if       tail.isEmpty  then event
     else if  event.isEmpty then tail
     else                        event.head :: tail }
@@ -114,13 +109,13 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
    * timer has already expired during execution of this letter. If the actor was asked to finish,
    * the letter will NOT be posted AND the original letter is removed as well, if present.
    * Returns if the post was accepted. */
-  protected def post[T >: Common <: Sender](letter: MyLetter[T], delay: FiniteDuration, anchor: Object = this): Boolean = synchronized {
+  protected def post[T >: This <: Sender](letter: MyLetter[T], delay: FiniteDuration, anchor: Object = this): Boolean = synchronized {
     /* First remove a post that may be out there. */
     dump(anchor)
     /* If we are not active, we may not accept this post. Otherwise ... */
     if !activity.active then false else
       /* ... schedule a new timer and add it to the anchors map. */
-      anchors.addOne(anchor -> context.schedule(callable(TimingAid.Event(anchor,letter)),delay))
+      anchors.addOne(anchor -> context.schedule(callable(TimingAid.Event[Sender,This,T,MyLetter](anchor,letter)),delay))
       true }
 
   /**
@@ -145,7 +140,7 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
    * fulfill should produce None asap. It will be probed somewhat later once more. If the actor
    * was asked to finish, the request will be ignored AND any former timer/expectation on
    * this anchor is cleared as well, if present. Returns if the expectation was accepted. */
-  protected def expect[T >: Common <: Sender](fullfil: => Option[MyLetter[T]], anchor: Object = this): Boolean = synchronized {
+  protected def expect[T >: This <: Sender](fullfil: => Option[MyLetter[T]], anchor: Object = this): Boolean = synchronized {
     /* First remove prior anchor use. */
     dump(anchor)
     /* If we are not active, we may not accept this expectation. Otherwise ... */
