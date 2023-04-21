@@ -47,7 +47,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
   post(Provider.Send,2.seconds)
 
   /* Handle the messages, which is only the posted letter in this case. */
-  def receive[Sender >: Common <: Accept](letter: Provider.Letter[Sender], sender: Sender): Unit = letter match
+  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
     case Provider.Send =>
       val datetime = new Date().toString
       val message  = s"Provider $path says: $datetime"
@@ -61,7 +61,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
     println(s"Provider $path stopped.")
     socket.close()
 
-object Provider extends StandardDefine:
+object Provider extends StandardDefine, Stateless:
   type Accept = Provider
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
   case object Send extends Letter[Accept]

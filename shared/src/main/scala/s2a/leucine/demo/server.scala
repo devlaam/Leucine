@@ -131,7 +131,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 
 
   /* Handle all incoming letters. */
-  protected def receive[Sender >: Common <: Accept](letter: Server.Letter[Sender], sender: Sender): Unit = letter match
+  protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
     /* The new connection will come in as a letter. */
     case Server.Connect(socket) =>
       Logger.info("Accepted a connection.")
@@ -158,7 +158,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 
 
 /* This is the natural location to define all the letters the actor may receive. */
-object Server extends StandardDefine, FamilyDefine :
+object Server extends StandardDefine, FamilyDefine, Stateless :
   // TODO: At the moment there are no common messages, extend!
   type FamilyAccept = Server & Provider
   type FamilyLetter[Sender <: FamilyAccept] = Nothing

@@ -71,13 +71,13 @@ private class Logger extends BasicActor(Logger,"logger") :
   println("Started Logger")
 
   /* receive method that handles the incoming logger and control messages. */
-  def receive(letter: Logger.Letter) = letter match
+  def receive(letter: Letter): Unit = letter match
     case msg: Message => if msg.level <= this.level then println(msg.show)
     case Switch(level: Level) => this.level = level
     case Stop                 => stop(Actor.Stop.Direct)
 
 
-object Logger extends BasicDefine:
+object Logger extends BasicDefine, Stateless:
   import PlatformContext.Platform
 
   /* This are the levels the logger is able to handle. */

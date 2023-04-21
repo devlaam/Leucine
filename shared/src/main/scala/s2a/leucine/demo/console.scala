@@ -58,7 +58,7 @@ private class Console extends BasicActor(Console,!#), TimingAid :
     stop()
 
   /* Start the demo of choice but staring its corresponding actor. */
-  def receive(letter: Console.Letter) = letter match
+  def receive(letter: Letter): Unit = letter match
     case Console.Demo("ticker")  =>  once(new Ticker)
     case Console.Demo("server")  =>  once(new Server)
     case Console.Demo("crawler") =>  once(new Tree("F0",None))
@@ -69,7 +69,7 @@ private class Console extends BasicActor(Console,!#), TimingAid :
     case Console.Cli             =>  Chatgrt.request(selfie(Console.Cmd(_)))
 
 
-object Console extends BasicDefine :
+object Console extends BasicDefine, Stateless :
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
   sealed trait Letter extends Actor.Letter[Actor]
   case class Demo(text: String) extends Letter

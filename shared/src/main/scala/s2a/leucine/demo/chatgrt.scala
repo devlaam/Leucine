@@ -41,7 +41,7 @@ class Noise extends StandardActor(Noise,"Noise") :
   def make(length: Int): String = Random.alphanumeric.take(length).mkString
 
   /* Receive method that handles the incoming requests. */
-  def receive[Sender >: Common <: Accept](letter: Noise.Letter[Sender], sender: Sender) = (letter,sender) match
+  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
 
     /* Return a sequence of size random strings each of the same length. */
     case (Noise.Request(_,size,length), source: Register) =>
@@ -57,7 +57,7 @@ class Noise extends StandardActor(Noise,"Noise") :
     case (_,_) => assert(false,"Code should not come here.")
 
 
-object Noise extends StandardDefine :
+object Noise extends StandardDefine, Stateless :
 
   /* Only the Access and Text actors may request for random content. */
   type Accept = Register | Text
@@ -80,7 +80,7 @@ class Access extends StandardActor(Access,"Server") :
 
   def checkUser(name: String, password: String) = store.get(name).map(_ == password).getOrElse(false)
 
-  def receive[Sender >: Common <: Accept](letter: Access.Letter[Sender], sender: Sender) = (letter,sender) match
+  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
 
     /* If the pair message comes from the Register actor, we store it as a new/updated user */
     case (Access.Pair(name,password),source: Register) => store += name -> password
@@ -92,7 +92,7 @@ class Access extends StandardActor(Access,"Server") :
     case (_,_) => assert(false,"Code should not come here.")
 
 
-object Access extends StandardDefine :
+object Access extends StandardDefine, Stateless :
   type Accept = Register | Text
 
   /* Logger.Letter is the base type for all letters: */
@@ -106,7 +106,7 @@ object Access extends StandardDefine :
 class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
   println("Text Actor Started.")
 
-  def receive[Sender >: Common <: Accept](letter: Text.Letter[Sender], sender: Sender) = (letter,sender) match
+  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
 
     case (Text.Lipsum(name,password),source: Anonymous) => access ! Access.Pair(name,password)
     case (Text.Lipsum(name,text),source: Noise)         => println(s"Some text for $name: $text")
@@ -114,7 +114,7 @@ class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
     /* This cannot be reached, but the compiler is not able to verify. */
     case (_,_) => assert(false,"Code should not come here.")
 
-object Text  extends StandardDefine :
+object Text  extends StandardDefine, Stateless :
 
   type Accept = Access | Noise | Anonymous
 
@@ -138,7 +138,7 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
   var supply: List[String] = Nil
 
 
-  def receive[Sender >: Common <: Accept](letter: Register.Letter[Sender], sender: Sender) = (letter,sender) match
+  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     case (Register.Passwords(values),source: Noise) => supply = values
 
     case (Register.Request(name),source: Anonymous) =>
@@ -154,7 +154,7 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
     /* This cannot be reached, but the compiler is not able to verify. */
     case (_,_) => assert(false,"Code should not come here.")
 
-object Register extends StandardDefine :
+object Register extends StandardDefine, Stateless :
 
   type Accept = Noise | Anonymous
 
