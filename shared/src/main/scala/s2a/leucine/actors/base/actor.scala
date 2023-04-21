@@ -27,12 +27,18 @@ package s2a.leucine.actors
 
 private[actors] trait BareDefs :
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
+  /** The upper bound for the collection of all accepted Senders. */
   type Accept <: Actor
+  /** The lower bound for the collection of all accepted Senders. */
   type Common <: Accept
+  /** The super type for the state the actor can be in. */
+  type State <: Actor.State
+  /** The Result type for the receive method. */
+  type Receive = State match
+    case Actor.State.Default.type  => Unit
+    case Actor.State               => (State => State)
   /** The super type for the letters you may receive. */
   private[actors] type MyLetter[Sender >: Common <: Accept] <: Actor.Letter[Sender]
-  /** The super type for the state the actor can be in. */
-  private[actors] type ActState <: Actor.State
   /** The combined type of Letter and Accept (Envelope).*/
   private[actors] type Env[Sender >: Common <: Accept] = BareActor.Envelope[Accept,Common,Sender,MyLetter]
 
@@ -117,7 +123,7 @@ object Actor :
 
   object State :
     /** The Default state is the state that is used internally if you do not need states yourself. */
-    case object Default extends State
+    object Default extends State
 
   /** The Anonymous Actor type used by the Anonymous sender. */
   type Anonymous = Anonymous.type

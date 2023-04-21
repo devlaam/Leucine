@@ -35,22 +35,26 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
 
   type Accept = actorDefine.Accept
   type Common = Nothing
-  private[actors] type MyLetter[Sender >: Common <: Accept] = actorDefine.Letter[Sender]
-  private[actors] type ActState = Actor.State
+  type State  = actorDefine.State
   type Letter[Sender <: Accept] = MyLetter[Sender]
+  private[actors] type MyLetter[Sender >: Common <: Accept] = actorDefine.Letter[Sender]
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
-  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState): ActState =
-    receive(envelope.letter,envelope.sender)
-    state
+  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
+    /* Let the letter be processed */
+    val received = receive(envelope.letter,envelope.sender)
+    /* The state remains unchanged, if we work stateless, otherwise compute the new state.
+     * TODO: Can this also be solved compile time? In an elegant manner?
+     * Based on this: https://scastie.scala-lang.org/13dD1LD8Q3OUpLrn89oLqw? */
+    if received.isInstanceOf[Unit] then state else received.asInstanceOf[State => State](state)
 
   /* Process the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState, exception: Exception, exceptionCounter: Int): ActState =
+  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
     except(envelope.letter,envelope.sender,exception,exceptionCounter)
     state
 
   /* Defines the initialState to be the Default state, the user does not need to implement this. */
-  private[actors] final def initialState: ActState = Actor.State.Default
+  private[actors] final def initialState: State = actorDefine.initial
 
   /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
   extension (fc: FamilyChild)
@@ -82,7 +86,7 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
    * Implement this method in your actor to process the letters send to you. There sender contains a reference
    * to the actor that send the message. To be able to return an answer, you must know the original actor type.
    * This can be obtained by a runtime type match. Use the send method on the senders matched type.  */
-  protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit
+  protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Receive
 
   /**
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
@@ -111,9 +115,13 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
 trait StandardDefine :
+  /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
+  type State <: Actor.State
   /** Your class should contain a union of types you will accept as valid Senders. */
   type Accept <: Actor
   /** Your class should contain a sealed trait Letter[Sender <: Accept] derived from Actor.Letter[Sender]. */
   type Letter[Sender <: Accept] <: Actor.Letter[Sender]
   /** Use this inside the actor to allow the anonymous sender in Accept */
   type Anonymous = Actor.Anonymous.type
+  /** Define the initial value of the state. */
+  def initial: State

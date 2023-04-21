@@ -40,17 +40,17 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   /**
    * This defines the initial state that is used before the first letter is processed if needed.
    * The related definition must be in the actor constructor of the user code. */
-  private[actors] def initialState: ActState
+  private[actors] def initialState: State
 
   /**
    * This calls an implementation by the user. It typically holds a handler that acts according the content of the letter.
    * If you want to work with actor states, override this receive method. Make sure your state is completely immutable. */
-  private[actors] def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState): ActState
+  private[actors] def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State
 
   /**
    * This calls an implementation by the user. The default implementation is to ignore the exception and pass on to the
    * next letter. Errors are not caught and bubble up. Now, this follows the Java style. */
-  private[actors] def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: ActState, exception: Exception, exceptionCounter: Int): ActState
+  private[actors] def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State
 
   /**
    * Called before actor deactivation and guaranteed after the last message is processed. If there were any
