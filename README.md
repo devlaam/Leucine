@@ -39,12 +39,12 @@ class MyActor(name: String) extends BasicActor(MyActor,name) :
   println(s"Actor $name started.")
 
   /* Handle all incoming letters. */
-  protected def receive(letter: MyActor.Letter): Unit = letter match
+  protected def receive(letter: Letter): Unit = letter match
     case MyActor.Text(data) => println(s"Received: $data.")
     case MyActor.Terminated => stop(Actor.Stop.Finish)
 
 
-object MyActor extends BasicDefine :
+object MyActor extends BasicDefine, Stateless :
   /* Base type of all MyActor Letters, sealed to see if we handled them all. */
   sealed trait Letter extends Actor.Letter[Actor]
   /* Letter that sends some text */
