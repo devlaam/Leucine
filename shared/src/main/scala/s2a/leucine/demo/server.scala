@@ -67,13 +67,13 @@ trait ServerSocket:
   def error: String
 
 /* This class captures the incoming connection an creates a new actor for each. It is derived from
- * BasicActor because we do no receive letters from others than ourselves. As a best practice we define
+ * AllowActor because we do no receive letters from others than ourselves. As a best practice we define
  * the letters Server is able to process in the companion object, and use Server.Letter as the base
  * type. Furthermore we need to mix TimingAid in for we need letters that arrive after a certain
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Server), LogInfo :
+class Server extends RestrictActor(Server,"server"), TimingAid, FamilyRoot(Server), LogInfo :
 
   /* Time this demo will last. */
   val runtime = 60.seconds
@@ -158,7 +158,7 @@ class Server extends StandardActor(Server,"server"), TimingAid, FamilyRoot(Serve
 
 
 /* This is the natural location to define all the letters the actor may receive. */
-object Server extends StandardDefine, FamilyDefine, Stateless :
+object Server extends RestrictDefine, FamilyDefine, Stateless :
   // TODO: At the moment there are no common messages, extend!
   type FamilyAccept = Server & Provider
   type FamilyLetter[Sender <: FamilyAccept] = Nothing

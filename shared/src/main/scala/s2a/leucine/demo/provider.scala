@@ -33,11 +33,11 @@ import s2a.leucine.actors.*
 /* The provider class sends a timestamp to the connection every two seconds. Since it is not part of a family we must define the
  * parent actor in its declaration. Further, it cannot have a constant name, so that is a parameter too. Lastly since the
  * socket is also fixed during its lifetime, this is also made a parameter. An other option would have been to send it in
- * a letter. The StandardActor is used as a base actor, but since we do not really care who send the messages to the provider,
- * we could have chosen the BasicActor as well. This actor is part of a family but does not have children of its own. So
+ * a letter. The RestrictActor is used as a base actor, but since we do not really care who send the messages to the provider,
+ * we could have chosen the AllowActor as well. This actor is part of a family but does not have children of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the children. But less is more. */
-class Provider(protected val socket: ClientSocket, protected val parent: Server) extends StandardActor(Provider,!#), TimingAid, FamilyLeaf[Server], LogInfo :
+class Provider(protected val socket: ClientSocket, protected val parent: Server) extends RestrictActor(Provider,!#), TimingAid, FamilyLeaf[Server], LogInfo :
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */
@@ -61,7 +61,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Server)
     println(s"Provider $path stopped.")
     socket.close()
 
-object Provider extends StandardDefine, Stateless:
+object Provider extends RestrictDefine, Stateless:
   type Accept = Provider
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
   case object Send extends Letter[Accept]

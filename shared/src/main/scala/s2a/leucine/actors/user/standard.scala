@@ -26,12 +26,12 @@ package s2a.leucine.actors
 
 
 /**
- * The StandardActor is able to respond to messages, but does not keep state. You can of course keep your own in variables.
+ * The RestrictActor is able to respond to messages, but does not keep state. You can of course keep your own in variables.
  * If you do, make sure these are private, so there is no risk the leak to the outside world. All possible return types
  * must be specified. If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
  * on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */
-abstract class StandardActor[Define <: StandardDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
+abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
 
   type Accept = actorDefine.Accept
   type Common = Nothing
@@ -56,7 +56,7 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
   /* Defines the initialState to be the Default state, the user does not need to implement this. */
   private[actors] final def initialState: State = actorDefine.initial
 
-  /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
+  /* Use to distinguish between basic and other actors. AllowActors does not have sender as parameter. */
   extension (fc: FamilyChild)
      /**
      * Forward a message to children of which the name passes the test 'include'.
@@ -114,7 +114,7 @@ abstract class StandardActor[Define <: StandardDefine](private[actors] val actor
 
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
-trait StandardDefine :
+trait RestrictDefine :
   /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
   type State <: Actor.State
   /** Your class should contain a union of types you will accept as valid Senders. */

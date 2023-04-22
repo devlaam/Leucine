@@ -10,7 +10,7 @@ import s2a.leucine.actors.PlatformContext.Platform
 
 trait StashAidTest(using ac: ActorContext) :
 
-  class Stack(val writeln: String => Unit, val done: () => Unit) extends StandardActor(Stack), StashAid :
+  class Stack(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Stack), StashAid :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stop:$complete")
       done()
@@ -20,7 +20,7 @@ trait StashAidTest(using ac: ActorContext) :
       case  Stack.Pop           => Stash.flush(); state.copy(block=false)
       case  Stack.Print         => writeln(state.values.toString); Stack.initial
 
-  object Stack extends StandardDefine :
+  object Stack extends RestrictDefine :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Write(value: Int) extends Letter[Accept]

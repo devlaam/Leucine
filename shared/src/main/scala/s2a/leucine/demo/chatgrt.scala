@@ -34,7 +34,7 @@ import s2a.leucine.actors.*
 
 
 /** This is your ideal white noise char string generator. */
-class Noise extends StandardActor(Noise,"Noise") :
+class Noise extends RestrictActor(Noise,"Noise") :
   println("Noise Actor Started.")
 
   /* Constructs a string with 'length' random chars. */
@@ -57,7 +57,7 @@ class Noise extends StandardActor(Noise,"Noise") :
     case (_,_) => assert(false,"Code should not come here.")
 
 
-object Noise extends StandardDefine, Stateless :
+object Noise extends RestrictDefine, Stateless :
 
   /* Only the Access and Text actors may request for random content. */
   type Accept = Register | Text
@@ -72,7 +72,7 @@ object Noise extends StandardDefine, Stateless :
 
 
 /** This is your access controller. Only existing users are granted access. */
-class Access extends StandardActor(Access,"Server") :
+class Access extends RestrictActor(Access,"Server") :
   println("Access Actor Started.")
 
   /* Currently registered users. */
@@ -92,7 +92,7 @@ class Access extends StandardActor(Access,"Server") :
     case (_,_) => assert(false,"Code should not come here.")
 
 
-object Access extends StandardDefine, Stateless :
+object Access extends RestrictDefine, Stateless :
   type Accept = Register | Text
 
   /* Logger.Letter is the base type for all letters: */
@@ -103,7 +103,7 @@ object Access extends StandardDefine, Stateless :
 
 
 
-class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
+class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
   println("Text Actor Started.")
 
   def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
@@ -114,7 +114,7 @@ class Text(access: Access, noise: Noise) extends StandardActor(Text,"Text") :
     /* This cannot be reached, but the compiler is not able to verify. */
     case (_,_) => assert(false,"Code should not come here.")
 
-object Text  extends StandardDefine, Stateless :
+object Text  extends RestrictDefine, Stateless :
 
   type Accept = Access | Noise | Anonymous
 
@@ -131,7 +131,7 @@ object Text  extends StandardDefine, Stateless :
 
 
 
-class Register(access: Access, noise: Noise) extends StandardActor(Register,"Register") :
+class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Register") :
   println("Register Actor Started.")
 
   /* Supply of new passwords */
@@ -154,7 +154,7 @@ class Register(access: Access, noise: Noise) extends StandardActor(Register,"Reg
     /* This cannot be reached, but the compiler is not able to verify. */
     case (_,_) => assert(false,"Code should not come here.")
 
-object Register extends StandardDefine, Stateless :
+object Register extends RestrictDefine, Stateless :
 
   type Accept = Noise | Anonymous
 

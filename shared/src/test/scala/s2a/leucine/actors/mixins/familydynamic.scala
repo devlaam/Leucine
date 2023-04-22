@@ -15,7 +15,7 @@ import s2a.control.Helpers.*
 trait ActorTreeSupply :
   implicit val ac: ActorContext = ActorContext.system
 
-  class Tree(name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends StandardActor(Tree,name), FamilyTree[Tree] :
+  class Tree(name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends RestrictActor(Tree,name), FamilyTree[Tree] :
 
     private def write(kind: String) = writeln(s"$kind$path")
 
@@ -49,7 +49,7 @@ trait ActorTreeSupply :
         val relayed = relay(Tree.Stop,this)
         if relayed == 0 then stop(Actor.Stop.Direct)
 
-  object Tree extends StandardDefine, Stateless :
+  object Tree extends RestrictDefine, Stateless :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class  Create(width: Int, level: Int) extends Letter[Actor]

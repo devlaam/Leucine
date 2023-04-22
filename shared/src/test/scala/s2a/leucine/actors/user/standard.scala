@@ -7,12 +7,12 @@ import utest.*
 
 import s2a.control.{Buffer, Deferred}
 
-object StandardActorTest extends TestSuite :
+object RestrictActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
 
-  class Joni(val writeln: String => Unit, val done: () => Unit) extends StandardActor(Joni,"Joni") :
+  class Joni(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Joni,"Joni") :
     var mary: Option[Mary] = None
     var sara: Option[Sara] = None
     def sendJoni(text: String, depth: Int) = this ! Joni.Text(s"${text}J",depth+1)
@@ -26,7 +26,7 @@ object StandardActorTest extends TestSuite :
       case (Joni.Text(_,0), _ : Anonymous)   => sendMary("*",0); sendSara("*",0)
       case _                                 => writeln(s"Unhandled case $letter: $sender")
 
-  object Joni extends StandardDefine, Stateless  :
+  object Joni extends RestrictDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(text: String, depth: Int) extends Letter[Accept]
@@ -34,7 +34,7 @@ object StandardActorTest extends TestSuite :
 
 
 
-  class Mary(val writeln: String => Unit, val done: () => Unit) extends StandardActor(Mary,"Mary") :
+  class Mary(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Mary,"Mary") :
     var joni: Option[Joni] = None
     var sara: Option[Sara] = None
     def sendJoni(text: String, depth: Int) = joni.foreach(_ ! Joni.Text(s"${text}M",depth+1))
@@ -49,14 +49,14 @@ object StandardActorTest extends TestSuite :
       case (Mary.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendSara("*",0)
       case _                                 => writeln(s"Unhandled case $letter: $sender")
 
-  object Mary extends StandardDefine, Stateless  :
+  object Mary extends RestrictDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(text: String, depth: Int) extends Letter[Accept]
     case class Config(joni: Joni, sara: Sara) extends Letter[Anonymous]
 
 
-  class Sara(val writeln: String => Unit, val done: () => Unit) extends StandardActor(Sara,"Sara") :
+  class Sara(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Sara,"Sara") :
     var joni: Option[Joni] = None
     var mary: Option[Mary] = None
     def sendJoni(text: String, depth: Int) = joni.foreach(_ ! Joni.Text(s"${text}S",depth+1))
@@ -71,7 +71,7 @@ object StandardActorTest extends TestSuite :
       case (Sara.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendMary("*",0)
       case _                                 => writeln(s"Unhandled case $letter: $sender")
 
-  object Sara extends StandardDefine, Stateless  :
+  object Sara extends RestrictDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(text: String, depth: Int) extends Letter[Accept]

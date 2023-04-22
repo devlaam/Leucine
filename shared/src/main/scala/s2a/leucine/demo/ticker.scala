@@ -29,7 +29,7 @@ import s2a.leucine.actors.*
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker extends BasicActor(Ticker), LogInfo :
+class Ticker extends AllowActor(Ticker), LogInfo :
 
   /* We just log the fact that this actor stops. */
   override protected def stopped(cause: Actor.Stop, complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
@@ -67,7 +67,7 @@ class Ticker extends BasicActor(Ticker), LogInfo :
         /* Change the state to a new one. This is obligatory. */
         Ticker.Tick(value+1) }
 
-object Ticker extends BasicDefine :
+object Ticker extends AllowDefine :
   type Accept = Actor
   /* The ticker only excepts one letter */
   sealed trait Letter extends Actor.Letter[Actor]

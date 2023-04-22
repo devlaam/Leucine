@@ -26,12 +26,12 @@ package s2a.leucine.actors
 
 
 /**
- * The BasicActor accepts messages from any other actor, but is not able to return an answer, because the sender is not tracked.
+ * The AllowActor accepts messages from any other actor, but is not able to return an answer, because the sender is not tracked.
  * This simplifies the use, for not all possible return types need to be specified. It is still possible to send a message to
  * a fixed actor though, if the actor itself is known. If no name is given, an unique name is generated, but the actor is not indexed
  * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */
-abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
+abstract class AllowActor[Define <: AllowDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor:
   /* Very peculiar that you cannot make 'define' fully private, but can make it private[actors]. Does not feel consistent with the
    * accessibility of the type aliases below. */
   type Accept = Actor | this.type
@@ -57,7 +57,7 @@ abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine
   /* Defines the initialState to be the Default state, the user does not need to implement this. */
   private[actors] final def initialState: State = actorDefine.initial
 
-  /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
+  /* Use to distinguish between basic and other actors. AllowActors does not have sender as parameter. */
   extension (fc: FamilyChild { type FamilyAccept = Actor } )
     /**
      * Forward a message to children of which the name passes the test 'include'.
@@ -76,7 +76,7 @@ abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine
      * false if that child is not present or does not accept the letter. */
     protected def pass(letter: fc.FamilyLetter[fc.FamilyAccept], name: String): Boolean = fc.passEnv(letter,Actor.Anonymous,name)
 
-  /* Use to distinguish between basic and other actors. BasicActors does not have sender as parameter. */
+  /* Use to distinguish between basic and other actors. AllowActors does not have sender as parameter. */
   extension (stash: StashOps)
     /**
      * Store a letter manually on the stash. With this method, you may replace one
@@ -114,7 +114,7 @@ abstract class BasicActor[Define <: BasicDefine](private[actors] val actorDefine
 
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
-trait BasicDefine :
+trait AllowDefine :
   /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
   type State <: Actor.State
   /** Your class should contain a sealed trait Letter derived from Actor.Letter[Actor]. */

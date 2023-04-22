@@ -24,13 +24,13 @@ object ActorFamilySupply extends TestSuite :
    *       object Y }
    */
 
-  object Outside_ extends StandardDefine, Stateless  :
+  object Outside_ extends RestrictDefine, Stateless  :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
     case object Bell extends Letter[Accept]
 
-  object Level0_ extends StandardDefine, FamilyDefine, Stateless  :
+  object Level0_ extends RestrictDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test0 extends Letter[Accept]
@@ -39,29 +39,29 @@ object ActorFamilySupply extends TestSuite :
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
-  object Level1A_ extends StandardDefine, FamilyDefine, Stateless  :
+  object Level1A_ extends RestrictDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous | Outside | Level0
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1A extends Letter[Accept]
     type FamilyAccept = Actor
     type FamilyLetter[Sender <: FamilyAccept] =  Level2A_.Letter[Sender]
 
-  object Level1B_ extends StandardDefine, Stateless  :
+  object Level1B_ extends RestrictDefine, Stateless  :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1B extends Letter[Accept]
 
-  object Level1C_ extends StandardDefine, Stateless  :
+  object Level1C_ extends RestrictDefine, Stateless  :
     type Accept = Anonymous | Outside | Level1A
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
 
-  object Level2A_ extends StandardDefine, Stateless  :
+  object Level2A_ extends RestrictDefine, Stateless  :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
 
-  class Outside extends StandardActor(Outside_,"boo"), TimingAid, Stateless  :
+  class Outside extends RestrictActor(Outside_,"boo"), TimingAid, Stateless  :
     post(Outside_.Bell,1.seconds)
     def receive[Sender <: Accept](letter: Outside_.Letter[Sender], sender: Sender) = (letter,sender) match
       case(Outside_.Text(msg), s: Anonymous) => ()
@@ -70,7 +70,7 @@ object ActorFamilySupply extends TestSuite :
       /* Unfortunately the compiler does not understand the case below cannot occur */
       case(Outside_.Text(msg),_) => ()
 
-  abstract class Level0 extends StandardActor(Level0_,"l0"), FamilyRoot(Level0_) :
+  abstract class Level0 extends RestrictActor(Level0_,"l0"), FamilyRoot(Level0_) :
     def outside: Outside
     val level1A = Level1A(this)
     val level1B = Level1B(this)
@@ -93,7 +93,7 @@ object ActorFamilySupply extends TestSuite :
 
 
 
-  class Level1A(protected val parent: Level0) extends StandardActor(Level1A_,"1a"), FamilyBranch[Level0,Level1A_.type](Level1A_) :
+  class Level1A(protected val parent: Level0) extends RestrictActor(Level1A_,"1a"), FamilyBranch[Level0,Level1A_.type](Level1A_) :
     val level2A = Level2A(this)
     level2A.send(Level2A_.Text("hi"),this)
     level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
@@ -102,13 +102,13 @@ object ActorFamilySupply extends TestSuite :
 
     def receive[Sender <: Accept](letter: Level1A_.Letter[Sender], sender: Sender): Unit = ()
 
-  class Level1B(protected val parent: Level0) extends StandardActor(Level1B_,"1b"), FamilyLeaf[Level0] :
+  class Level1B(protected val parent: Level0) extends RestrictActor(Level1B_,"1b"), FamilyLeaf[Level0] :
     def receive[Sender <: Accept](letter: Level1B_.Letter[Sender], sender: Sender): Unit = ()
 
-  class Level1C(protected val parent: Level0) extends StandardActor(Level1C_,"1c"), FamilyLeaf[Level0] :
+  class Level1C(protected val parent: Level0) extends RestrictActor(Level1C_,"1c"), FamilyLeaf[Level0] :
     def receive[Sender <: Accept](letter: Level1C_.Letter[Sender], sender: Sender): Unit = ()
 
-  class Level2A(protected val parent: Level1A) extends StandardActor(Level2A_,"2a"), FamilyLeaf[Level1A] :
+  class Level2A(protected val parent: Level1A) extends RestrictActor(Level2A_,"2a"), FamilyLeaf[Level1A] :
     def receive[Sender <: Accept](letter: Level2A_.Letter[Sender], sender: Sender): Unit = ()
 
 
