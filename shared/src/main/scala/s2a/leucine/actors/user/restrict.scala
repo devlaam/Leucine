@@ -26,9 +26,10 @@ package s2a.leucine.actors
 
 
 /**
- * The RestrictActor is able to respond to messages, but does not keep state. You can of course keep your own in variables.
- * If you do, make sure these are private, so there is no risk the leak to the outside world. All possible return types
- * must be specified. If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
+ * The RestrictActor is able to respond to messages. All possible sender types must be specified per letter.
+ * It this way you can restrict the inflow of messages to the max during compile time. It is also the most
+ * involved actor as it comes to the type definitions.
+ * If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
  * on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */
 abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
