@@ -24,13 +24,13 @@ object ActorFamilySupply extends TestSuite :
    *       object Y }
    */
 
-  object Outside_ extends StandardDefine :
+  object Outside_ extends StandardDefine, Stateless  :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
     case object Bell extends Letter[Accept]
 
-  object Level0_ extends StandardDefine, FamilyDefine :
+  object Level0_ extends StandardDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test0 extends Letter[Accept]
@@ -39,31 +39,31 @@ object ActorFamilySupply extends TestSuite :
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
-  object Level1A_ extends StandardDefine, FamilyDefine :
+  object Level1A_ extends StandardDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous | Outside | Level0
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1A extends Letter[Accept]
     type FamilyAccept = Actor
     type FamilyLetter[Sender <: FamilyAccept] =  Level2A_.Letter[Sender]
 
-  object Level1B_ extends StandardDefine :
+  object Level1B_ extends StandardDefine, Stateless  :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1B extends Letter[Accept]
 
-  object Level1C_ extends StandardDefine :
+  object Level1C_ extends StandardDefine, Stateless  :
     type Accept = Anonymous | Outside | Level1A
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
 
-  object Level2A_ extends StandardDefine :
+  object Level2A_ extends StandardDefine, Stateless  :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
 
-  class Outside extends StandardActor(Outside_,"boo"), TimingAid :
+  class Outside extends StandardActor(Outside_,"boo"), TimingAid, Stateless  :
     post(Outside_.Bell,1.seconds)
-    def receive[Sender >: Common <: Accept](letter: Outside_.Letter[Sender], sender: Sender) = (letter,sender) match
+    def receive[Sender <: Accept](letter: Outside_.Letter[Sender], sender: Sender) = (letter,sender) match
       case(Outside_.Text(msg), s: Anonymous) => ()
       case(Outside_.Text(msg), s: Outside) => ()
       case(Outside_.Bell,_) => ()
@@ -83,7 +83,7 @@ object ActorFamilySupply extends TestSuite :
     level1C.send(Level1C_.Text("ba"),level1A)
 
 
-    def receive[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender) = (letter,sender) match
+    def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = (letter,sender) match
       case (Level0_.Test0, s: Anonymous) => ()
       case (Level0_.Test0, s: Outside)   => ()
       case (Level0_.Test0, s: Level0)    => ()
@@ -100,16 +100,16 @@ object ActorFamilySupply extends TestSuite :
     /* For the moment we just test if an error occurs, but we do not check the content for the error message is not stable. */
     compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.clean(5) ==> "Found"
 
-    def receive[Sender >: Common <: Accept](letter: Level1A_.Letter[Sender], sender: Sender) = ()
+    def receive[Sender <: Accept](letter: Level1A_.Letter[Sender], sender: Sender): Unit = ()
 
   class Level1B(protected val parent: Level0) extends StandardActor(Level1B_,"1b"), FamilyLeaf[Level0] :
-    def receive[Sender >: Common <: Accept](letter: Level1B_.Letter[Sender], sender: Sender) = ()
+    def receive[Sender <: Accept](letter: Level1B_.Letter[Sender], sender: Sender): Unit = ()
 
   class Level1C(protected val parent: Level0) extends StandardActor(Level1C_,"1c"), FamilyLeaf[Level0] :
-    def receive[Sender >: Common <: Accept](letter: Level1C_.Letter[Sender], sender: Sender) = ()
+    def receive[Sender <: Accept](letter: Level1C_.Letter[Sender], sender: Sender): Unit = ()
 
   class Level2A(protected val parent: Level1A) extends StandardActor(Level2A_,"2a"), FamilyLeaf[Level1A] :
-    def receive[Sender >: Common <: Accept](letter: Level2A_.Letter[Sender], sender: Sender) = ()
+    def receive[Sender <: Accept](letter: Level2A_.Letter[Sender], sender: Sender): Unit = ()
 
 
   val tests = Tests {
@@ -125,7 +125,7 @@ object ActorFamilySupply extends TestSuite :
       compileError("level1B.send(Level1B_.Test1B,this)").msg.clean(5) ==> "Found"
       compileError("relay(Level1A_.Test1A,outside)").msg.clean(5) ==> "Found"
       compileError("relay(Level1B_.Test1B,outside)").msg.clean(5) ==> "Found"
-      override def receive[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender) = super.receive(letter,sender)
+      override def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = super.receive(letter,sender)
         /* Testing these hit a compiler bug. */
         //(letter,sender) match
         //  compileError("case (Level0_.Test0, s: Level0) => ()").msg.clean() ==> "Dit kan niet en dat klopt."

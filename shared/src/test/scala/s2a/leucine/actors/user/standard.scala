@@ -18,7 +18,7 @@ object StandardActorTest extends TestSuite :
     def sendJoni(text: String, depth: Int) = this ! Joni.Text(s"${text}J",depth+1)
     def sendMary(text: String, depth: Int) = mary.foreach(_ ! Mary.Text(s"${text}J",depth+1))
     def sendSara(text: String, depth: Int) = sara.foreach(_ ! Sara.Text(s"${text}J",depth+1))
-    def receive[Sender >: Common <: Accept](letter: Joni.Letter[Sender], sender: Sender) = (letter,sender) match
+    def receive[Sender <: Accept](letter: Joni.Letter[Sender], sender: Sender): Unit = (letter,sender) match
       case (Joni.Config(mary,sara),_)        => this.mary=Some(mary); this.sara=Some(sara)
       case (Joni.Text(text,depth), _: Joni)  => writeln(s"$text$depth"); done()
       case (Joni.Text(text,depth), _: Mary)  => if depth< 5 then sendSara(text,depth) else sendJoni(text,depth)
@@ -26,7 +26,7 @@ object StandardActorTest extends TestSuite :
       case (Joni.Text(_,0), _ : Anonymous)   => sendMary("*",0); sendSara("*",0)
       case _                                 => writeln(s"Unhandled case $letter: $sender")
 
-  object Joni extends StandardDefine :
+  object Joni extends StandardDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(text: String, depth: Int) extends Letter[Accept]
@@ -41,7 +41,7 @@ object StandardActorTest extends TestSuite :
     def sendMary(text: String, depth: Int) = this ! Mary.Text(s"${text}M",depth+1)
     def sendSara(text: String, depth: Int) = sara.foreach(_ ! Sara.Text(s"${text}M",depth+1))
 
-    def receive[Sender >: Common <: Accept](letter: Mary.Letter[Sender], sender: Sender) = (letter,sender) match
+    def receive[Sender <: Accept](letter: Mary.Letter[Sender], sender: Sender): Unit = (letter,sender) match
       case (Mary.Config(joni,sara),_)        => this.joni=Some(joni); this.sara=Some(sara)
       case (Mary.Text(text,depth), _: Joni)  => if depth< 5 then sendSara(text,depth) else sendMary(text,depth)
       case (Mary.Text(text,depth), _: Mary)  => writeln(s"$text$depth"); done()
@@ -49,7 +49,7 @@ object StandardActorTest extends TestSuite :
       case (Mary.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendSara("*",0)
       case _                                 => writeln(s"Unhandled case $letter: $sender")
 
-  object Mary extends StandardDefine :
+  object Mary extends StandardDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(text: String, depth: Int) extends Letter[Accept]
@@ -63,7 +63,7 @@ object StandardActorTest extends TestSuite :
     def sendMary(text: String, depth: Int) = mary.foreach(_ ! Mary.Text(s"${text}S",depth+1))
     def sendSara(text: String, depth: Int) = this ! Sara.Text(s"${text}S",depth+1)
 
-    def receive[Sender >: Common <: Accept](letter: Sara.Letter[Sender], sender: Sender) = (letter,sender) match
+    def receive[Sender <: Accept](letter: Sara.Letter[Sender], sender: Sender): Unit = (letter,sender) match
       case (Sara.Config(joni,mary),_)        => this.joni=Some(joni); this.mary=Some(mary)
       case (Sara.Text(text,depth), _: Joni)  => if depth< 5 then sendMary(text,depth) else sendSara(text,depth)
       case (Sara.Text(text,depth), _: Mary)  => if depth< 5 then sendJoni(text,depth) else sendSara(text,depth)
@@ -71,7 +71,7 @@ object StandardActorTest extends TestSuite :
       case (Sara.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendMary("*",0)
       case _                                 => writeln(s"Unhandled case $letter: $sender")
 
-  object Sara extends StandardDefine :
+  object Sara extends StandardDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(text: String, depth: Int) extends Letter[Accept]

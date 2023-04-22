@@ -14,10 +14,10 @@ trait ProtectAidTest(using ac: ActorContext) :
     protected def sizeAlarm(full: Boolean): Unit =
       writeln(s"alarm:$full")
 
-    def receive(letter: Digest.Letter) = letter match
+    def receive(letter: Digest.Letter): Unit = letter match
       case Digest.Knock(i) =>  writeln(s"Knock($i)")
 
-  object Digest extends BasicDefine :
+  object Digest extends BasicDefine, Stateless :
      sealed trait Letter extends Actor.Letter[Actor]
      case class Knock(i: Int) extends Letter
 
@@ -41,6 +41,6 @@ trait ProtectAidTest(using ac: ActorContext) :
       test("accepted >= 4")             - { deferred.compare(_.find(_.contains("accepted")).map(s => Auxiliary.splitAt(s,'=')._2).getOrElse("").toInt >= 4 ==> true) } } }
 
 
-object ProtectAidTestSystem extends TestSuite, ProtectAidTest(using ActorContext.system)
+object ProtectAidTestSystem extends TestSuite, ProtectAidTest(using ActorContext.system), Stateless
 
-object ProtectAidTestEmulationNJS extends TestSuite, ProtectAidTest(using Helpers.emulatedContext)
+object ProtectAidTestEmulationNJS extends TestSuite, ProtectAidTest(using Helpers.emulatedContext), Stateless

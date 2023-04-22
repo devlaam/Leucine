@@ -16,12 +16,12 @@ object BasicActorTest extends TestSuite :
       writeln(s"$name:stop:$complete")
       done()
     override protected def except(letter: MyLetter[Accept], cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
-    def receive(letter: Writer.Letter) = letter match
+    def receive(letter: Writer.Letter): Unit = letter match
       case  Writer.Text(text: String) => writeln(s"$name:$text")
       case  Writer.Number(int: Int)   => writeln(s"$name:$int")
       case  Writer.Except             => throw new Exception(name)
 
-  object Writer extends BasicDefine :
+  object Writer extends BasicDefine, Stateless  :
     sealed trait Letter extends Actor.Letter[Actor]
     case class Text(text: String) extends Letter
     case class Number(int: Int) extends Letter
