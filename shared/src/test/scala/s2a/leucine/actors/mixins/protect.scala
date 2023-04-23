@@ -7,7 +7,7 @@ import s2a.control.{Buffer, Deferred, Helpers}
 
 trait ProtectAidTest(using ac: ActorContext) :
 
-  class Digest(val writeln: String => Unit, val done: () => Unit) extends AllowActor(Digest), ProtectAid :
+  class Digest(val writeln: String => Unit, val done: () => Unit) extends AcceptActor(Digest), ProtectAid :
     override val maxMailboxSize = 4
     val alarmSize = 2
 
@@ -17,7 +17,7 @@ trait ProtectAidTest(using ac: ActorContext) :
     def receive(letter: Digest.Letter): Unit = letter match
       case Digest.Knock(i) =>  writeln(s"Knock($i)")
 
-  object Digest extends AllowDefine, Stateless :
+  object Digest extends AcceptDefine, Stateless :
      sealed trait Letter extends Actor.Letter[Actor]
      case class Knock(i: Int) extends Letter
 

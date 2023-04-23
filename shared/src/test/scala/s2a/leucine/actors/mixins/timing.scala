@@ -10,7 +10,7 @@ import s2a.control.{Buffer, Deferred, Helpers}
 
 trait TimingAidTest(using ac: ActorContext) :
 
-  class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends AllowActor(Clock), TimingAid :
+  class Clock(withDump: Boolean, writeln: String => Unit, done: () => Unit) extends AcceptActor(Clock), TimingAid :
 
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stopped:$complete")
@@ -34,7 +34,7 @@ trait TimingAidTest(using ac: ActorContext) :
         post(Clock.Twice(value + 2),13.millis, new Object)
         post(Clock.Twice(value + 1),19.millis, anchor)
 
-  object Clock extends AllowDefine, Stateless :
+  object Clock extends AcceptDefine, Stateless :
     sealed trait Letter extends Actor.Letter[Actor]
     case class Result(value: Int) extends Letter
     case class Twice(value: Int) extends Letter
@@ -42,7 +42,7 @@ trait TimingAidTest(using ac: ActorContext) :
     case object Done extends Letter
 
 
-  class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends AllowActor(Expect), TimingAid :
+  class Expect(event: => Boolean, writeln: String => Unit, done: () => Unit) extends AcceptActor(Expect), TimingAid :
 
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stopped:$complete")
@@ -56,7 +56,7 @@ trait TimingAidTest(using ac: ActorContext) :
         writeln(msg)
         stop(Actor.Stop.Finish)
 
-  object Expect extends AllowDefine, Stateless  :
+  object Expect extends AcceptDefine, Stateless  :
     sealed trait Letter extends Actor.Letter[Actor]
     case class Release(msg: String) extends Letter
 

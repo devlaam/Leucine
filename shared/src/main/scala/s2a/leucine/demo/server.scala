@@ -67,7 +67,7 @@ trait ServerSocket:
   def error: String
 
 /* This class captures the incoming connection an creates a new actor for each. It is derived from
- * AllowActor because we do no receive letters from others than ourselves. As a best practice we define
+ * AcceptActor because we do no receive letters from others than ourselves. As a best practice we define
  * the letters Server is able to process in the companion object, and use Server.Letter as the base
  * type. Furthermore we need to mix TimingAid in for we need letters that arrive after a certain
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').

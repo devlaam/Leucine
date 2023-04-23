@@ -31,7 +31,7 @@ import s2a.leucine.actors.*
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends AllowActor(Console,!#), TimingAid :
+private class Console extends AcceptActor(Console,!#), TimingAid :
 
   /* Send a letter to yourself */
   def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message)
@@ -69,7 +69,7 @@ private class Console extends AllowActor(Console,!#), TimingAid :
     case Console.Cli             =>  Chatgrt.request(selfie(Console.Cmd(_)))
 
 
-object Console extends AllowDefine, Stateless :
+object Console extends AcceptDefine, Stateless :
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
   sealed trait Letter extends Actor.Letter[Actor]
   case class Demo(text: String) extends Letter

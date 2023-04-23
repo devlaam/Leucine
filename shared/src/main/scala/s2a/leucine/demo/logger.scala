@@ -58,7 +58,7 @@ trait LogInfo :
 /**
  * The logger will only receive messages and never send one. Also, we do not
  * care from whom the message is originating. */
-private class Logger extends AllowActor(Logger,"logger") :
+private class Logger extends AcceptActor(Logger,"logger") :
   import Logger.*
 
   /* Soft level of the messages that are printed. Can be changed by during runtime. */
@@ -77,7 +77,7 @@ private class Logger extends AllowActor(Logger,"logger") :
     case Stop                 => stop(Actor.Stop.Direct)
 
 
-object Logger extends AllowDefine, Stateless:
+object Logger extends AcceptDefine, Stateless:
   import PlatformContext.Platform
 
   /* This are the levels the logger is able to handle. */

@@ -34,7 +34,7 @@ import s2a.leucine.actors.*
  * parent actor in its declaration. Further, it cannot have a constant name, so that is a parameter too. Lastly since the
  * socket is also fixed during its lifetime, this is also made a parameter. An other option would have been to send it in
  * a letter. The RestrictActor is used as a base actor, but since we do not really care who send the messages to the provider,
- * we could have chosen the AllowActor as well. This actor is part of a family but does not have children of its own. So
+ * we could have chosen the AcceptActor as well. This actor is part of a family but does not have children of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the children. But less is more. */
 class Provider(protected val socket: ClientSocket, protected val parent: Server) extends RestrictActor(Provider,!#), TimingAid, FamilyLeaf[Server], LogInfo :

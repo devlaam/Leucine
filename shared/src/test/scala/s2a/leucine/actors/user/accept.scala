@@ -7,11 +7,11 @@ import utest.*
 
 import s2a.control.{Buffer, Deferred}
 
-object AllowActorTest extends TestSuite :
+object AcceptActorTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
 
-  class Writer(name: String, val writeln: String => Unit, val done: () => Unit) extends AllowActor(Writer,name) :
+  class Writer(name: String, val writeln: String => Unit, val done: () => Unit) extends AcceptActor(Writer,name) :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"$name:stop:$complete")
       done()
@@ -21,7 +21,7 @@ object AllowActorTest extends TestSuite :
       case  Writer.Number(int: Int)   => writeln(s"$name:$int")
       case  Writer.Except             => throw new Exception(name)
 
-  object Writer extends AllowDefine, Stateless  :
+  object Writer extends AcceptDefine, Stateless  :
     sealed trait Letter extends Actor.Letter[Actor]
     case class Text(text: String) extends Letter
     case class Number(int: Int) extends Letter
