@@ -118,7 +118,7 @@ Now you should be able to run the demo's (requires Java to run):
 ```
 leucine $ java -jar jvm/target/scala-3.2.1/main.jar
 Started Actor examples on the JVM platform.
-Please state the demo you want to run (ticker, server or crawler):
+Please state the demo you want to run (ticker, server, crawler or chatgrt):
 ```
 and then choose one of them. The `ticker`,`crawler` and `chatgrt` are stand alone demo's, the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
@@ -134,7 +134,7 @@ Now you should be able to run the demo's (requires Node JS to run):
 ```
 leucine $ node js/target/scala-3.2.1/leucine-opt/main.js
 Started Actor examples on the JS platform.
-Please state the demo you want to run (ticker, server or crawler):
+Please state the demo you want to run (ticker, server, crawler or chatgrt):
 ```
 and then choose one of them. The `ticker`,`crawler` and `chatgrt` are stand alone demo's, the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
@@ -152,7 +152,7 @@ Now you should be able to run the demo's (runs directly):
 ```
 leucine $ native/target/scala-3.2.1/leucine-out
 Started Actor examples on the Native platform.
-Please state the demo you want to run (ticker, server or crawler):
+Please state the demo you want to run (ticker, server, crawler or chatgrt):
 ```
 and then choose one of them.  The `ticker`,`crawler` and `chatgrt` are stand alone demo's,  the `server` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180.
