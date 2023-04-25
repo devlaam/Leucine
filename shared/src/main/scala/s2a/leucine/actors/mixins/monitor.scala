@@ -213,7 +213,11 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     val totalThreadTime = threadPlayTime + treadPauseTime
     if totalThreadTime == 0 then 0D else threadPlayTime.toDouble/totalThreadTime.toDouble
 
-  /* Activates the real time monitoring. */
+  /* Activates the real time monitoring. Note there is a potential pitfall here. This works as long
+   * as the first probe is not taken before the object has finished constructing. Otherwise we might
+   * get null pointer exceptions. This is because we call this from within the object constructor
+   * itself, which is a design flaw. In practice however, probe times are seconds or more, so we
+   * do not expect the object creation to take that long. */
   monitorStart()
 
 
