@@ -24,13 +24,19 @@ Leucine is typed actor system, with the following properties:
 * Messages accepted by the actor are put into the mailbox and are processed in the order of arrival.
 * Messages send between two actors are guaranteed to keep their order.
 * Messages and Senders are typed and can be type-coupled, so you can restrict the message flow at compile time.
-* Actors can be told to stop directly, or after the current mailbox is depleted.
-* Exceptions (and termination) generate callbacks which you can handle separately from the main line of code, or ignore.
+* Actors can be told to stop directly, after the current mailbox is depleted or based on some other condition like inactivity.
+* Exceptions, initialization and termination generate callbacks which you can handle separately from the main line of code, or ignore.
 * There is a monitor class which enables you to get insight in the inner working of your code for debugging or system supervision.
 * It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
 
 ### Getting started
-The four actor base types you can choose from are: `AcceptActor`, `SelectActor`, `RestrictActor` and `RefuseActor`. In a simple application it could look something like this:
+The four actor base types you can choose from are:
+* `AcceptActor`: Accepts letters from all other actors in the system
+* `SelectActor`: Accepts letters only from a selected list of actors (enforced at compile time)
+* `RestrictActor`: Accepts letters only from a selected list of actors where per letter the sender actor may be restricted (enforced at compile time)
+* `RefuseActor`: Accepts no letters (use to offload work on an other thread)
+
+In a simple application it could look something like this:
 ```Scala
 given actorContext: ActorContext = ActorContext.system
 
@@ -65,7 +71,7 @@ object Main :
     myActor.stop(Actor.Stop.Finish)
     ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg). Remark: this links to the example in the master thread. There may be syntactical differences.
+See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg). Remark: Depending on the release used, there may be syntactical differences.
 
 ### Advanced features
 The functionality of actors can be extended with mixins. There are:
