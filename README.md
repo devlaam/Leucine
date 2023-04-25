@@ -30,27 +30,27 @@ Leucine is typed actor system, with the following properties:
 * It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
 
 ### Getting started
-The three actor base types you can choose from are: `BasicActor`, `StandardActor` and `StateActor`. It could look something like this:
+The four actor base types you can choose from are: `AcceptActor`, `SelectActor`, `RestrictActor` and `RefuseActor`. In a simple application it could look something like this:
 ```Scala
 given actorContext: ActorContext = ActorContext.system
 
-class MyActor(name: String) extends BasicActor(MyActor,name) :
-  // some startup code
+/* Use an actor that accepts letters from anyone. */
+class MyActor(name: String) extends AcceptActor(MyActor,name) :
   println(s"Actor $name started.")
 
   /* Handle all incoming letters. */
   protected def receive(letter: Letter): Unit = letter match
-    case MyActor.Text(data) => println(s"Received: $data.")
-    case MyActor.Terminated => stop(Actor.Stop.Finish)
+    case MyActor.Text(data)   => println(s"Received text: $data.")
+    case MyActor.Number(data) => println(s"Received number: $data.")
 
-
-object MyActor extends BasicDefine, Stateless :
+/* In the companion object define the base types, and indicate we keep no state. */
+object MyActor extends AcceptDefine, Stateless :
   /* Base type of all MyActor Letters, sealed to see if we handled them all. */
   sealed trait Letter extends Actor.Letter[Actor]
   /* Letter that sends some text */
   case class Text(data: String) extends Letter
-  /* Letter that indicates we are done. */
-  case object Terminated extends Letter
+  /* Letter that sends a number */
+  case object Number(data: Int) extends Letter
 ```
 You can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
 short form `receiver ! letter` from within the `sender`. For example:
@@ -61,10 +61,11 @@ object Main :
 
   def main(args: Array[String]): Unit =
     myActor ! MyActor.Text("Hello World")
-    myActor ! MyActor.Terminated
+    myActor ! MyActor.Number(42)
+    myActor.stop(Actor.Stop.Finish)
     ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg). Remark: this links to the example in the master thread. There may be minor syntactical differences.
+See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg). Remark: this links to the example in the master thread. There may be syntactical differences.
 
 ### Advanced features
 The functionality of actors can be extended with mixins. There are:
@@ -88,7 +89,7 @@ libraryDependencies += "com.sense2act" %% "leucine" % "<latest-version>"
 
 ### Demos
 The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/develop/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
-There are for demo's:
+There are four demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
 * Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
 * Crawler: Spawns some actors in a hierarchical fashion and sends messages up and down the pyramid.
