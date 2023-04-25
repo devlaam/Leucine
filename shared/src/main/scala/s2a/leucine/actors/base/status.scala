@@ -62,6 +62,14 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
 
   /** See the current activity state of this actor */
   def activity: Activity = synchronized {
-    if phase.active
-    then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
-    else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping }
+    /* In very rare case it may come to pass that the activity is probed by the guard before the
+     * object construction is completed. In that case the phase value has not yet been initialized.
+     * We report the activity as Running because construction will very soon be completed. */
+    if phase == null then Activity.Running
+    /* Normally however, we can just see if the actor is active. */
+    else if phase.active
+      /* In case we are, we are or running or a 'Stop.Tinal' has been requested in which
+       * case the actor may be halted by the guard. */
+      then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
+      /* If the actor is not active anymore, termination can be complete or not. */
+      else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping }
