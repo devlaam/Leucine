@@ -32,7 +32,7 @@ package s2a.leucine.actors
  * If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
  * on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */
-abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor :
+abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor, ActorShare(prename) :
 
   type Accept = actorDefine.Accept
   type Common = Nothing
@@ -109,9 +109,6 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
   def ![Sender <: Accept](letter: Letter[Sender])(using sender: Sender): Unit = sendEnvelope(pack(letter,sender))
-
-  /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
-  final val name = register(prename)
 
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
