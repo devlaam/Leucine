@@ -34,11 +34,11 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     context.execute(runnable)
 
   /** Triggers the processLoop into execution, depending on the phase. */
-  final private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
+  private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: Trigger message, phase=${phase}")
     phase = phase match
-      /* If this is the very first trigger, we must also call beforeStart() */
-      case Phase.Start  => processPlay(coreTask); Phase.Play
+      /* If this is the very first trigger, called from the constructor. */
+      case Phase.Start  => processInit(); Phase.Play
       /* If we are already looping, nothing to do. */
       case Phase.Play   => Phase.Play
       /* If we were just taking a break, start the loop again. */
@@ -50,6 +50,12 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done }
 
+  /** Contains the instructions to startup the actor */
+  private[actors] def processInit(): Unit =
+    /* Process startup code in an other thread. This must be done from the processLoop for
+     * otherwise the started() call may be superseded by the first letter. */
+    deferred(processLoop(true))
+
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
     if context.actorTracing then println(s"In actor=$path: processPlay() called in phase=${phase}")
@@ -57,7 +63,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
      * requested, otherwise make sure it does not exceed the silentStop value. */
     if reset then needles = 0 else needles = needles min context.silentStop
     /* Put the processLoop() on the context. */
-    deferred(processLoop())
+    deferred(processLoop(false))
 
   /**
    * Tries to process the contents of one envelope. If there is an exception, this is delivered to
@@ -83,8 +89,10 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /**
    * Primary process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queues are exhausted. */
-  private[actors] def processLoop(): Unit =
+  private[actors] def processLoop(init: Boolean): Unit =
     if context.actorTracing then println(s"In actor=$path: enter processLoop() in phase=${phase}")
+    /* If we come here for the first time we must execute the started() call back */
+    if init then deliverStarted()
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
      * de-stashed envelopes if any and possibly one event. Since the eventsDequeue and the
      * mailbox.dequeue both need synchronization we do that on once. */
@@ -134,7 +142,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =
     /* Call the stop event handler of this actor, if implemented. */
-    stopped(stopper,complete)
+    deliverStopped(stopper,complete)
     /* We must abandon after the stopped has called, so that we call all stopped in a family in
      * the correct order, since they may be executed in different threads. When all stopped
      * children of a family are done, the processTerminate of the parent is called.
@@ -146,7 +154,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
      * the others have.  */
     synchronized { phase = Phase.Done }
 
-  /** Afterwork from the processLoop. If dropped is true, there were letters that could not be completed. */
+  /** After work from the processLoop. If dropped is true, there were letters that could not be completed. */
   private[actors] def processExit(dropped: Boolean): Unit = synchronized {
     if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
     /* There are regular (core) tasks that handle some enveloped message. There can stem from the

@@ -112,6 +112,19 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       case Phase.Done   => Phase.Done }
 
   /**
+   * Start the Actor. Note, in most cases the actor is just started by receiving its first letter to process.
+   * Just before the first letter is processed, the call back started() is called. However, if there is a chance
+   * that no letters will arrive, and you depend on the calling of started(), you should call start() directly
+   * after creation. This is needed since in Scala there is no way for an object to kick start itself from
+   * within the constructor in an reliable manner. It is always safe to call start, and it returns the created
+   * object to allow for something like this:
+   *   val actor: MyActor = MyActor(name).start()
+   * If you make use of the RefuseActor, you *must* call start(), for that actor is not able to receive letters. */
+  final def start(): this.type =
+    deferred(processTrigger(true))
+    this
+
+  /**
    * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
    * possible if the stop action was not yet started. Direct and Finish start immediately, and cannot be retracted. */
