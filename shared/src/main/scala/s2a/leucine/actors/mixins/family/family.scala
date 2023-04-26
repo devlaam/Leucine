@@ -40,13 +40,20 @@ private[actors] trait FamilyDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain :
+trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, ActorInit :
   self: BareActor =>
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
   type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[Sender]
 
   final override def path: String = name
+
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
+
 
 
 /**
@@ -56,7 +63,7 @@ trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Defin
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent :
+trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent, ActorInit :
   self: BareActor =>
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
@@ -70,11 +77,17 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
   /** Register this actor, we are a child, so we do this at the parent. */
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
+
 
 /**
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
  * but without the possibility to define children. */
-trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
+trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent, ActorInit :
   self: BareActor =>
   private[actors] type PA = Parent { type FamilyAccept <: self.Accept; type FamilyCommon >: self.Common; type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
 
@@ -91,7 +104,11 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
   /** Register this actor, we are a child, so we do this at the parent. */
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
 
+  /* Signal that this trait is instantiated */
+  initReady()
 
 
 /**
@@ -99,7 +116,7 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent:
  * dynamically/recursively. The field 'parent' is an option in this case and the root of the tree
  * should not have a parent. The type of the parent equals the type of the FamilyTree and all letters
  * are derived from one common ancestor. */
-trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor :
+trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor, ActorInit :
   self: BareActor =>
   type FamilyAccept = Accept
   type FamilyCommon = Common
@@ -140,6 +157,12 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
   final override val path: String = parent.map(_.path) match
     case Some(path) => s"$path${context.familyPathSeparator}$name"
     case None       => name
+
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
 
 
 trait FamilyDefine :

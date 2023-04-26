@@ -34,7 +34,7 @@ private[actors] trait ProtectDefs :
 
 
 /** Mixin which guards the level of the mailbox and generates events when it gets to full. */
-trait ProtectAid(using context: ActorContext) extends ActorDefs :
+trait ProtectAid(using context: ActorContext) extends ActorInit, ActorDefs :
   import ProtectAid.Alarm
 
   /* This variable makes sure the alarm calls are never repeated.
@@ -55,7 +55,6 @@ trait ProtectAid(using context: ActorContext) extends ActorDefs :
       case Alarm.Raised  => alarm = Alarm.Issued; true
       case Alarm.Issued  => false }
     if call then sizeAlarm(true)
-
 
   /**
    * See if we must reset an alarm and do so only if an alarm was issued before.
@@ -83,6 +82,12 @@ trait ProtectAid(using context: ActorContext) extends ActorDefs :
    * is called the call sizeAlarm(false) will come after the last letter is processed and but before
    * stopped() is called. When stop(Direct) is called, the sizeAlarm(true/false) may not come at all. */
   protected def sizeAlarm(full: Boolean): Unit
+
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
 
 
 object ProtectAid :

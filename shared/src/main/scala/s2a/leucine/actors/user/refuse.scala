@@ -26,11 +26,10 @@ package s2a.leucine.actors
 
 
 /**
- * The RefuseActor does not accepts messages from any other actor. In fact, there is no even a 'send' method. It does not
+ * The RefuseActor does not accepts messages from any other actor. In fact, there is not even a 'send' method. It does not
  * make sense to mixin any aids. This actor is solely meant to offload work from on other actor. That work should not be
  * defined in the constructor, but in the process() callback. This to prevent to that the work is actually done in the
- * thread of the starting actor. The work is scheduled after calling start() on the new actor. This is now a requirement,
- * since the actor cannot receive any letters that start it. Note that it is still possible to send a message to
+ * thread of the starting actor. Note that it is still possible to send a message to
  * a fixed actor though, if the actor itself is known. The started(), stopped() and except() callbacks are not available.
  * If no name is given, an unique name is generated, but the actor is not indexed to be retrieved on the base of its name.
  * Supply !# as name to define this a worker actor. There is no need for the (companion) object which contains the necessary

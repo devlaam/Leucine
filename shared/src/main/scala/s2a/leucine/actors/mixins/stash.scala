@@ -37,7 +37,7 @@ private[actors] trait StashDefs extends BareDefs:
 
 
 /** Mixin if you need to store letters away.  */
-trait StashAid extends ActorDefs :
+trait StashAid extends ActorInit, ActorDefs :
 
   /** The queue for the letters/senders. */
   private val stashbox: BurstQueue[Env[?]] = new BurstQueue[Env[?]]
@@ -112,3 +112,11 @@ trait StashAid extends ActorDefs :
 
     /** See is there are any letters on the stash. */
     def isEmpty: Boolean = stashEmpty
+
+
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
+

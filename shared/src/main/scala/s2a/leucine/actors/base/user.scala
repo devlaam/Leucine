@@ -54,8 +54,7 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
 
   /**
    * This calls an implementation by the user. Called after actor construction and guaranteed before the
-   * first message is processed. It is called as a result of start() on the actor or when the first letter
-   * comes in. Not called in other situations! */
+   * first message is processed. */
   private[actors] def deliverStarted(): Unit
 
   /**

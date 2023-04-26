@@ -35,9 +35,8 @@ transparent private trait ActorShare(prename: String) extends BareActor :
   /**
    * Called after actor construction and guaranteed before the first message is processed. Use this to perform
    * work to initialize the actor. Apart from a few instructions, work should not be done in the constructor itself
-   * since this effectively runs in the thread of an other actor. The method started() runs in its own thread.
-   * Do not forget to call start() upon the actor after creation if you want quick handling of the started()
-   * or if the actor may never receive any letters. Override this with your own implementation. */
+   * since this effectively runs in the thread of the actor that constructed this actor. The method started()
+   * runs in its own thread. Override this with your own implementation. */
   protected def started(): Unit = ()
 
   /**
@@ -45,13 +44,13 @@ transparent private trait ActorShare(prename: String) extends BareActor :
    * unprocessed letters in this actor at tear down, complete is false. These could be in the normal mailbox
    * or on the stash, if present. Cause returns the last stop mode, so the cause of stopping this actor is
    * known.
-   * In case of a actorContext shutdown this is NOT called, for this disruptively terminates the processing loops.
+   * In case of a actorContext shutdown this is NOT called, for this disruptively terminates all processing loops.
    * It is however called when stop(...) is used, or when the actor is shutdown by a parent. The actor may still
    * be around after this method is called, but will never accept new messages. The parent is still defined,
    * when stopped() is executed (but may already stopped processing messages) but all the children
    * will already be removed from the list, and their stopped() methods have already been called.
-   * If you rely on started() and stopped() to always come in pairs, do call start() on the actor after creation.
-   * Otherwise stopped() may be called without started() when the actor processed no letters. */
+   * Apart from the situation described above, you can rely on started() and stopped() to always come in pairs,
+   * even when no letters are processed at all. */
   protected def stopped(cause: Actor.Stop, complete: Boolean): Unit = ()
 
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */

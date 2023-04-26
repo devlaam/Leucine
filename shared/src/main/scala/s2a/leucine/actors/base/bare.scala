@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /** The BareActor implements all methods needed for basic actor operation. It should not be instantiated by the user. */
-abstract class BareActor(using context: ActorContext) extends ControlActor, NameActor :
+abstract class BareActor(using context: ActorContext) extends ControlActor, NameActor, ActorInit :
 
   if context.actorTracing then println(s"In actor=$path: Constructed")
 
@@ -41,6 +41,17 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
 
   /** Used as sender for all messages send from this actor without explicit sender. */
   given this.type = this
+
+  /* Kick start the actor. */
+  def initComplete(): Unit =
+    /* Activates the real time monitoring, if present. */
+    monitorStart()
+    /* Initiate the execution of this actor in a new thread. */
+    deferred(processTrigger(true))
+
+  /* Signal that this class is instantiated. */
+  initReady()
+
 
 
 object BareActor :

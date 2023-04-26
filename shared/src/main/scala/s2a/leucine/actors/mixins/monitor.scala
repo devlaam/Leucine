@@ -36,12 +36,13 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def monitorSend[Sender >: Common <: Accept](isActive: Boolean, envelope: Env[Sender]): Unit = ()
   private[actors] def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
+  private[actors] def monitorStart(): Unit = ()
   private[actors] def monitorStop(): Unit = ()
   private[actors] def userLoad: Double = 0
 
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends ActorDefs :
+trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends ActorInit, ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Post, Tracing}
 
@@ -55,7 +56,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private var traces: List[Trace] = Nil
 
   /* Variable the keeps the state of taking probes in the actor. If true new probes are
-   * schudeled on regular intervals. If false, new probes are not scheduled any more. */
+   * scheduled on regular intervals. If false, new probes are not scheduled any more. */
   private var probing: Boolean = false
 
   /**
@@ -160,9 +161,8 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private val storePath = if isWorker then path.substring(0,path.length()-name.length()+context.workerPrefix.length()) else path
 
   /**
-   * Method called from the actor to indicate that operations have commenced. Since the actor mixes in this trait,
-   * it can be called from this trait as well. */
-  private[actors] def monitorStart(): Unit =
+   * Method called from the actor to indicate that operations have commenced. */
+  private[actors] override def monitorStart(): Unit =
     /* Actions to enable time measurement of this actor. */
     val time = System.nanoTime
     threadStartMoment = gain(time)
@@ -213,12 +213,12 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     val totalThreadTime = threadPlayTime + treadPauseTime
     if totalThreadTime == 0 then 0D else threadPlayTime.toDouble/totalThreadTime.toDouble
 
-  /* Activates the real time monitoring. Note there is a potential pitfall here. This works as long
-   * as the first probe is not taken before the object has finished constructing. Otherwise we might
-   * get null pointer exceptions. This is because we call this from within the object constructor
-   * itself, which is a design flaw. In practice however, probe times are seconds or more, so we
-   * do not expect the object creation to take that long. */
-  monitorStart()
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
+
 
 
 object MonitorAid :

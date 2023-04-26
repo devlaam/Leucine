@@ -40,7 +40,7 @@ private[actors] trait TimingDefs extends BareDefs :
 /** Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events.
  * This actor sends messages to itself. For the moment, you must explicitly allow this in the sender
  * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
-trait TimingAid(using context: ActorContext) extends ActorDefs :
+trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   this: BareActor =>
   /** Guarantee that Accept is at least able to send a message to itself. */
   type Accept >: this.type <: Actor
@@ -149,6 +149,11 @@ trait TimingAid(using context: ActorContext) extends ActorDefs :
       anchors.addOne(anchor -> context.await(digestible(anchor),fullfil))
       true }
 
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
 
 object TimingAid :
   /** Auxiliary class that holds the relevant elements of an event. */
