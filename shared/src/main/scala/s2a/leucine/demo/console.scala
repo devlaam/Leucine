@@ -49,7 +49,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid :
   /* Completing this console. Note that the demo may still run. */
   def stop(goodbye: String = ""): Unit =
     if !goodbye.isEmpty then println(goodbye)
-    /* If the user may a choice, this actor is no longer required. */
+    /* If the user made a choice, this actor is no longer required. */
     stop(Actor.Stop.Direct)
 
   /* Method to start the demo of choice for one time */

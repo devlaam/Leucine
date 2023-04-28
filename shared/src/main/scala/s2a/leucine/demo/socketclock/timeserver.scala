@@ -30,42 +30,6 @@ import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 
 
-/* Sockets are not identical over all platforms. Therefore we make a minimal abstraction for a
- * local server and client socket connection. For illustration purposes only. This is NOT the
- * best way to do it, but it is short and clear. */
-
-/**
- * Trans platform Server Socket that is able to accept a connection on a specified port and create
- * a trans platform Client Socket to handle it. The socket only works on the loop back address. */
-trait ServerSocket:
-
-  /** Opens the socket on the local loop back address at the given port. */
-  def open(port: Int): Unit
-
-  /**
-   * See if there are any requests made on the port. This test does not block. If there
-   * was a request, a client socket is created and will be present only directly after
-   * this call in the method connection. */
-  def request(): Unit
-
-  /**
-   * You may register a callback function that is called when a connection arrives.
-   * This will only be called when the platform layer supports this, in which case the
-   * method returns true. When false is returned, the callback function is not utilized,
-   * and you need to use periodic request() + connection to obtain the new connection.*/
-  def onConnect(callback: ClientSocket => Unit): Boolean
-
-  /** Get the last available client connection. This is only readable once, after request(). */
-  def connection: Option[ClientSocket]
-
-  /** Close the this socket and, if present, the last client connection. */
-  def close(): Unit
-
-  /**
-   * Contains the last error (usually due to an exception) of the last action. Should
-   * also be used to test if the last action was successful. */
-  def error: String
-
 /* This class captures the incoming connection an creates a new actor for each. It is derived from
  * AcceptActor because we do no receive letters from others than ourselves. As a best practice we define
  * the letters Server is able to process in the companion object, and use Server.Letter as the base
