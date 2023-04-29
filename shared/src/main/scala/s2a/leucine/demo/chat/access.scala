@@ -24,40 +24,37 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.util.Date
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import scala.util.Random
-import scala.io.StdIn
 import s2a.leucine.actors.*
 
 
 /** This is your access controller. Only existing users are granted access. */
-class Access extends RestrictActor(Access,"Server") :
+class Access extends RestrictActor(Access,"Access") :
   println("Access Actor Started.")
 
   /* Currently registered users. */
   var store: Map[String,String] = Map.empty
 
-  def checkUser(name: String, password: String) = store.get(name).map(_ == password).getOrElse(false)
+  /* See if a user is present in the store, and if so the password is valid. */
+  def checkUser(name: String, password: String): Boolean = store.get(name).map(_ == password).getOrElse(false)
 
+  /* Receive method that handles the incoming requests. */
   def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
-
     /* If the pair message comes from the Register actor, we store it as a new/updated user */
     case (Access.Pair(name,password),source: Register) => store += name -> password
-
     /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
     case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
-
     /* This cannot be reached, but the compiler is not able to verify. */
     case (_,_) => assert(false,"Code should not come here.")
 
 
+/** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
 object Access extends RestrictDefine, Stateless :
+
+  /* We only accept letters from the Register or Text actors. */
   type Accept = Register | Text
 
   /* Logger.Letter is the base type for all letters: */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
+  /* A letter to send name and password to me. */
   case class Pair(name: String, password: String) extends Letter[Accept]
-

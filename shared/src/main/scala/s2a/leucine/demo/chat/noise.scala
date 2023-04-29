@@ -24,11 +24,7 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.util.Date
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
 import scala.util.Random
-import scala.io.StdIn
 import s2a.leucine.actors.*
 
 
@@ -41,21 +37,19 @@ class Noise extends RestrictActor(Noise,"Noise") :
 
   /* Receive method that handles the incoming requests. */
   def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
-
     /* Return a sequence of size random strings each of the same length. */
     case (Noise.Request(_,size,length), source: Register) =>
       val result = List.fill(size)(make(length))
       source ! Register.Passwords(result)
-
     /* Return a random piece of text of 'size' number of words, each not longer than 'length' chars. */
     case (Noise.Request(key,size,length), source: Text) =>
       val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
       source ! Text.Lipsum(key,result)
-
     /* This cannot be reached, but the compiler is not able to verify. */
     case (_,_) => assert(false,"Code should not come here.")
 
 
+/** Companion object where letters and accepted sender actors are defined. We keep no state. */
 object Noise extends RestrictDefine, Stateless :
 
   /* Only the Access and Text actors may request for random content. */

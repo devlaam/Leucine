@@ -24,31 +24,43 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.util.Date
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import scala.util.Random
-import scala.io.StdIn
 import s2a.leucine.actors.*
 
 
+/* Main entry point for the ChatGRT demo. */
 object Chatgrt :
+  /* We must provide a default sender. */
   given Actor.Anonymous = Actor.Anonymous
 
-  /* Define the loop actors */
+  /* Service that generates a random character words. */
   val noise    = new Noise
+
+  /* Service that keeps a list of the approved accounts. */
   val access   = new Access
+
+  /* Service that keeps a list of new passwords to be handed out. */
   val register = new Register(access,noise)
+
+  /* Service that constructs random texts. */
   val text     = new Text(access,noise)
 
+  /* Stop this demo */
   def stop(): Unit =
+    /* Tell all actors to stop directly */
     List(noise,access,register,text).foreach(_.stop(Actor.Stop.Direct))
+    /* Tell the user we did stop the actors. */
     println("ChatGRT stopped.")
 
+  /* Method to get input from the user. With CLI thus may block (JVM/Native) */
   def request(action: String => Unit): Unit = CLI.talk("ChatGRT ready, your command: ", action)
 
+  /* Analyze the user input (from Console) to see what must be done. */
   def process(cmd: String)(using Actor): Unit = cmd.split(" ") match
+    /* The user request for a new account */
     case Array("signup",name)    => register ! Register.Request(name)
+    /* The user requires some text */
     case Array("text",name,pass) => text ! Text.Lipsum(name,pass)
+    /* The user needs help */
     case Array("help")           => println("Type 'signup <name>' or 'text <name> <password>' or 'exit'.")
+    /* In all other cases we do not understand the users wishes, so provide a way to obtain help. */
     case _                       => println("Unknown command, type 'help'.")
