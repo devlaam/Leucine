@@ -37,7 +37,7 @@ import s2a.leucine.actors.*
  * we could have chosen the AcceptActor as well. This actor is part of a family but does not have children of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the children. But less is more. */
-class Provider(protected val socket: ClientSocket, protected val parent: Server) extends RestrictActor(Provider,!#), TimingAid, FamilyLeaf[Server], LogInfo :
+class Provider(protected val socket: ClientSocket, protected val parent: Timer) extends RestrictActor(Provider,!#), TimingAid, FamilyLeaf[Timer], LogInfo :
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */

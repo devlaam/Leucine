@@ -60,7 +60,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid :
   /* Start the demo of choice but staring its corresponding actor. */
   def receive(letter: Letter): Unit = letter match
     case Console.Demo("ticker")  =>  once(new Ticker)
-    case Console.Demo("server")  =>  once(new Server)
+    case Console.Demo("clock")   =>  once(new Timer)
     case Console.Demo("crawler") =>  once(new Tree("F0",None))
     case Console.Demo("chatgrt") =>  post(Console.Cli,100.millis)
     case Console.Demo(unknown)   =>  stop(s"Unknown demo '$unknown', closing ...")
