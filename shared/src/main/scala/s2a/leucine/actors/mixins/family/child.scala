@@ -38,10 +38,16 @@ transparent private trait FamilyChild extends ActorDefs :
   type FamilyCommon <: FamilyAccept
 
   /** The super type for the letters the children may receive. */
-  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
 
   /** The actor type of the combined children. */
-  type ChildActor = BareActor { type Accept >: FamilyAccept; type Common <: FamilyCommon; type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: FamilyLetter[Sender] }
+  /* These type relations ensure that the ChildActor accepts at least the letters from at least
+   * the senders the whole family does. It may accept more. Regarding the common actors, all
+   * the senders that the letters hold in common, must also be hold in common by the family. */
+  type ChildActor = BareActor {
+    type Accept >: FamilyAccept
+    type Common <: FamilyCommon
+    type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: MyFamilyLetter[Sender] }
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
@@ -183,9 +189,9 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Sends a letter from sender on the a specific child. Results true if the letter
    * was accepted by the child. */
-  private[actors] def passOn[Sender >: FamilyCommon <: FamilyAccept](letter: FamilyLetter[Sender], sender: Sender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
+  private[actors] def passOn[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
 
-  private[actors] def relayEnvGrouped[Sender >: FamilyCommon <: FamilyAccept](letter: FamilyLetter[Sender], sender: Sender, toIndexed: Boolean, toWorkers: Boolean, toAutoNamed: Boolean): Int =
+  private[actors] def relayEnvGrouped[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, toIndexed: Boolean, toWorkers: Boolean, toAutoNamed: Boolean): Int =
     def include(child: ChildActor): Boolean =
       if      child.isWorker                                            then toWorkers
       else if (toIndexed == toAutoNamed) || _index.contains(child.name) then toIndexed
@@ -197,7 +203,7 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Forward a message to all children, or children of which the name pass the test 'include'.
    * Returns the number of children that accepted the letter. */
-  private[actors] def relayEnvFilter[Sender >: FamilyCommon <: FamilyAccept](letter: FamilyLetter[Sender], sender: Sender, include: String => Boolean): Int =
+  private[actors] def relayEnvFilter[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, include: String => Boolean): Int =
     val selected = _index.filter((key,_) => include(key)).values
     if context.actorTracing then println(s"In actor=$path: relay: children.size=${_children.size}, selected.size=${selected.size}")
     selected.map(passOn(letter,sender)).count(identity)
@@ -205,7 +211,7 @@ transparent private trait FamilyChild extends ActorDefs :
   /**
    * Forward a message to one specific child on the basis of its name. Returns true if successful and
    * false if that child is not present or does not accept the letter. */
-  private[actors] def passEnv[Sender >: FamilyCommon <: FamilyAccept](letter: FamilyLetter[Sender], sender: Sender, name: String): Boolean =
+  private[actors] def passEnv[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, name: String): Boolean =
     _index.get(name).map(passOn(letter,sender)).getOrElse(false)
 
 
