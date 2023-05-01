@@ -138,7 +138,7 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
   /* These type relations ensure that the ChildActor accepts at least the letters from at least
    * the senders the whole family does. It may accept more. Regarding the common actors, all
    * the senders that the letters hold in common, must also be hold in common by the family. */
-  private[actors] type PA = Tree {
+  private[actors] type Parent = Tree {
     type FamilyAccept <: self.Accept
     type FamilyCommon >: self.Common
     type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
