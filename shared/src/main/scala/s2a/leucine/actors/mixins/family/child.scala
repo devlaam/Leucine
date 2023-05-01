@@ -29,25 +29,8 @@ package s2a.leucine.actors
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
-transparent private trait FamilyChild extends ActorDefs :
+transparent private trait FamilyChild extends FamilyRelay, ActorDefs :
   this: ControlActor =>
-
-  /** The type for all Senders for messages that can be relayed between parent and child. */
-  type FamilyAccept <: Actor
-
-  type FamilyCommon <: FamilyAccept
-
-  /** The super type for the letters the children may receive. */
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
-
-  /** The actor type of the combined children. */
-  /* These type relations ensure that the ChildActor accepts at least the letters from at least
-   * the senders the whole family does. It may accept more. Regarding the common actors, all
-   * the senders that the letters hold in common, must also be hold in common by the family. */
-  type ChildActor = BareActor {
-    type Accept >: FamilyAccept
-    type Common <: FamilyCommon
-    type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: MyFamilyLetter[Sender] }
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
@@ -61,10 +44,10 @@ transparent private trait FamilyChild extends ActorDefs :
   private var termination: Option[Boolean] = None
 
   /** Variable that holds all the children of this actor. */
-  private var _children: Set[ChildActor] = Set.empty
+  private[actors] var _children: Set[ChildActor] = Set.empty
 
   /** Variable that holds all indexed children of this actor. */
-  private var _index: Map[String,ChildActor] = Map.empty
+  private[actors] var _index: Map[String,ChildActor] = Map.empty
 
   /** Variable that holds all names of the children that are being removed */
   private var removed: List[String] = Nil
@@ -185,34 +168,6 @@ transparent private trait FamilyChild extends ActorDefs :
 
   /** Get the actor with this path/name if it exists. It will recurse into the family tree if needed. */
   protected[actors] def get(path: String): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,_index)
-
-  /**
-   * Sends a letter from sender on the a specific child. Results true if the letter
-   * was accepted by the child. */
-  private[actors] def passOn[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
-
-  private[actors] def relayEnvGrouped[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, toIndexed: Boolean, toWorkers: Boolean, toAutoNamed: Boolean): Int =
-    def include(child: ChildActor): Boolean =
-      if      child.isWorker                                            then toWorkers
-      else if (toIndexed == toAutoNamed) || _index.contains(child.name) then toIndexed
-      else                                                                   toAutoNamed
-    val selected = _children.filter(include)
-    if context.actorTracing then println(s"In actor=$path: relayAll: children.size=${_children.size}, selected.size=${selected.size}")
-    selected.map(passOn(letter,sender)).count(identity)
-
-  /**
-   * Forward a message to all children, or children of which the name pass the test 'include'.
-   * Returns the number of children that accepted the letter. */
-  private[actors] def relayEnvFilter[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, include: String => Boolean): Int =
-    val selected = _index.filter((key,_) => include(key)).values
-    if context.actorTracing then println(s"In actor=$path: relay: children.size=${_children.size}, selected.size=${selected.size}")
-    selected.map(passOn(letter,sender)).count(identity)
-
-  /**
-   * Forward a message to one specific child on the basis of its name. Returns true if successful and
-   * false if that child is not present or does not accept the letter. */
-  private[actors] def passEnv[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, name: String): Boolean =
-    _index.get(name).map(passOn(letter,sender)).getOrElse(false)
 
 
 /* Contains method specific to the FamilyChild. */
