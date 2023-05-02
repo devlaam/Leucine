@@ -125,8 +125,8 @@ class Listener extends RestrictActor(Listener,"server"), TimingAid, FamilyRoot(L
 object Listener extends RestrictDefine, FamilyDefine, Stateless :
   // TODO: At the moment there are no common messages, extend!
   type FamilyAccept = Listener & Provider
-  type FamilyLetter[Sender <: FamilyAccept] = Nothing
-  type Accept = Listener | Anonymous //| Actor
+  type MyFamilyLetter[Sender <: FamilyAccept] = Nothing
+  type Accept = Listener | Anonymous
   /* Base type of all Listener Letters, sealed because that enables the compiler to see
    * if we handled them all. */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
