@@ -33,6 +33,10 @@ private[actors] trait BareDefs :
   type Common <: Accept
   /** The super type for the state the actor can be in. */
   type State <: Actor.State
+  //!!
+  type ChildRelayActor <: BareActor
+  type ChildActor <: BareActor
+  type RelaySelector <: Boolean
   /** The Result type for the receive method. */
   type Receive = State match
     case Actor.State.Default.type  => Unit

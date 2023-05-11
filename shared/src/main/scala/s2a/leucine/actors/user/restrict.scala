@@ -58,7 +58,7 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
   private[actors] final def initialState: State = actorDefine.initial
 
   /* Use to distinguish between basic and other actors. AcceptActors does not have sender as parameter. */
-  extension (fc: FamilyChild)
+  extension (fc: FamilyRelay)
      /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include

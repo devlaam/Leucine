@@ -29,8 +29,20 @@ package s2a.leucine.actors
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
-transparent private trait FamilyChild extends FamilyRelay, ActorDefs :
+
+trait FamilyDirect extends ActorDefs :
+  type RelaySelector = false
+
+//@transparent private trait FamilyChild extends  ActorDefs, FamilyRelay :
+transparent private trait FamilyChild extends ActorDefs, FamilyDirect :
   this: ControlActor =>
+
+  //type RelaySelector = false
+  //@type RelaySelector = true
+
+  type ChildActor <: BareActor = RelaySelector match
+    case true  => ChildRelayActor
+    case false => BareActor
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext

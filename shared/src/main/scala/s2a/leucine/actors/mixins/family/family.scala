@@ -1,5 +1,7 @@
 package s2a.leucine.actors
 
+import scala.reflect.TypeTest
+
 /**
  * MIT License
  *
@@ -55,6 +57,23 @@ trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Defin
   initReady()
 
 
+transparent private trait FamilySelect[Parent <: Actor.Parent] :
+  self: BareActor =>
+
+  type RelaySelector <: Boolean
+
+  /* These type relations ensure that the ChildActor accepts at least the letters from at least
+   * the senders the whole family does. It may accept more. Regarding the common actors, all
+   * the senders that the letters hold in common, must also be hold in common by the family. */
+  private[actors] type PAEXT = Parent {
+    type FamilyAccept <: self.Accept
+    type FamilyCommon >: self.Common
+    type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+
+  private[actors] type PA = RelaySelector match
+     case true   => PAEXT
+     case false  => Parent
+
 
 /**
  * Mixin you need to create child actors. Actual creation should be done within the parent
@@ -63,19 +82,23 @@ trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Defin
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent, ActorInit :
+trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyMain, FamilyParent, FamilySelect[Parent], ActorInit :
   self: BareActor =>
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
 
-  /* These type relations ensure that the ChildActor accepts at least the letters from at least
-   * the senders the whole family does. It may accept more. Regarding the common actors, all
-   * the senders that the letters hold in common, must also be hold in common by the family. */
-  private[actors] type PA = Parent {
-    type FamilyAccept <: self.Accept
-    type FamilyCommon >: self.Common
-    type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+  // /* These type relations ensure that the ChildActor accepts at least the letters from at least
+  //  * the senders the whole family does. It may accept more. Regarding the common actors, all
+  //  * the senders that the letters hold in common, must also be hold in common by the family. */
+  // private[actors] type PAEXT = Parent {
+  //   type FamilyAccept <: self.Accept
+  //   type FamilyCommon >: self.Common
+  //   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+
+  // private[actors] type PA = RelaySelector match
+  //    case true   => PAEXT
+  //    case false  => Parent
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -93,16 +116,27 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
 /**
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
  * but without the possibility to define children. */
-trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent, ActorInit :
+trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent, FamilySelect[Parent], ActorInit :
   self: BareActor =>
 
   /* These type relations ensure that the ChildActor accepts at least the letters from at least
    * the senders the whole family does. It may accept more. Regarding the common actors, all
    * the senders that the letters hold in common, must also be hold in common by the family. */
-  private[actors] type PA = Parent {
-    type FamilyAccept <: self.Accept
-    type FamilyCommon >: self.Common
-    type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+
+  // Dit lijkt altijd te kunnen, false mag alleen als de andere ook false zijn. Maar beter is gelijk.
+  type RelaySelector = true //familyDefine.RelaySelector
+
+  // type RelaySelector = false
+  // //@type RelaySelector = true
+
+  // private[actors] type PAEXT = Parent {
+  //   type FamilyAccept <: self.Accept
+  //   type FamilyCommon >: self.Common
+  //   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+
+  // private[actors] type PA = RelaySelector match
+  //    case true   => PAEXT
+  //    case false  => Parent
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -129,19 +163,27 @@ trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent, Actor
  * and which may be build dynamically/recursively. The field 'parent' is an option in this case and the
  * root of the tree should not have a parent. The type of the parent equals the type of the FamilyTree
  * and all letters are derived from one common ancestor. */
-trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActor, ActorInit :
+trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, FamilySelect[Tree], NameActor, ActorInit :
   self: BareActor =>
   type FamilyAccept = Accept
   type FamilyCommon = Common
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = MyLetter[Sender]
 
-  /* These type relations ensure that the ChildActor accepts at least the letters from at least
-   * the senders the whole family does. It may accept more. Regarding the common actors, all
-   * the senders that the letters hold in common, must also be hold in common by the family. */
-  private[actors] type Parent = Tree {
-    type FamilyAccept <: self.Accept
-    type FamilyCommon >: self.Common
-    type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+  // type RelaySelector = false //familyDefine.RelaySelector => komt van FamilyChild
+
+  // /* These type relations ensure that the ChildActor accepts at least the letters from at least
+  //  * the senders the whole family does. It may accept more. Regarding the common actors, all
+  //  * the senders that the letters hold in common, must also be hold in common by the family. */
+  // private[actors] type PAEXT = Tree {
+  //   type FamilyAccept <: self.Accept
+  //   type FamilyCommon >: self.Common
+  //   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
+
+  // private[actors] type Parent = RelaySelector match
+  //    case true   => PAEXT
+  //    case false  => Tree
+
+  type Parent = PA
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
@@ -185,7 +227,17 @@ trait FamilyTree[Tree <: Actor.Parent] extends FamilyChild, FamilyMain, NameActo
   initReady()
 
 
+trait RelayDefine :
+  type RelaySelector <: Boolean
+
+object RelayDefineTrue extends RelayDefine :
+  type RelaySelector = true
+
+object RelayDefineFalse extends RelayDefine :
+  type RelaySelector = false
+
 trait FamilyDefine :
+  type RelaySelector  = false
   type FamilyAccept <: Actor
   type FamilyCommon <: FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
