@@ -30,19 +30,25 @@ package s2a.leucine.actors
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
 
-trait FamilyDirect extends ActorDefs :
+trait FamilyNoRelay extends ActorDefs :
   type RelaySelector = false
+  type ChildActor = BareActor
 
-//@transparent private trait FamilyChild extends  ActorDefs, FamilyRelay :
-transparent private trait FamilyChild extends ActorDefs, FamilyDirect :
+trait FamilyDoRelay extends ActorDefs :
+  type ChildRelayActor <: BareActor
+  type RelaySelector = true
+  type ChildActor = ChildRelayActor
+
+
+/* Discussion: Here you can switch between two versions of the type FamilyChild. With
+ * FamilyDirect you only have basic Family support, with FamilyRelay you can send
+ * letters between the family members. This requires extra Family types which also
+ * may restrict other uses. So we want the user to choose. But how?? It is not possible
+ * to let the lib user mixin FamilyRelay/FamilyDirect from the outside, because the
+ * exact types are needed to define the Parent. */
+//@transparent private trait FamilyChild extends  ActorDefs, FamilyRelay, FamilyDoRelay  :
+transparent private trait FamilyChild extends ActorDefs, FamilyNoRelay :
   this: ControlActor =>
-
-  //type RelaySelector = false
-  //@type RelaySelector = true
-
-  type ChildActor <: BareActor = RelaySelector match
-    case true  => ChildRelayActor
-    case false => BareActor
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext

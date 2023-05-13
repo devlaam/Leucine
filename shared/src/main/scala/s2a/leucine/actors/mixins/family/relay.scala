@@ -27,17 +27,6 @@ package s2a.leucine.actors
 
 transparent private trait FamilyRelay extends ActorDefs :
 
-  /** Reference to the actor context. */
-  private[actors] def context: ActorContext
-
-  /** Variable that holds all the children of this actor. */
-  private[actors] def _children: Set[ChildRelayActor]
-
-  /** Variable that holds all indexed children of this actor. */
-  private[actors] def _index: Map[String,ChildRelayActor]
-
-  override type RelaySelector = true
-
   /** The type for all Senders for messages that can be relayed between parent and child. */
   type FamilyAccept <: Actor
 
@@ -54,6 +43,15 @@ transparent private trait FamilyRelay extends ActorDefs :
     type Accept >: FamilyAccept
     type Common <: FamilyCommon
     type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: MyFamilyLetter[Sender] }
+
+  /** Reference to the actor context. */
+  private[actors] def context: ActorContext
+
+  /** Variable that holds all the children of this actor. */
+  private[actors] def _children: Set[ChildRelayActor]
+
+  /** Variable that holds all indexed children of this actor. */
+  private[actors] def _index: Map[String,ChildRelayActor]
 
   /**
    * Sends a letter from sender on the a specific child. Results true if the letter
