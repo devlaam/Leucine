@@ -29,9 +29,6 @@ package s2a.leucine.actors
 transparent private trait FamilySelect[Parent <: Actor.Parent] :
   self: BareActor =>
 
-  /* This type should be true for relaying and false for without. */
-  type RelaySelector <: Boolean
-
   /* These type relations ensure that the ChildActor accepts at least the letters from at least
    * the senders the whole family does. It may accept more. Regarding the common actors, all
    * the senders that the letters hold in common, must also be hold in common by the family. */
@@ -40,7 +37,8 @@ transparent private trait FamilySelect[Parent <: Actor.Parent] :
     type FamilyCommon >: self.Common
     type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
 
-  private[actors] type PA = RelaySelector match
+  /** Which Parent type is used depends on the RelaySelector in the Parent. */
+  private[actors] type PA = Parent#RelaySelector match
      case true   => PAEXT
      case false  => Parent
 

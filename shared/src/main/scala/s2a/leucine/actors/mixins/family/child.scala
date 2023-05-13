@@ -30,6 +30,11 @@ package s2a.leucine.actors
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
 
+
+private trait FamilySubs :
+  type ChildActor <: BareActor
+  type RelaySelector <: Boolean
+
 trait FamilyNoRelay extends ActorDefs :
   type RelaySelector = false
   type ChildActor = BareActor
@@ -46,8 +51,9 @@ trait FamilyDoRelay extends ActorDefs :
  * may restrict other uses. So we want the user to choose. But how?? It is not possible
  * to let the lib user mixin FamilyRelay/FamilyDirect from the outside, because the
  * exact types are needed to define the Parent. */
-//@transparent private trait FamilyChild extends  ActorDefs, FamilyRelay, FamilyDoRelay  :
-transparent private trait FamilyChild extends ActorDefs, FamilyNoRelay :
+//@transparent private trait FamilyChild extends  ActorDefs, FamilySubs  :
+transparent private trait FamilyChild extends  ActorDefs, FamilySubs, FamilyRelay, FamilyDoRelay  :
+//@transparent private trait FamilyChild extends ActorDefs, FamilyNoRelay :
   this: ControlActor =>
 
   /** Reference to the actor context. */

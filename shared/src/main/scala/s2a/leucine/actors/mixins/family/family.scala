@@ -85,14 +85,21 @@ trait FamilyBranch[Parent <: Actor.Parent, Define <: FamilyDefine](private[actor
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
  * but without the possibility to define children. */
 trait FamilyLeaf[Parent <: Actor.Parent] extends FamilyMain, FamilyParent, FamilySelect[Parent], ActorInit :
+
+  // Dit klopt ook niet. De verwijzing moet zijn naar de childactor van de parent, of in elk geval eenzelfde type
+  // Daarom gaat het steeds fout als we self in de parent calls gebruiken. De vraag is, hoe komen we erbij.
+  // nB: Het werkt dus wel als dit type overeenkomt met de parent, maar dat is hier eigenlijk niet te bepalen.
+  // We krijgen dus zoiets als self: ChildActor[Parent#RelaySelector]
   self: BareActor =>
 
   /* These type relations ensure that the ChildActor accepts at least the letters from at least
    * the senders the whole family does. It may accept more. Regarding the common actors, all
    * the senders that the letters hold in common, must also be hold in common by the family. */
 
-  // Dit lijkt altijd te kunnen, false mag alleen als de andere ook false zijn. Maar beter is gelijk.
-  type RelaySelector = true //familyDefine.RelaySelector
+  // Hier zit de clou. Het feit dat we 'm hier niet weten laat zien dat er iets wringt in het ontwerp.
+  // Deze RelaySelector slaat op de instantie van de parent en NIET op deze instantie.
+  // Daar moeten we 'm dus op de een of andere manier vandaan halen.
+  //type RelaySelector = true //familyDefine.RelaySelector
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -179,6 +186,7 @@ object RelayDefineFalse extends RelayDefine :
   type RelaySelector = false
 
 trait FamilyDefine :
+  type RelaySelector <: Boolean
   type FamilyAccept <: Actor
   type FamilyCommon <: FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
