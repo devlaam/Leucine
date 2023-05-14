@@ -30,20 +30,23 @@ package s2a.leucine.actors
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
 
+transparent private trait FamilyTypes :
+  /** The type for all Senders for messages that can be relayed between parent and child. */
+  type FamilyAccept <: Actor
+  /** The bottom type for all common letters. */
+  type FamilyCommon <: FamilyAccept
+  /** The super type for the letters the children may receive. */
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
 
-private trait FamilySubs :
-  type ChildActor <: BareActor
-  type RelaySelector <: Boolean
 
-trait FamilyNoRelay extends ActorDefs :
-  type RelaySelector = false
-  type ChildActor = BareActor
-
-trait FamilyDoRelay extends ActorDefs :
-  type ChildRelayActor <: BareActor
-  type RelaySelector = true
-  type ChildActor = ChildRelayActor
-
+transparent private trait FamilySwitchRelay[RS <: Boolean] extends FamilyTypes :
+  type RelaySelector = RS
+  type ChildActor <: BareActor = RS match
+    case true => BareActor {
+      type Accept >: FamilyAccept
+      type Common <: FamilyCommon
+      type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: MyFamilyLetter[Sender] }
+    case false => BareActor
 
 /* Discussion: Here you can switch between two versions of the type FamilyChild. With
  * FamilyDirect you only have basic Family support, with FamilyRelay you can send
@@ -51,9 +54,7 @@ trait FamilyDoRelay extends ActorDefs :
  * may restrict other uses. So we want the user to choose. But how?? It is not possible
  * to let the lib user mixin FamilyRelay/FamilyDirect from the outside, because the
  * exact types are needed to define the Parent. */
-//@transparent private trait FamilyChild extends  ActorDefs, FamilySubs  :
-transparent private trait FamilyChild extends  ActorDefs, FamilySubs, FamilyRelay, FamilyDoRelay  :
-//@transparent private trait FamilyChild extends ActorDefs, FamilyNoRelay :
+transparent private trait FamilyChild extends  ActorDefs, FamilySwitchRelay[false]  :
   this: ControlActor =>
 
   /** Reference to the actor context. */
