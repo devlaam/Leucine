@@ -24,12 +24,19 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+// This is what the user must mixin
+transparent private trait FamilyRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyRelayBare :
+  this: ControlActor & FamilyChild[true] =>
+
+  type FamilyCommon = familyDefine.FamilyCommon
+  type FamilyAccept = familyDefine.FamilyAccept
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
 
 /**
  * Mixin you can use to relay messages within the family without first testing
  * the sender type. This requires that (some) letters can be received by the
  * parent as well as by all children. */
-transparent private trait FamilyRelay extends FamilyTypes, ActorDefs :
+transparent private trait FamilyRelayBare extends FamilyTypes, ActorDefs :
   this: ControlActor & FamilyChild[true] =>
 
   /** The actor type of the combined children. */

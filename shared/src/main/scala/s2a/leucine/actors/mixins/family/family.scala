@@ -40,11 +40,8 @@ private trait FamilyDefs :
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[Define <: FamilyDefine, RSC <: Boolean](private[actors] val familyDefine: Define) extends FamilyChild[RSC], FamilyMain, ActorInit :
+trait FamilyRoot[RSC <: Boolean] extends FamilyChild[RSC], FamilyMain, ActorInit :
   self: BareActor =>
-  type FamilyCommon = familyDefine.FamilyCommon
-  type FamilyAccept = familyDefine.FamilyAccept
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
 
   final override def path: String = name
 
@@ -62,15 +59,12 @@ trait FamilyRoot[Define <: FamilyDefine, RSC <: Boolean](private[actors] val fam
  * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
-type RSPfb = false
-type RSCfb = false
+type RSPfb = true
+type RSCfb = true
 
-//trait FamilyBranch[RSP <: Boolean, Parent <: Actor.Parent[RSP], Define <: FamilyDefine, RSC <: Boolean](private[actors] val familyDefine: Define) extends FamilyChild[RSC], FamilyMain, FamilyParent[RSP], FamilySelect[RSP,Parent], ActorInit :
-trait FamilyBranch[Parent <: Actor.Parent[RSPfb], Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild[RSCfb], FamilyMain, FamilyParent[RSPfb], FamilySelect[RSPfb,Parent], ActorInit :
+//trait FamilyBranch[RSP <: Boolean, Parent <: Actor.Parent[RSP], RSC <: Boolean] extends FamilyChild[RSC], FamilyMain, FamilyParent[RSP], FamilySelect[RSP,Parent], ActorInit :
+trait FamilyBranch[Parent <: Actor.Parent[RSPfb]] extends FamilyChild[RSCfb], FamilyMain, FamilyParent[RSPfb], FamilySelect[RSPfb,Parent], ActorInit :
   self: BareActor  =>
-  type FamilyCommon = familyDefine.FamilyCommon
-  type FamilyAccept = familyDefine.FamilyAccept
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
 
   /** Internally called to remove an actor from its parents list, just before termination. */
   private[actors] override def familyAbandon(): Boolean = parent.reject(self,false)
@@ -92,7 +86,6 @@ type RSPfl = true
  * but without the possibility to define children. */
 //trait FamilyLeaf[RSP <: Boolean, Parent <: Actor.Parent[RSP]] extends FamilyMain, FamilyParent[RSP], FamilySelect[RSP,Parent], ActorInit :
 trait FamilyLeaf[Parent <: Actor.Parent[RSPfl]] extends FamilyMain, FamilyParent[RSPfl], FamilySelect[RSPfl,Parent], ActorInit :
-  //self: FamilySwitchRelay[RSP]#ChildActor =>
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */
@@ -121,7 +114,7 @@ trait FamilyLeaf[Parent <: Actor.Parent[RSPfl]] extends FamilyMain, FamilyParent
  * root of the tree should not have a parent. The type of the parent equals the type of the FamilyTree
  * and all letters are derived from one common ancestor. Since all letters are accepted by all family members
  * relaying is implied (no need to mixin FamilyRelay) */
-trait FamilyTree[Tree <: Actor.Parent[true]] extends FamilyChild[true], FamilyMain, FamilySelect[true,Tree], FamilyRelay, NameActor, ActorInit :
+trait FamilyTree[Tree <: Actor.Parent[true]] extends FamilyChild[true], FamilyMain, FamilySelect[true,Tree], FamilyRelayBare, NameActor, ActorInit :
   self: BareActor =>
   type FamilyAccept = Accept
   type FamilyCommon = Common
@@ -171,17 +164,15 @@ trait FamilyTree[Tree <: Actor.Parent[true]] extends FamilyChild[true], FamilyMa
   initReady()
 
 
-trait RelayDefine :
-  type RelaySelector <: Boolean
-
-object RelayDefineTrue extends RelayDefine :
-  type RelaySelector = true
-
-object RelayDefineFalse extends RelayDefine :
-  type RelaySelector = false
-
 trait FamilyDefine :
-  type RelaySelector <: Boolean
   type FamilyAccept <: Actor
   type FamilyCommon <: FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
+
+//Example that can be used for families that accept all letters ???
+object FamilyDefineAccept extends FamilyDefine :
+  type FamilyAccept = Actor
+  type FamilyCommon = Actor
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Actor.Letter[Sender]
+
+
