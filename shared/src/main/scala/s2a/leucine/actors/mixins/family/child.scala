@@ -54,7 +54,7 @@ transparent private trait FamilySwitchRelay[RS <: Boolean] extends FamilyTypes :
  * may restrict other uses. So we want the user to choose. But how?? It is not possible
  * to let the lib user mixin FamilyRelay/FamilyDirect from the outside, because the
  * exact types are needed to define the Parent. */
-transparent private trait FamilyChild extends  ActorDefs, FamilySwitchRelay[false]  :
+transparent private trait FamilyChild[RS <: Boolean] extends  ActorDefs, FamilySwitchRelay[RS]  :
   this: ControlActor =>
 
   /** Reference to the actor context. */
@@ -205,7 +205,7 @@ private[actors] object FamilyChild :
       /* If there is some more to the path, that must be a child of the actor with the prior name. */
       case (name,rest) => actors.get(name) match
         /* So it must be of the type FamilyChild to be able to have children. */
-        case Some(fc: FamilyChild) => Right(fc: FamilyChild,rest)
+        case Some(fc: FamilyChild[?]) => Right(fc: FamilyChild[?],rest)
         /* If not, this actor does not exists. */
         case _                     => Left(None)
     /* In order to make sure we get no nested stack frames we must end with the drill down call on the child. */

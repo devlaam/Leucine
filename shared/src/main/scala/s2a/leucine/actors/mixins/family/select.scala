@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /** Trait to choose between a family with or without relaying. For internal use only. */
-transparent private trait FamilySelect[Parent <: Actor.Parent] :
+transparent private trait FamilySelect[RSP <: Boolean, Parent <: Actor.Parent[RSP]] :
   self: BareActor =>
 
   /* These type relations ensure that the ChildActor accepts at least the letters from at least
@@ -38,7 +38,7 @@ transparent private trait FamilySelect[Parent <: Actor.Parent] :
     type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }
 
   /** Which Parent type is used depends on the RelaySelector in the Parent. */
-  private[actors] type PA = Parent#RelaySelector match
+  private[actors] type PA <: Actor.Parent[RSP] = RSP match
      case true   => PAEXT
      case false  => Parent
 

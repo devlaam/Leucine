@@ -30,7 +30,7 @@ package s2a.leucine.actors
  * the sender type. This requires that (some) letters can be received by the
  * parent as well as by all children. */
 transparent private trait FamilyRelay extends FamilyTypes, ActorDefs :
-  this: ControlActor & FamilyChild =>
+  this: ControlActor & FamilyChild[true] =>
 
   /** The actor type of the combined children. */
   /* These type relations ensure that the ChildRelayActor accepts at least the letters from at least
