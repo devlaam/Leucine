@@ -10,10 +10,10 @@ val latest  = "3.3.0-RC6"
 val stable  = "3.2.1"
 
 /* Set to 1 for publishing to exclude the demo/test files. */
-val publishMe: Int = 1
+val publishMe: Int = 0
 
 ThisBuild / version       :=  "0.4.1"
-ThisBuild / scalaVersion  :=  latest
+ThisBuild / scalaVersion  :=  stable
 
 val sharedSettings = Seq(
   name                    :=  "leucine",

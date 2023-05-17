@@ -35,12 +35,13 @@ private trait FamilyDefs :
   private[actors] def familyAbandon(): Boolean = false
   private[actors] def familyReport(): Unit = ()
 
-
+type RSCfr = true
 /**
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot[RSC <: Boolean] extends FamilyChild[RSC], FamilyMain, ActorInit :
+//trait FamilyRoot[RSC <: Boolean] extends FamilyChild[RSC], FamilyMain, ActorInit :
+trait FamilyRoot extends FamilyChild[RSCfr], FamilyMain, ActorInit :
   self: BareActor =>
 
   final override def path: String = name
@@ -175,4 +176,8 @@ object FamilyDefineAccept extends FamilyDefine :
   type FamilyCommon = Actor
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Actor.Letter[Sender]
 
+object FamilyDefineRefuse extends FamilyDefine :
+  type FamilyAccept = Nothing
+  type FamilyCommon = Nothing
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Nothing
 

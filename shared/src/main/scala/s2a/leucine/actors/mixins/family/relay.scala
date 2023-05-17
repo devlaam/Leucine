@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 // This is what the user must mixin
-transparent private trait FamilyRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyRelayBare :
+trait FamilyRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyRelayBare :
   this: ControlActor & FamilyChild[true] =>
 
   type FamilyCommon = familyDefine.FamilyCommon
