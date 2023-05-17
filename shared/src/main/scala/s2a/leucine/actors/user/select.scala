@@ -59,7 +59,7 @@ abstract class SelectActor[Define <: SelectDefine](private[actors] val actorDefi
   private[actors] final def initialState: State = actorDefine.initial
 
   /* Use to distinguish between basic and other actors. AcceptActors does not have sender as parameter. */
-  extension (fc: FamilyRelayBare { type Sender = FamilyAccept } )
+  extension (fc: FamilyRelay { type Sender = FamilyAccept } )
      /**
      * Forward a message to children of which the name passes the test 'include'.
      * Returns the number of children that accepted the letter. Does not include

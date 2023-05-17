@@ -70,7 +70,7 @@ object ActorFamilySupply extends TestSuite :
       /* Unfortunately the compiler does not understand the case below cannot occur */
       case(Outside_.Text(msg),_) => ()
 
-  abstract class Level0 extends RestrictActor(Level0_,"l0"), FamilyRoot(Level0_) :
+  abstract class Level0 extends RestrictActor(Level0_,"l0"), FamilyRootRelay(Level0_) :
     def outside: Outside
     val level1A = Level1A(this)
     val level1B = Level1B(this)
@@ -93,7 +93,7 @@ object ActorFamilySupply extends TestSuite :
 
 
 
-  class Level1A(protected val parent: Level0) extends RestrictActor(Level1A_,"1a"), FamilyBranch[Level0,Level1A_.type](Level1A_) :
+  class Level1A(protected val parent: Level0) extends RestrictActor(Level1A_,"1a"), FamilyBranchRelayRelayed[Level0,Level1A_.type](Level1A_) :
     val level2A = Level2A(this)
     level2A.send(Level2A_.Text("hi"),this)
     level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
@@ -102,13 +102,13 @@ object ActorFamilySupply extends TestSuite :
 
     def receive[Sender <: Accept](letter: Level1A_.Letter[Sender], sender: Sender): Unit = ()
 
-  class Level1B(protected val parent: Level0) extends RestrictActor(Level1B_,"1b"), FamilyLeaf[Level0] :
+  class Level1B(protected val parent: Level0) extends RestrictActor(Level1B_,"1b"), FamilyLeafRelayed[Level0] :
     def receive[Sender <: Accept](letter: Level1B_.Letter[Sender], sender: Sender): Unit = ()
 
-  class Level1C(protected val parent: Level0) extends RestrictActor(Level1C_,"1c"), FamilyLeaf[Level0] :
+  class Level1C(protected val parent: Level0) extends RestrictActor(Level1C_,"1c"), FamilyLeafRelayed[Level0] :
     def receive[Sender <: Accept](letter: Level1C_.Letter[Sender], sender: Sender): Unit = ()
 
-  class Level2A(protected val parent: Level1A) extends RestrictActor(Level2A_,"2a"), FamilyLeaf[Level1A] :
+  class Level2A(protected val parent: Level1A) extends RestrictActor(Level2A_,"2a"), FamilyLeafRelayed[Level1A] :
     def receive[Sender <: Accept](letter: Level2A_.Letter[Sender], sender: Sender): Unit = ()
 
 
@@ -123,7 +123,7 @@ object ActorFamilySupply extends TestSuite :
       /* For the moment we just test if an error occurs, but we do not check the content for the error message is not stable. */
       compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.clean(5) ==> "Found"
       compileError("level1B.send(Level1B_.Test1B,this)").msg.clean(5) ==> "Found"
-      compileError("relay(Level1A_.Test1A,outside)").msg.clean(5) ==> "Found"
+      compileError("relay(Level1A_.Test1A,outside)").msg ==> "Found"
       compileError("relay(Level1B_.Test1B,outside)").msg.clean(5) ==> "Found"
       override def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = super.receive(letter,sender)
         /* Testing these hit a compiler bug. */

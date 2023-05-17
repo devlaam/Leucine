@@ -24,32 +24,34 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+/**
+ * Mixin you need to create the root actor and setup a family tree. You need to specify the base
+ * type of all child letters the children of this actor may receive. You may have multiple family
+ * trees in your system, each with its own root. */
+trait FamilyRoot extends FamilyChild[false], FamilyMain, ActorInit :
+  self: BareActor =>
 
-/* Methods stub for when there is no family mixin used. */
-private trait FamilyDefs :
-  private[actors] def familySize: Int = 0
-  private[actors] def familyDropNeedle(): Unit = ()
-  private[actors] def familyRemoved: Boolean = false
-  private[actors] def familyStop(finish: Boolean): Unit = ()
-  private[actors] def familyTerminate(complete: Boolean): Unit = ()
-  private[actors] def familyAbandon(): Boolean = false
-  private[actors] def familyReport(): Unit = ()
+  final override def path: String = name
+
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
 
 
 
-trait FamilyDefine :
-  type FamilyAccept <: Actor
-  type FamilyCommon <: FamilyAccept
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
+trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild[true], FamilyMain, ActorInit :
+  self: BareActor =>
 
-//Example that can be used for families that accept all letters ???
-object FamilyDefineAccept extends FamilyDefine :
-  type FamilyAccept = Actor
-  type FamilyCommon = Actor
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Actor.Letter[Sender]
+  type FamilyCommon = familyDefine.FamilyCommon
+  type FamilyAccept = familyDefine.FamilyAccept
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
 
-object FamilyDefineRefuse extends FamilyDefine :
-  type FamilyAccept = Nothing
-  type FamilyCommon = Nothing
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Nothing
+  final override def path: String = name
 
+  /* Called to count this trait */
+  override def initCount: Int = super.initCount + 1
+
+  /* Signal that this trait is instantiated */
+  initReady()
