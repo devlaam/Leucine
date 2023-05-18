@@ -33,10 +33,10 @@ trait ActorTreeSupply :
       case Tree.Create(width,level) =>
         if parent.isEmpty then returns = -(width**level)
         (1 to width).foreach(newChild)
-        if (level > 1) then relay(Tree.Create(width,level - 1),this)
+        if (level > 1) then relayAll(Tree.Create(width,level - 1),this)
       case Tree.Forward(bounce) =>
         write("=>>")
-        val relayed = relay(Tree.Forward(bounce),this)
+        val relayed = relayAll(Tree.Forward(bounce),this)
         if bounce && (relayed == 0) then parent.map(_ ! Tree.Backward)
       case Tree.Backward =>
         write("<<=")
@@ -46,7 +46,7 @@ trait ActorTreeSupply :
       case Tree.Stop =>
         write("=>>")
         if parent.isEmpty then stop(Actor.Stop.Barren)
-        val relayed = relay(Tree.Stop,this)
+        val relayed = relayAll(Tree.Stop,this)
         if relayed == 0 then stop(Actor.Stop.Direct)
 
   object Tree extends RestrictDefine, Stateless :

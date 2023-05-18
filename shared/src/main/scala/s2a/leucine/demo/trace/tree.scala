@@ -70,12 +70,12 @@ class Tree(name: String, val parent: Option[Tree]) extends RestrictActor(Tree,na
       (1 to width).foreach(newChild)
       /* In case we are not yet on the last level, relay this creation order
        * to the next level. */
-      if (level > 1) then relay(Tree.Create(width,level - 1),this)
+      if (level > 1) then relayAll(Tree.Create(width,level - 1),this)
     case Tree.Forward =>
       /* Report that we are in the forward traversal. */
       write("=>>")
       /* Relay the message to all children, and see if we succeeded. */
-      val relayed = relay(Tree.Forward,this)
+      val relayed = relayAll(Tree.Forward,this)
       /* In case there were no children to accept the message, we are at the
        * end of the structure and start the traversal backwards. */
       if relayed == 0 then parent.map(_ ! Tree.Backward)

@@ -35,7 +35,8 @@ object ActorFamilySupply extends TestSuite :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test0 extends Letter[Accept]
     type FamilyAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
-    type MyFamilyLetter[Sender <: FamilyAccept] = Letter[Sender] & Level1A_.Letter[Sender] & Level1B_.Letter[Sender] & Level1C_.Letter[Sender]
+    type FamilyCommon = Nothing
+    type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Letter[Sender] & Level1A_.Letter[Sender] & Level1B_.Letter[Sender] & Level1C_.Letter[Sender]
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
@@ -123,8 +124,8 @@ object ActorFamilySupply extends TestSuite :
       /* For the moment we just test if an error occurs, but we do not check the content for the error message is not stable. */
       compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.clean(5) ==> "Found"
       compileError("level1B.send(Level1B_.Test1B,this)").msg.clean(5) ==> "Found"
-      compileError("relay(Level1A_.Test1A,outside)").msg ==> "Found"
-      compileError("relay(Level1B_.Test1B,outside)").msg.clean(5) ==> "Found"
+      compileError("relayAll(Level1A_.Test1A,outside)").msg.clean(5) ==> "Found"
+      compileError("relayAll(Level1B_.Test1B,outside)").msg.clean(5) ==> "Found"
       override def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = super.receive(letter,sender)
         /* Testing these hit a compiler bug. */
         //(letter,sender) match
