@@ -32,7 +32,7 @@ import s2a.leucine.actors.Actor.Anonymous
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, val parent: Option[Tree]) extends RestrictActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(monitor) :
+class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(monitor) :
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) = println(s"$kind $path")
@@ -61,7 +61,7 @@ class Tree(name: String, val parent: Option[Tree]) extends RestrictActor(Tree,na
     stop(Actor.Stop.Silent)
 
 
-  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
+  def receive(letter: Letter): Unit = letter match
     /**/
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */
@@ -70,12 +70,12 @@ class Tree(name: String, val parent: Option[Tree]) extends RestrictActor(Tree,na
       (1 to width).foreach(newChild)
       /* In case we are not yet on the last level, relay this creation order
        * to the next level. */
-      if (level > 1) then relayAll(Tree.Create(width,level - 1),this)
+      if (level > 1) then relayAll(Tree.Create(width,level - 1))
     case Tree.Forward =>
       /* Report that we are in the forward traversal. */
       write("=>>")
       /* Relay the message to all children, and see if we succeeded. */
-      val relayed = relayAll(Tree.Forward,this)
+      val relayed = relayAll(Tree.Forward)
       /* In case there were no children to accept the message, we are at the
        * end of the structure and start the traversal backwards. */
       if relayed == 0 then parent.map(_ ! Tree.Backward)
@@ -91,17 +91,16 @@ class Tree(name: String, val parent: Option[Tree]) extends RestrictActor(Tree,na
     case Tree.Report => monitor.show(Config(samples = true))
 
 
-object Tree extends RestrictDefine, Stateless :
-  type Accept = Actor
-  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
+object Tree extends AcceptDefine, Stateless :
+  sealed trait Letter extends Actor.Letter[Actor]
   /* Message to create the tree structure. The maximal number of levels
    * is given by depth, the number of actors created in each level given
    * by width. */
-  case class  Create(width: Int, depth: Int) extends Letter[Accept]
+  case class  Create(width: Int, depth: Int) extends Letter
   /* Message to traverse the tree in forward direction. */
-  case object Forward extends Letter[Accept]
+  case object Forward extends Letter
   /* Message to traverse the tree in backwards direction. */
-  case object Backward extends Letter[Accept]
+  case object Backward extends Letter
   /* Message report the samples once. */
-  case object Report extends Letter[Accept]
+  case object Report extends Letter
 

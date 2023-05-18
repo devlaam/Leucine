@@ -37,7 +37,7 @@ import s2a.leucine.actors.*
  * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Listener extends RestrictActor(Listener,"server"), TimingAid, FamilyRoot, LogInfo :
+class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot, LogInfo :
 
   /* Time this demo will last. */
   val runtime = 60.seconds
@@ -63,7 +63,7 @@ class Listener extends RestrictActor(Listener,"server"), TimingAid, FamilyRoot, 
 
   /* See if there anyone knocking on the door. We need this if there is no callback
    * function on the platform available. */
-  def connect: Option[Listener.Letter[Listener.Accept]] =
+  def connect: Option[Listener.Letter] =
     /* Test if we have a request for a connection. */
     serverSocket.request()
     /* This may result in an error, if ... */
@@ -95,7 +95,7 @@ class Listener extends RestrictActor(Listener,"server"), TimingAid, FamilyRoot, 
 
 
   /* Handle all incoming letters. */
-  protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
+  protected def receive(letter: Letter, sender: Sender): Unit = letter match
     /* The new connection will come in as a letter. */
     case Listener.Connect(socket) =>
       Logger.info("Accepted a connection.")
@@ -112,7 +112,7 @@ class Listener extends RestrictActor(Listener,"server"), TimingAid, FamilyRoot, 
       /* Stop the actor. */
       stop(Actor.Stop.Direct)
 
-  protected override def except[Sender >: Common <: Accept](letter: Listener.Letter[Sender], sender: Sender, cause: Exception, size: Int): Unit =
+  protected override def except(letter: Listener.Letter, sender: Sender, cause: Exception, size: Int): Unit =
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   override def stopped(cause: Actor.Stop, complete: Boolean) =
@@ -122,12 +122,12 @@ class Listener extends RestrictActor(Listener,"server"), TimingAid, FamilyRoot, 
 
 
 /* This is the natural location to define all the letters the actor may receive. */
-object Listener extends RestrictDefine, FamilyDefine, Stateless :
+object Listener extends SelectDefine, FamilyDefine, Stateless :
   type Accept = Listener | Anonymous
   /* Base type of all Listener Letters, sealed because that enables the compiler to see
    * if we handled them all. */
-  sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
+  sealed trait Letter extends Actor.Letter[Accept]
   /* Letter that transfers a connection */
-  case class Connect(socket: ClientSocket) extends Letter[Accept]
+  case class Connect(socket: ClientSocket) extends Letter
   /* Letter that indicates the connection is over. */
-  case object Terminated extends Letter[Accept]
+  case object Terminated extends Letter
