@@ -38,7 +38,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
   private def write(kind: String) = println(s"$kind $path")
 
   /* Show when the actor stops. */
-  override protected def stopped(cause: Actor.Stop, complete: Boolean) =
+  final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
     /* This is written for all actors. */
     write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
@@ -61,7 +61,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
     stop(Actor.Stop.Silent)
 
 
-  def receive(letter: Letter): Unit = letter match
+  final protected def receive(letter: Letter): Unit = letter match
     /**/
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */

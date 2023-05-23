@@ -47,7 +47,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
   post(Provider.Send,2.seconds)
 
   /* Handle the messages, which is only the posted letter in this case. */
-  def receive(letter: Letter, sender: Sender): Unit = letter match
+  final protected def receive(letter: Letter, sender: Sender): Unit = letter match
     case Provider.Send =>
       val datetime = new Date().toString
       val message  = s"Provider $path says: $datetime"
@@ -57,7 +57,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
       post(Provider.Send,2.seconds)
 
   /* If this actor is stopped, we must close the connection. */
-  override def stopped(cause: Actor.Stop, complete: Boolean) =
+  final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
     println(s"Provider $path stopped.")
     socket.close()
 

@@ -37,10 +37,10 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
   println("Register Actor Started.")
 
   /* Supply of new passwords */
-  var supply: List[String] = Nil
+  private var supply: List[String] = Nil
 
   /* Receive method that handles the incoming requests. */
-  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     /* In case new passwords arrive, store them in the supply */
     case (Register.Passwords(values),source: Noise) => supply = values
     /* A request for new passwords is made. */
@@ -69,7 +69,7 @@ object Register extends RestrictDefine, Stateless :
   /* We only accept letters from the Noise actor or from an anonymous source. */
   type Accept = Noise | Anonymous
 
-  /* Logger.Letter is the base type for all letters: */
+  /* Letter is the base type for all letters: */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* Letter that contains new passwords. */

@@ -32,7 +32,7 @@ import s2a.leucine.actors.*
 class Ticker extends AcceptActor(Ticker), LogInfo :
 
   /* We just log the fact that this actor stops. */
-  override protected def stopped(cause: Actor.Stop, complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
+  final protected override def stopped(cause: Actor.Stop, complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
 
   /* In order to set the machinery in motion, a first tick must be send. */
   this ! Ticker.Work
@@ -41,7 +41,7 @@ class Ticker extends AcceptActor(Ticker), LogInfo :
   Logger.warn("Ticker Actor created")
 
   /* In receive we handle the incoming letters. */
-  def receive(letter: Letter): (State => State) = (state: State) => {
+  final protected def receive(letter: Letter): (State => State) = (state: State) => {
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match

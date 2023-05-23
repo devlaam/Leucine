@@ -30,11 +30,14 @@ Leucine is typed actor system, with the following properties:
 * It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
 
 ### Getting started
-The four actor base types you can choose from are:
-* `AcceptActor`: Accepts letters from all other actors in the system
-* `SelectActor`: Accepts letters only from a selected list of actors (enforced at compile time)
-* `RestrictActor`: Accepts letters only from a selected list of actors where per letter the sender actor may be restricted (enforced at compile time)
+The five actor base types you can choose from are:
+* `WideActor`: Accepts all letters from all other actors in the system
+* `AcceptActor`: Accepts your letters from all other actors in the system
+* `SelectActor`: Accepts your letters from a selected list of actors only
+* `RestrictActor`: Accepts your letters from a selected list of actors where per letter the sender actor may be restricted
 * `RefuseActor`: Accepts no letters (use to offload work on an other thread)
+All restrictions are enforced at compile time. The `WideActor` is comparable to a 'non typed' actor and is
+mainly for making the transition from an other actor framework to Leucine easier.
 
 In a simple application it could look something like this:
 ```Scala

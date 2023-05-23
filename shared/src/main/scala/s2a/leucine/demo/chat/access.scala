@@ -32,13 +32,13 @@ class Access extends RestrictActor(Access,"Access") :
   println("Access Actor Started.")
 
   /* Currently registered users. */
-  var store: Map[String,String] = Map.empty
+  private var store: Map[String,String] = Map.empty
 
   /* See if a user is present in the store, and if so the password is valid. */
-  def checkUser(name: String, password: String): Boolean = store.get(name).map(_ == password).getOrElse(false)
+  private def checkUser(name: String, password: String): Boolean = store.get(name).map(_ == password).getOrElse(false)
 
   /* Receive method that handles the incoming requests. */
-  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     /* If the pair message comes from the Register actor, we store it as a new/updated user */
     case (Access.Pair(name,password),source: Register) => store += name -> password
     /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
@@ -53,7 +53,7 @@ object Access extends RestrictDefine, Stateless :
   /* We only accept letters from the Register or Text actors. */
   type Accept = Register | Text
 
-  /* Logger.Letter is the base type for all letters: */
+  /* Letter is the base type for all letters: */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* A letter to send name and password to me. */

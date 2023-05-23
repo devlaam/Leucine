@@ -33,10 +33,10 @@ class Noise extends RestrictActor(Noise,"Noise") :
   println("Noise Actor Started.")
 
   /* Constructs a string with 'length' random chars. */
-  def make(length: Int): String = Random.alphanumeric.take(length).mkString
+  private def make(length: Int): String = Random.alphanumeric.take(length).mkString
 
   /* Receive method that handles the incoming requests. */
-  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     /* Return a sequence of size random strings each of the same length. */
     case (Noise.Request(_,size,length), source: Register) =>
       val result = List.fill(size)(make(length))
@@ -55,7 +55,7 @@ object Noise extends RestrictDefine, Stateless :
   /* Only the Access and Text actors may request for random content. */
   type Accept = Register | Text
 
-  /* Noise.Letter is the base type for all letters: */
+  /* Letter is the base type for all letters: */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* Letter that requests for size new random char strings. */

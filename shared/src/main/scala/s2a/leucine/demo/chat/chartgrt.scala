@@ -33,16 +33,16 @@ object Chatgrt :
   given Actor.Anonymous = Actor.Anonymous
 
   /* Service that generates a random character words. */
-  val noise    = new Noise
+  private val noise    = new Noise
 
   /* Service that keeps a list of the approved accounts. */
-  val access   = new Access
+  private val access   = new Access
 
   /* Service that keeps a list of new passwords to be handed out. */
-  val register = new Register(access,noise)
+  private val register = new Register(access,noise)
 
   /* Service that constructs random texts. */
-  val text     = new Text(access,noise)
+  private val text     = new Text(access,noise)
 
   /* Stop this demo */
   def stop(): Unit =

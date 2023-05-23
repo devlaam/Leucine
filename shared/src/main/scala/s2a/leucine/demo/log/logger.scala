@@ -65,13 +65,13 @@ private class Logger extends AcceptActor(Logger,"logger") :
   private var level: Level = Level.Debug
 
   /* Report that this logger has been disabled. */
-  override protected def stopped(cause: Actor.Stop, complete: Boolean) = println("Stopped Logger")
+  final protected override def stopped(cause: Actor.Stop, complete: Boolean) = println("Stopped Logger")
 
   /* Report that this logger has started. */
   println("Started Logger")
 
   /* receive method that handles the incoming logger and control messages. */
-  def receive(letter: Letter): Unit = letter match
+  final protected def receive(letter: Letter): Unit = letter match
     case msg: Message => if msg.level <= this.level then println(msg.show)
     case Switch(level: Level) => this.level = level
     case Stop                 => stop(Actor.Stop.Direct)

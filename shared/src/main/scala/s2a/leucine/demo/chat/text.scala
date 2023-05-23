@@ -31,7 +31,7 @@ class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
   println("Text Actor Started.")
 
   /* Receive method that handles the incoming requests. */
-  def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     /* If we receive this letter from an anonymous source, we interpret it as a request for a new password. */
     case (Text.Lipsum(name,password),source: Anonymous) => access ! Access.Pair(name,password)
     /* If we receive this letter from the Noise actor, we interpret it as random text */
@@ -43,12 +43,12 @@ class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */
-object Text  extends RestrictDefine, Stateless :
+object Text extends RestrictDefine, Stateless :
 
   /* We only accept letters from the Noise or Access actors or from an anonymous source. */
   type Accept = Access | Noise | Anonymous
 
-  /* Logger.Letter is the base type for all letters: */
+  /* Letter is the base type for all letters: */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
   /* Letter that contains information about the user, content is sender related. */
