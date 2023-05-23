@@ -34,10 +34,13 @@ The five actor base types you can choose from are:
 * `WideActor`: Accepts all letters from all other actors in the system
 * `AcceptActor`: Accepts your letters from all other actors in the system
 * `SelectActor`: Accepts your letters from a selected list of actors only
-* `RestrictActor`: Accepts your letters from a selected list of actors where per letter the sender actor may be restricted
-* `RefuseActor`: Accepts no letters (use to offload work on an other thread)
-All restrictions are enforced at compile time. The `WideActor` is comparable to a 'non typed' actor and is
-mainly for making the transition from an other actor framework to Leucine easier.
+* `RestrictActor`: Accepts your letters from a list of actors where per letter the sender actor is restricted
+* `RefuseActor`: Accepts no letters
+
+All restrictions are enforced at compile time. The `WideActor` is comparable to an untyped actor and
+is mainly for making the transition from an other actor framework to Leucine easier. Should preferably
+not be used for new designs, because it makes the actors effectively untyped and thus less safe.
+`RefuseActor` is there to offload work from an other actor in a separate thread.
 
 In a simple application it could look something like this:
 ```Scala
