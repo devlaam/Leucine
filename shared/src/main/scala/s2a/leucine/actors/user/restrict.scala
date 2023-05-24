@@ -99,11 +99,11 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
    * is to ignore the exception and pass on to the next letter. The size is the total number of exceptions this actor
    * experienced. You may decide to:
-   * (1) Stop the actor, by calling stopDirect() inside the handler.
+   * (1) Stop the actor, by calling stop(Actor.Stop.Direct) inside the handler.
    * (2) Continue for all or certain types of exceptions.
    * (3) Inform the parent if part of a family...
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
-   * can be grouped with respect to the way exceptions are handled, you may define this in your CustomActor mixin, for
+   * can be grouped with respect to the way exceptions are handled, you may define this in your CustomAid mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
   protected def except[Sender <: Accept](letter: Letter[Sender], sender: Sender, cause: Exception, size: Int): Unit = ()
 

@@ -27,23 +27,30 @@ object RefuseActorTest extends TestSuite :
     case object Except extends Letter
 
 
-  class Generator(name: String, writer: Writer, val writeln: String => Unit, val done: () => Unit) extends RefuseActor(name) :
+  class Generator(name: String, writer: Writer, val writeln: String => Unit) extends RefuseActor(RefuseStateless,name) :
+
+    var counter = 0
 
     def process(): Unit =
-      writeln(s"$name:start")
+      writeln(s"$name:enter")
+      //writeln(s"$name:start")
       writer ! Writer.Text("text1")
       writer ! Writer.Number(1)
       writer ! Writer.Text("text2")
       writer ! Writer.Number(2)
-      writeln(s"$name:stop")
-      writer.stop(Actor.Stop.Finish)
+      //writeln(s"$name:stop")
+      writeln(s"$name:exit")
+      counter = counter + 1
+      if counter == 2 then
+        writer.stop(Actor.Stop.Finish)
+        done()
 
   val tests = Tests {
     val buffer = Buffer[String]
     test("sending letters, stop at the end"){
       val deferred = Deferred(buffer.readlns)
       val writer = Writer("A",buffer.writeln,deferred.done)
-      val generator = Generator("B",writer,buffer.writeln,deferred.done)
+      val generator = Generator("B",writer,buffer.writeln)
       deferred.await()
-      deferred.compare(_.filter(_.startsWith("A:")) ==> List("A:text1","A:1","A:text2","A:2","A:stop:true"))
-      deferred.compare(_.filter(_.startsWith("B:")) ==> List("B:start","B:stop")) } }
+      deferred.compare(_.filter(_.startsWith("A:")) ==> List("A:text1","A:1","A:text2","A:2","A:text1","A:1","A:text2","A:2","A:stop:true"))
+      deferred.compare(_.filter(_.startsWith("B:")) ==> List("B:enter","B:exit","B:enter","B:exit")) } }
