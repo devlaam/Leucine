@@ -48,12 +48,17 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
   /* The work package is initiated by this dummy letter send to myself. */
   private val work = pack(new Actor.Letter[Accept]{},this)
 
+  /* Internal counter that counts the number of calls to process. */
+  private var loops: Long = 0
+
   /* Deliver the letter in the envelope. */
   private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
     /* Let the letter be processed */
-    val processed = process()
+    val processed = process(loops)
     /* Post a work message for the next process run. */
     sendEnvelope(work)
+    /* Increase the loop counter */
+    loops = loops + 1
     /* The state remains unchanged, if we work stateless, otherwise compute the new state.
      * TODO: Can this also be solved compile time? In an elegant manner?
      * Based on this: https://scastie.scala-lang.org/13dD1LD8Q3OUpLrn89oLqw? */
@@ -69,8 +74,10 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
 
   /**
    * Implement this method in your actor to process the workload in parts. As long as you do not
-   * explicitly stop the actor from the in- or outside, this method will continue to be called. */
-  protected def process(): Receive
+   * explicitly stop the actor from the in- or outside, this method will continue to be called.
+   * the loops parameter increases with every call by one, starting at zero. This may be used to
+   * guard against infinite looping. */
+  protected def process(loops: Long): Receive
 
   /**
    * Override this in your actor to process exceptions that occur while processing. The default implementation

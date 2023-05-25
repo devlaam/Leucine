@@ -29,19 +29,14 @@ object RefuseActorTest extends TestSuite :
 
   class Generator(name: String, writer: Writer, val writeln: String => Unit) extends RefuseActor(RefuseStateless,name) :
 
-    var counter = 0
-
-    def process(): Unit =
+    def process(loops: Long): Unit =
       writeln(s"$name:enter")
-      //writeln(s"$name:start")
       writer ! Writer.Text("text1")
       writer ! Writer.Number(1)
       writer ! Writer.Text("text2")
       writer ! Writer.Number(2)
-      //writeln(s"$name:stop")
       writeln(s"$name:exit")
-      counter = counter + 1
-      if counter == 2 then
+      if loops == 1 then
         writer.stop(Actor.Stop.Finish)
         done()
 
