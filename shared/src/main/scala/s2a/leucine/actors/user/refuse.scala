@@ -31,7 +31,7 @@ package s2a.leucine.actors
  * defined in the constructor, but in the process() callback. This to prevent to that the work is actually done in the
  * thread of the starting actor. Note that it is well possible to send a message from this actor to an other fixed actor though,
  * if the actor itself is known. You can divide your work into batches, so that it may be interleaved with other work.
- * The process() loop is being called as long as you do not call done() inside it. Just as with regular actors you
+ * The process() loop is being called as long as you do not call stop() inside it. Just as with regular actors you
  * may update a state on each loop. If you do not need to define a state or name, no class parameters are required.
  * If no name is given, an unique name is generated, but the actor is not indexed to be retrieved on the base of its name.
  * Supply !# as name to define this a worker actor. There is no need for the (companion) object which contains the necessary
@@ -76,7 +76,11 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
    * Implement this method in your actor to process the workload in parts. As long as you do not
    * explicitly stop the actor from the in- or outside, this method will continue to be called.
    * the loops parameter increases with every call by one, starting at zero. This may be used to
-   * guard against infinite looping. */
+   * guard against infinite looping.
+   * Stopping can be done either by stop(Stop.Actor.Direct) or stop(Stop.Actor.Finish), which are
+   * equivalent. Best practice is to reserve stop(Stop.Actor.Direct) for emergency stops and
+   * stop(Stop.Actor.Finish) for a normal completion. Subsequently you can test in the stopped()
+   * callback which was the cause of the termination. Other forms of stop should not be used. */
   protected def process(loops: Long): Receive
 
   /**
@@ -90,12 +94,6 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomAid mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
   protected def except(cause: Exception, size: Int): Unit = ()
-
-  /**
-   * Call done() to stop this actor from processing. It is equivalent with stop(Actor.Stop.Direct), which can
-   * also be used. Other forms of stopping have the same or non predictable effects, so it is advised refrain
-   * from using them. May also be called from the outside. */
-  final def done() = stop(Actor.Stop.Direct)
 
   /* Start the work in this actor. */
   sendEnvelope(work)

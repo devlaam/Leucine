@@ -38,7 +38,7 @@ object RefuseActorTest extends TestSuite :
       writeln(s"$name:exit")
       if loops == 1 then
         writer.stop(Actor.Stop.Finish)
-        done()
+        stop(Actor.Stop.Finish)
 
   val tests = Tests {
     val buffer = Buffer[String]
