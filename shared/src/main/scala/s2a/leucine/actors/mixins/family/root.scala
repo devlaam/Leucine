@@ -34,7 +34,7 @@ trait FamilyRoot extends FamilyChild[false], FamilyMain, ActorInit :
   final override def path: String = name
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()
@@ -51,7 +51,7 @@ trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: 
   final override def path: String = name
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()

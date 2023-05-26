@@ -115,7 +115,7 @@ trait StashAid extends ActorInit, ActorDefs :
 
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()

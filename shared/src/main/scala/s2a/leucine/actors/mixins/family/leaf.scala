@@ -47,7 +47,7 @@ trait FamilyLeaf[Parent <: Actor.Parent[false]] extends FamilyMain, FamilyParent
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()
@@ -71,7 +71,7 @@ trait FamilyLeafRelayed[Parent <: Actor.Parent[true]] extends FamilyMain, Family
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()

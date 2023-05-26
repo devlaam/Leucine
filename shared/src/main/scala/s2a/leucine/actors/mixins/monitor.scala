@@ -214,7 +214,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     if totalThreadTime == 0 then 0D else threadPlayTime.toDouble/totalThreadTime.toDouble
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()

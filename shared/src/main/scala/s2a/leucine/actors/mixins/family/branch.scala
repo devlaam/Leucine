@@ -42,7 +42,7 @@ trait FamilyBranch[Parent <: Actor.Parent[false]] extends FamilyChild[false], Fa
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()
@@ -62,7 +62,7 @@ trait FamilyBranchRelay[Parent <: Actor.Parent[false], Define <: FamilyDefine](p
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()
@@ -78,7 +78,7 @@ trait FamilyBranchRelayed[Parent <: Actor.Parent[true]] extends FamilyChild[fals
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()
@@ -98,7 +98,7 @@ trait FamilyBranchRelayRelayed[Parent <: Actor.Parent[true], Define <: FamilyDef
   private[actors] override def register(prename: String): String = parent.adopt(prename,self)
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()

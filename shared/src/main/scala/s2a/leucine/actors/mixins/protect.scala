@@ -84,7 +84,7 @@ trait ProtectAid(using context: ActorContext) extends ActorInit, ActorDefs :
   protected def sizeAlarm(full: Boolean): Unit
 
   /* Called to count this trait */
-  override def initCount: Int = super.initCount + 1
+  private[actors] override def initCount: Int = super.initCount + 1
 
   /* Signal that this trait is instantiated */
   initReady()

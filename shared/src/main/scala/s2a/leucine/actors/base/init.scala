@@ -28,20 +28,20 @@ package s2a.leucine.actors
  * Mixin which enables the initialization of a class with an unknown number of mixins.
  * Note, this is only required for the mixins that are used by the library user. Make sure
  * that each mixin ends with the following statements:
- *   override def initCount: Int = super.initCount + 1
+ *   private[actors] override def initCount: Int = super.initCount + 1
  *   initReady()
  * In the top most class that is overridden by the user add:
- *   def initComplete(): Unit = { ... }
+ *   private[actors] def initComplete(): Unit = { ... }
  *   initReady() */
 private transparent trait ActorInit :
   /* Counter which is filled with the number of classes/traits at the start. */
   private var ic: Int  = initCount
   /** Method called when the instantiation is complete. Put you startup code in the implementation. */
-  def initComplete(): Unit
+  private[actors] def initComplete(): Unit
   /** Auxiliary method to determine the number of mixins upfront. To be overridden in each mixin. */
-  def initCount: Int = 1
+  private[actors] def initCount: Int = 1
   /** Method that each mixin must call at the end of its constructor. */
-  def initReady(): Unit =
+  private[actors] def initReady(): Unit =
     /* For each constructed class/trait reduce the counter with 0 */
     ic = ic - 1
     /* When we hit zero, we know the class instantiation is completed. */

@@ -43,7 +43,7 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
   given this.type = this
 
   /* Kick start the actor. */
-  def initComplete(): Unit =
+  private[actors] def initComplete(): Unit =
     /* Activates the real time monitoring, if present. */
     monitorStart()
     /* Initiate the execution of this actor in a new thread. */
