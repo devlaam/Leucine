@@ -133,20 +133,21 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   protected def dumpAll(): Unit = eventsCancel()
 
   /**
-   * Send a letter to yourself the moment an event takes place. When this happens the method
+   * Send a letter to yourself the moment an event takes place. When this happens the function
    * fulfill should produce this letter to be put on the events queue.  The fulfill should
    * not block, if it does, it will hold the current thread. This may also hold the whole
-   * application in a single threaded environment. As long as the event did not yet arrive,
+   * application in a single threaded environment, but will at minimum reduce the number of
+   * usable threads in the underlying pool by one, As long as the event did not yet arrive,
    * fulfill should produce None asap. It will be probed somewhat later once more. If the actor
    * was asked to finish, the request will be ignored AND any former timer/expectation on
    * this anchor is cleared as well, if present. Returns if the expectation was accepted. */
-  protected def expect[Sender >: This <: Accept](fullfil: => Option[MyLetter[Sender]], anchor: Object = this): Boolean = synchronized {
+  protected def expect[Sender >: This <: Accept](fulfill: => Option[MyLetter[Sender]], anchor: Object = this): Boolean = synchronized {
     /* First remove prior anchor use. */
     dump(anchor)
     /* If we are not active, we may not accept this expectation. Otherwise ... */
     if !activity.active then false else
     /* ... schedule a new expectation and add it to the anchors map. */
-      anchors.addOne(anchor -> context.await(digestible(anchor),fullfil))
+      anchors.addOne(anchor -> context.await(digestible(anchor),fulfill))
       true }
 
   /* Called to count this trait */
