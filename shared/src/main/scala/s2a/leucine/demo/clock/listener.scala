@@ -31,10 +31,10 @@ import s2a.leucine.actors.*
 
 
 /* This class captures the incoming connection an creates a new actor for each. It is derived from
- * AcceptActor because we do no receive letters from others than ourselves. As a best practice we define
- * the letters Listener is able to process in the companion object, and use Listener.Letter as the base
- * type. Furthermore we need to mix TimingAid in for we need letters that arrive after a certain
- * period (with 'post') is over as well as the ability to wait for an i/o event (with 'expect').
+ * SelectActor since we have few letters, with dual use. As a best practice we define the letters Listener
+ * is able to process in the companion object, and use Listener.Letter as the base type. Furthermore we
+ * need to mix TimingAid in for we need letters that arrive after a certain period (with 'post') is over
+ * as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
 class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot, LogInfo :

@@ -44,7 +44,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
     /* This is executed when the root actor stops, which is at the end. */
     if parent.isEmpty then monitor.show(Config(posts = true, traces = true))
 
-  /* New children must be created and manually adopted by the parent. */
+  /* New children must be created with their parent as parameter. */
   private def newChild(i: Int) = Tree(s"F$i",Some(this))
 
   /* Variable to see if all child actors have reported back that their
@@ -60,9 +60,9 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
     /* Stop this actor tree when nothing is happening any more. */
     stop(Actor.Stop.Silent)
 
-
+  /* Handle the incoming letters. */
   final protected def receive(letter: Letter): Unit = letter match
-    /**/
+    /* This message creates <width> new children for this actor. */
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */
       if parent.isEmpty then returns = (math.pow(width,level)+0.4).toInt
@@ -71,6 +71,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
       /* In case we are not yet on the last level, relay this creation order
        * to the next level. */
       if (level > 1) then relayAll(Tree.Create(width,level - 1))
+    /* This message will travel forward through the tree structure. */
     case Tree.Forward =>
       /* Report that we are in the forward traversal. */
       write("=>>")
@@ -79,6 +80,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
       /* In case there were no children to accept the message, we are at the
        * end of the structure and start the traversal backwards. */
       if relayed == 0 then parent.map(_ ! Tree.Backward)
+    /* This message will travel backward through the tree structure. */
     case Tree.Backward =>
       /* Report that we are in the backward traversal. */
       write("<<=")

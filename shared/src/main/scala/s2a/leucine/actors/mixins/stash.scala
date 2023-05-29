@@ -107,10 +107,10 @@ trait StashAid extends ActorInit, ActorDefs :
      * flush will still work, since the stored letters were from before that request. */
     def flush(): Unit = flushRequest = !stashbox.isEmpty
 
-    /** See how many letters are on the stash. This is fast O(1). */
+    /** See how many letters are on the stash. This is fast: O(1). */
     def size: Int = stashbox.size
 
-    /** See is there are any letters on the stash. */
+    /** See if there are any letters on the stash. */
     def isEmpty: Boolean = stashEmpty
 
 
