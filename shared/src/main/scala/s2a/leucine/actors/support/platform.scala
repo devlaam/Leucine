@@ -35,7 +35,7 @@ trait PlatformContext:
   def platform: PlatformContext.Platform
 
   /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
-  def load: Int = 4
+  def threadsPerCore: Int
 
   /** The natural pause time for this context. Its meaning and use is platform dependent. */
   def idleThreadPause: FiniteDuration

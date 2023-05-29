@@ -37,6 +37,8 @@ trait SystemParameters :
   def actorTracing: Boolean
   /** The natural time the system pauses when there are no tasks. The use is platform dependent. */
   def idleThreadPause: FiniteDuration
+  /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
+  def threadsPerCore: Int
   /** The prefix used in actor names for actors that are workers */
   def workerPrefix: String
   /** The character that will be used in the full name definitions of the actors. */
@@ -54,6 +56,7 @@ trait SystemParameters :
 object DefaultSystem extends SystemParameters :
   val actorTracing: Boolean           = false
   val idleThreadPause: FiniteDuration = 10.millis
+  val threadsPerCore: Int             = 4
   val workerPrefix: String            = "#"
   val familyPathSeparator: Char       = '.'
   val maxMailboxSize: Int             = Int.MaxValue

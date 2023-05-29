@@ -33,7 +33,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 abstract class ContextImplementation extends PlatformContext :
 
   /** Contains the threadPool we will be utilizing */
-  private lazy val threadPool = ContextImplementation.threadPool(true,load)
+  private lazy val threadPool = ContextImplementation.threadPool(true,threadsPerCore)
 
   /** Contains the execution context on which all tasks will be executed. */
   private lazy val executionContext = ExecutionContext.fromExecutorService(threadPool)
@@ -131,9 +131,13 @@ object ContextImplementation :
   /**
    * The number of threads you desire in an application should be so that all the cores are
    * kept busy (or if you have many, you can leave a few for other tasks). Blocking threads do
-   * not keep the core busy, so add these to the requested number. The round to the nearest multiple
-   * of cores to keep it easy. This multiple can be specified, by the load usage 1 ... */
-  def threadPool(daemon: Boolean, load: Int) = Executors.newFixedThreadPool(load*processorCount,threadFactoryDefault)
+   * not keep the core busy, so add these to the requested number. Then round to the nearest multiple
+   * of cores to keep it easy. This multiple can be specified, by the threadsPerCore. */
+  def threadPool(daemon: Boolean, threadsPerCore: Int) =
+    /* Calculate the maximum number of threads allocated */
+    val threadsSize = threadsPerCore * processorCount
+    /* Create the thread pool with max fixed thread size. */
+    Executors.newFixedThreadPool(threadsSize,threadFactoryDefault)
 
   /** Sleep which returns to the caller */
   private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
