@@ -114,7 +114,7 @@ object ActorGuard :
     actors -= actor }
 
   /**
-   * Get the actor with this path/name if it exists. It will recurse into the family tree if required
+   * Get the actor with this path/name if it exists. It will recurse into the family tree if required.
    * All actors you gave a name manually are indexed. Here is the primary search point. If you are
    * already inside a family actor, it is more efficient to search just that tree. */
   def get(path: String)(using context: ActorContext): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,index)
@@ -126,10 +126,10 @@ object ActorGuard :
    * after all the work is done. So for servers running days or more 10 seconds to 1 minute may be a good
    * value, for CLI apps, use 2 seconds. Use force if you want to terminate other processes as well when
    * the actors are all completed to shutdown. Note that if some actors have not stopped by themselves,
-   * but are not able to receive any messages any more, the application may run indefinitely, and this
-   * is platform dependent. In that case you may need to call context.showdown(true/false) somewhere
-   * manually. Calling the watch method may be needed to start the actor system  depending on the
-   * platform. */
+   * but do not receive messages any more, the application may run indefinitely (this
+   * is platform dependent). In that case you may need to call context.showdown(true/false) somewhere
+   * manually. The function complete() is called after all actors have stopped. Calling the watch method
+   * may be needed to start the actor system  depending on the platform. */
   def watch(force: Boolean, pollInterval: FiniteDuration, complete: () => Unit = () => ())(using context: ActorContext): Unit =
     /* Make sure we wait at least one second. */
     val pollLimited = pollInterval max 1.second

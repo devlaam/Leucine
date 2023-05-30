@@ -43,7 +43,9 @@ object Init extends LogInfo:
 
   @main
   def main(): Unit =
+    /* Welcome message */
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
+    /* Open the console as an actor to get commands from the user. */
     val console = new Console
     /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
      * but not on JS. There blocking is not possible and this call returns immediately. Normally
