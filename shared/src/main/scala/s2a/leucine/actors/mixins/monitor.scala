@@ -38,7 +38,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorStart(): Unit = ()
   private[actors] def monitorStop(): Unit = ()
-  private[actors] def userLoad: Double = 0
+  protected def processLoad: Double = 0
 
 
 /** Extend your actor with this mixin to put it under monitoring */
@@ -50,7 +50,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private var lastClockTime: Long = 0
   private var threadStartMoment: Long = 0
   private var threadPlayTime: Long = 0
-  private var treadPauseTime: Long = 0
+  private var threadPauseTime: Long = 0
 
   /* Temporary fast storage for the trace objects. */
   private var traces: List[Trace] = Nil
@@ -112,7 +112,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
   private def probeStart() = synchronized {
     /* The probing flag must be set to continue scheduling late probes. But we cannot take probes
      * right away, since the actor may still be in the construction phase (deadlock!). But it will
-     * make no sense either, since there is nothing going in at the start. */
+     * make no sense either, since there is nothing going on at the start. */
     probing = true
     /* Start the probe interval timer.  */
     probeRenew() }
@@ -184,7 +184,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     /* Trace if requested, the letter processing is initiated */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,path,repack(envelope)))
     /* The time past since has to be added to the total time in pause. */
-    treadPauseTime += gain(time)
+    threadPauseTime += gain(time)
 
   /** Method called from the actor to indicate that it finished processing a letter. */
   private[actors] override def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit  =
@@ -199,7 +199,7 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     val time = System.nanoTime
     /* The time past since has to be added to the total time in pause, since we can
      * never directly stop inside a letter. */
-    treadPauseTime += gain(time)
+    threadPauseTime += gain(time)
     /* Tell the monitor this actor is done. Depending on the path it may just ignore
      * it or take cleaning up actions. */
     monitor.delActor(storePath)
@@ -209,9 +209,14 @@ trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends 
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,path))
 
   /** Calculate the relative time this actor spend performing processing letters. */
-  private[actors] override def userLoad: Double =
-    val totalThreadTime = threadPlayTime + treadPauseTime
-    if totalThreadTime == 0 then 0D else threadPlayTime.toDouble/totalThreadTime.toDouble
+  protected override def processLoad: Double =
+    /* This is an calculation based on non synchronized values, but if we call this inside
+     * the letter handling we are fine or in callbacks we are fine since they are guaranteed
+     * to be sequential. */
+    val threadRunTime = threadPlayTime + threadPauseTime
+    /* Calculate the relative time if the thread has run at all. */
+    if threadRunTime == 0 then 0D else threadPlayTime.toDouble/threadRunTime.toDouble
+
 
   /* Called to count this trait */
   private[actors] override def initCount: Int = super.initCount + 1
@@ -277,9 +282,9 @@ object MonitorAid :
     def show: String
 
   /** Class to marshal all the KPI's of the bare actor. */
-  case class Bare(phase: BareActor.Phase, stop: Actor.Stop, lettersSum: Int, lettersMax: Int, exceptionsSum: Int, needles: Int, userLoad: Double) extends Sample :
-    def userPPM = (userLoad * 1000000).toInt
-    def show = s"phase=$phase, stop=$stop, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, needles=$needles, userLoad=${userPPM}ppm"
+  case class Bare(phase: BareActor.Phase, stop: Actor.Stop, lettersSum: Int, lettersMax: Int, exceptionsSum: Int, needles: Int, processLoad: Double) extends Sample :
+    def userPPM = (processLoad * 1000000).toInt
+    def show = s"phase=$phase, stop=$stop, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, needles=$needles, processLoad=${userPPM}ppm"
 
   /** Class to marshal all the KPI's of the Stash mixin. */
   case class Stash(lettersSum: Int, lettersMax: Int) extends Sample :

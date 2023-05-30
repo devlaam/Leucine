@@ -43,7 +43,7 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
 
   /**
    * Variable that keeps track of the stop that has been requested. Some stops cannot be reverted, or
-   * or only increased.  */
+   * or only increased. */
   private[actors] var stopper: Stop = Stop.Never
 
   /**
@@ -68,7 +68,7 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
     if phase == null then Activity.Running
     /* Normally however, we can just see if the actor is active. */
     else if phase.active
-      /* In case we are, we are or running or a 'Stop.Tinal' has been requested in which
+      /* In case we are, we are or running or a 'Stop.Final' has been requested in which
        * case the actor may be halted by the guard. */
       then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
       /* If the actor is not active anymore, termination can be complete or not. */

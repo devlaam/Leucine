@@ -35,7 +35,7 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorAid.Bare] =
-    val result = MonitorAid.Bare(phase,stopper,mailbox.sum,mailbox.max,excepts,needles,userLoad)
+    val result = MonitorAid.Bare(phase,stopper,mailbox.sum,mailbox.max,excepts,needles,processLoad)
     mailbox.reset()
     Some(result)
 
