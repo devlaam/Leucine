@@ -131,7 +131,7 @@ object Actor :
   /**
    * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
-   * possible if the action was not yet started (never for Direct and Finish). */
+   * possible if the stop action was not yet initiated. Direct and Finish start immediately, and cannot be retracted. */
   enum Stop extends EnumOrder[Stop] :
     /** Stop the actor asap, but complete the running letter. Subsequently stop all children likewise. Terminate afterwards. */
     case Direct
@@ -141,9 +141,9 @@ object Actor :
     case Barren
     /** Wait until the actor and all children, if present, are silent for some time, then stop directly. */
     case Silent
-    /** This actor may be terminated if all other non final actors are terminated by themselves. */
+    /** This actor may be terminated by the system if all other non final actors are terminated by themselves or the user. */
     case Final
-    /** This actor never stops. */
+    /** This actor never stops (initial state). */
     case Never
 
   /**

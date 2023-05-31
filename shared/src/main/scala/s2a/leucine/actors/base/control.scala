@@ -114,7 +114,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
   /**
    * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
-   * possible if the stop action was not yet started. Direct and Finish start immediately, and cannot be retracted. */
+   * possible if the stop action was not yet initiated. Direct and Finish start immediately, and cannot be retracted. */
   final def stop(value: Stop): Unit =
     /* Activate/deactivate the needle dropping, which is there to see if the actor turned silent. */
     def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
