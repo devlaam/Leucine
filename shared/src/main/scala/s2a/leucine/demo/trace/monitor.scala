@@ -24,38 +24,28 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.io.PrintWriter
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{Map, SortedMap, SortedSet}
 import s2a.leucine.actors.*
 
-
-case class Config(samples: Boolean = false, posts: Boolean = false, traces: Boolean = false)
 
 /* If you want to use the monitor, you must implement some callback methods. Here we keep
  * that simple and only report the after the application has completed. In bigger applications
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
-val monitor = new ActorMonitor[Config] {
+class Monitor extends ActorMonitor :
   import MonitorAid.{Trace, Post, Action, Tracing}
   import ActorMonitor.Record
-  /* This callback is directly called in case an actor is added. Not used in this example. */
-  def added(path: String, actors: Map[String,Record]): Unit = ()
-  /* This callback is directly called in case an actor is removed. Not used in this example. */
-  def removed(path: String, actors: Map[String,Record]): Unit = ()
-  /* This callback is periodically called on the actor to update the actor metrics. Not used in this example. */
-  def sampled(path: String, actors: SortedMap[String,Record]): Unit = ()
-  /* This callback is periodically called on the actor collect all posts. Not used in this example. */
-  def posted(path: String, posts: SortedMap[Post,Long]): Unit = ()
-  /* This callback is periodically called on the actor collect all tracing. Not used in this example. */
-  def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit = ()
-  /* Method you can implement to show the results obtained so far. Since this example only has one short
-   * run the results are show an the end. */
-  def show(config: Config): Unit =
-    val writer: PrintWriter = new PrintWriter(System.out)
-    report(writer,config.samples,config.posts,config.traces)
-    writer.flush()
+  /* Custom method to show the results obtained so far. Since this example only has one short
+   * run the results are show at the end. */
+  def show(samples: Boolean = false, postsAndTraces: Boolean = false): Unit = report(println,samples,postsAndTraces,postsAndTraces)
+  /* This is a short running application, probe often */
+  def probeInterval: FiniteDuration = 5.seconds
   /* Global setting of tracing. Here we enable is for all actors. Since the personal setting is Default
    * this should activate TraceCount and TraceFull. */
-  override def tracing = Tracing.Enabled }
+  def tracing = Tracing.Enabled
 
+/* This can be used in the different demonstrations */
+val monitor = new Monitor
 

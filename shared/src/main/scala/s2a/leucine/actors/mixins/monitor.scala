@@ -42,7 +42,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
 
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorAid(monitor: ActorMonitor[_])(using context: ActorContext) extends ActorInit, ActorDefs :
+trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends ActorInit, ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Post, Tracing}
 
@@ -233,7 +233,19 @@ object MonitorAid :
   private def tracer: Int = synchronized { _tracer += 1; _tracer }
 
   enum Action :
-    case Created, Terminated, Accepted, Refused, Initiated, Completed
+    /* The actor is created */
+    case Created
+    /* The actor is terminated */
+    case Terminated
+    /* The message is accepted for delivery */
+    case Accepted
+    /* The message is refused */
+    case Refused
+    /* Letter processing has begone */
+    case Initiated
+    /* Letter processing is done */
+    case Completed
+
   object Action :
     def handOver(accept: Boolean) = if accept then Accepted else Refused
 
@@ -241,6 +253,7 @@ object MonitorAid :
     case Disabled, Default, Enabled
 
   class Trace(val time: Long, val action: Action, val post: Post) extends Ordered[Trace] :
+    import Action.*
     var nr = tracer
     /* Sorting is first on action time and subsequently on trace number. This should be sufficient to be unique in
      * all circumstances. */
@@ -252,7 +265,9 @@ object MonitorAid :
       else if this.##   < that.##   then -1
       else if this.##   > that.##   then  1
       else                                0
-    def show = s"time=$time, nr=$nr, action=$action, letter=${post.letter}, from=${post.receiver}, to=${post.sender}"
+    def show = action match
+      case Created | Terminated                       => s"time=$time, nr=$nr, action=$action, actor=${post.receiver}"
+      case Accepted | Refused | Initiated | Completed => s"time=$time, nr=$nr, action=$action, ${post.show}"
 
   object Trace :
     def empty(time: Long) = new Trace(time,Action.Created,Post.empty)

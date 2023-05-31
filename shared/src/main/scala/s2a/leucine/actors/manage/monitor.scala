@@ -25,14 +25,13 @@ package s2a.leucine.actors
  **/
 
 
-import java.io.PrintWriter
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 
 /** Extend and Instantiate this class to get a custom made monitor */
-abstract class ActorMonitor[Config] :
+abstract class ActorMonitor :
   import MonitorAid.{Action, Sample, Trace, Post, Tracing}
   import ActorMonitor.Record
 
@@ -46,7 +45,7 @@ abstract class ActorMonitor[Config] :
   private var traces: SortedSet[Trace] = SortedSet.empty
 
   /** Start of this monitor. To be used as the time baseline for tracing. */
-  private[actors] val baseline = System.nanoTime
+  private[actors] val baseline: Long = System.nanoTime
 
   /** Add one actor to the actors map to be monitored. */
   private[actors] def addActor(path: String): Unit =
@@ -82,7 +81,7 @@ abstract class ActorMonitor[Config] :
     traced(path,minTime,result)
 
   /**
-   * This is the public setting of tracing.  Every actor has it personal setting as well.
+   * This is the public setting of tracing. Every actor has it personal setting as well.
    * If tracing is active for this actor depends on both settings, in a symmetric manner.
    * There are two levels of tracing. TraceFull and TraceCount. TraceFull traces every
    * message with timestamp and action. This may be memory intensive. TraceCount just
@@ -94,11 +93,15 @@ abstract class ActorMonitor[Config] :
    * or one of the settings is Enabled. This implies that you can enable/disable
    * the tracing TraceFull here as long as the personal tracing is Default or Enabled.
    * Setting this to Disabled will always prohibit tracing TraceFull of this actor,
-   * and setting it to Default/Enabled leaves the fate in the hands of the personal setting. */
-  def tracing: Tracing = Tracing.Disabled
+   * and setting it to Default/Enabled leaves the fate in the hands of the personal setting.
+   * The personal setting defaults to Tracing.Default. You must define this setting in
+   * you monitor. If unsure what to do, try Tracing.Disabled first. */
+  def tracing: Tracing
 
-  /** Default probe interval. Override for other value. */
-  def probeInterval: FiniteDuration = 5.seconds
+  /**
+   * Default probe interval. Set this to a reasonable value, say 5 seconds for short running
+   * applications and maybe 1 minute for servers. */
+  def probeInterval: FiniteDuration
 
   /** Clear the actor samples table. */
   def clearSamples(): Unit = synchronized { samples = SortedMap.empty }
@@ -116,51 +119,48 @@ abstract class ActorMonitor[Config] :
 
   /**
    * Callback function that reports that a new actor was added to the table. Returns a snapshot
-   * of the table, directly after this event. Implement this method to make this event visible. */
-  def added(path: String, samples: Map[String,Record]): Unit
+   * of the table, directly after this event. Override this method to make this event visible. */
+  def added(path: String, samples: Map[String,Record]): Unit = ()
 
   /**
    * Callback function that reports that an actor was removed from the table. Returns a snapshot
-   * of the table, directly after this event. Implement this method to make this event visible. */
-  def removed(path: String, samples: Map[String,Record]): Unit
+   * of the table, directly after this event. Override this method to make this event visible. */
+  def removed(path: String, samples: Map[String,Record]): Unit = ()
 
   /**
    * Callback function that reports that new samples of an actor were added to the table. Returns a
-   * snapshot of the table, directly after this event. Implement this method to make this event visible. */
-  def sampled(path: String, samples: SortedMap[String,Record]): Unit
+   * snapshot of the table, directly after this event. Override this method to make this event visible. */
+  def sampled(path: String, samples: SortedMap[String,Record]): Unit = ()
 
   /**
    * Callback function that reports that posts of an actor were added to the table. Returns a snapshot
-   * of the counting on the posts, directly after this event. Implement this method to make this event
+   * of the counting on the posts, directly after this event. Override this method to make this event
    * visible. */
-  def posted(path: String, posts: SortedMap[Post,Long]): Unit
+  def posted(path: String, posts: SortedMap[Post,Long]): Unit = ()
 
   /**
    * Callback function that reports that new traces of an actor were integrated to the traces log. They
    * do not need to be consecutive. minTime is the lowest time index to change. Returns a snapshot
    * of the whole trace log, directly after this event. Below minTime, there will be no changes.
-   * Implement this method to make this event visible. */
-  def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit
+   * Override this method to make this event visible. */
+  def traced(path: String, minTime: Long, traces: SortedSet[Trace]): Unit = ()
 
   /** Create a full report to a given string writer */
-  def report(target: PrintWriter, samples: Boolean, posts: Boolean, traces: Boolean): Unit =
+  def report(writeln: String => Unit, samples: Boolean, posts: Boolean, traces: Boolean): Unit =
     /* Take snapshot */
     val (samplesSS,postsSS,tracesSS) = synchronized { (this.samples,this.posts,this.traces) }
     /* Construct a basic String representation from the samples. */
     if samples then
-      target.println("All Samples:")
-      samplesSS.foreach((path,record) => target.println(s"'$path': ${record.show}"))
+      writeln("All Samples:")
+      samplesSS.foreach((path,record) => writeln(s"'$path': ${record.show}"))
     /* Construct a basic String representation from the posts. */
     if posts then
-      target.println("All Posts:")
-      postsSS.foreach((post,count) => target.println(s"${post.show}: $count"))
+      writeln("All Posts:")
+      postsSS.foreach((post,count) => writeln(s"${post.show}: $count"))
     /* Construct a basic String representation for all traced.*/
     if traces then
-      target.println("All Traces:")
-      tracesSS.foreach(trace => target.println(trace.show))
-
-  /** Use this method to extract dynamical information contained here called from your actor. */
-  def show(config: Config): Unit
+      writeln("All Traces:")
+      tracesSS.foreach(trace => writeln(trace.show))
 
 
 /** Use this Object to directly start monitoring with default functionality. */

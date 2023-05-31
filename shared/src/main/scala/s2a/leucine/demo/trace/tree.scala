@@ -42,7 +42,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
     /* This is written for all actors. */
     write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
-    if parent.isEmpty then monitor.show(Config(posts = true, traces = true))
+    if parent.isEmpty then monitor.show(postsAndTraces = true)
 
   /* New children must be created with their parent as parameter. */
   private def newChild(i: Int) = Tree(s"F$i",Some(this))
@@ -90,7 +90,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
       parent match
         case Some(p) => p ! Tree.Backward
         case None    => returns -= 1; if returns == 0 then println("Wait for silent termination (~12s)")
-    case Tree.Report => monitor.show(Config(samples = true))
+    case Tree.Report => monitor.show(samples = true)
 
 
 object Tree extends AcceptDefine, Stateless :
