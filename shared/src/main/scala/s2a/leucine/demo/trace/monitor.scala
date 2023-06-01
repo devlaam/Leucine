@@ -35,7 +35,7 @@ import s2a.leucine.actors.*
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
 class Monitor extends ActorMonitor :
-  import MonitorAid.{Trace, Post, Action, Tracing}
+  import MonitorAid.{Trace, Action, Tracing}
   import ActorMonitor.Record
   /* Custom method to show the results obtained so far. Since this example only has one short
    * run the results are show at the end. */

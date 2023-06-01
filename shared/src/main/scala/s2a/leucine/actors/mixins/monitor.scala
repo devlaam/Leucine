@@ -33,7 +33,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
   private[actors] def probeFamily(): Option[MonitorAid.Family]  = None
-  private[actors] def monitorSend[Sender >: Common <: Accept](accept: Boolean, envelope: Env[Sender]): Unit = ()
+  private[actors] def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit = ()
   private[actors] def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorStart(): Unit = ()
@@ -44,7 +44,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
 /** Extend your actor with this mixin to put it under monitoring */
 trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends ActorInit, ActorDefs :
   this: NameActor =>
-  import MonitorAid.{Action, Trace, Post, Tracing}
+  import MonitorAid.{Action, Trace, Tracing}
 
   /* Fields to measure the time spend inside the thread and outside the thread */
   private var lastClockTime: Long = 0
@@ -84,9 +84,6 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
    * See if we may trace this actor in TraceCount mode now. This is the case if one of the
    * tracing settings is Enabled or both are Default. */
   private def mayTraceCount: Boolean = tracing.ordinal + monitor.tracing.ordinal > 1
-
-  /* Provisional way to regain the letters/senders from the envelope. */
-  private[actors] def repack[Sender >: Common <: Accept](env: Env[Sender]): BareActor.Card[Sender]
 
   /** Method called from the actor store its activity */
   private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
@@ -169,20 +166,20 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
     /* Register this actor in the monitor as existing. */
     monitor.addActor(storePath)
     /* Trace if requested, also trace the actor as created.  */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Created,path))
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Created,Actor.Post(path)))
     /* Make the first probe of the actor and continue to do so on regular intervals. */
     probeStart()
 
   /** Method called from the actor to indicate that it receives a new letter */
-  private[actors] override def monitorSend[Sender >: Common <: Accept](accept: Boolean, envelope: Env[Sender]): Unit =
+  private[actors] override def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit =
     /* Trace if requested, the letter is received or rejected. */
-    if mayTraceCount then addTrace(Trace(System.nanoTime-monitor.baseline,accept,path,repack(envelope)))
+    if mayTraceCount then addTrace(Trace(System.nanoTime-monitor.baseline,Action(mail),Actor.Post(mail,path,envelope)))
 
   /** Method called from the actor to indicate that it starts processing a letter. */
   private[actors] override def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     val time = System.nanoTime
     /* Trace if requested, the letter processing is initiated */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,path,repack(envelope)))
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,Actor.Post(Actor.Mail.Received,path,envelope)))
     /* The time past since has to be added to the total time in pause. */
     threadPauseTime += gain(time)
 
@@ -192,7 +189,7 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
     /* The time past since has to be added to the total time in play. */
     threadPlayTime += gain(time)
     /* Trace if requested, the letter processing is completed */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Completed,path,repack(envelope)))
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Completed,Actor.Post(Actor.Mail.Processed,path,envelope)))
 
   /** Method called from the actor to indicate that we are done in this actor. */
   private[actors] override def monitorStop(): Unit  =
@@ -206,7 +203,7 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
     /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
     probeStop()
     /* Trace if requested, the actor is terminated */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,path))
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,Actor.Post(path)))
 
   /** Calculate the relative time this actor spend performing processing letters. */
   protected override def processLoad: Double =
@@ -247,12 +244,24 @@ object MonitorAid :
     case Completed
 
   object Action :
-    def handOver(accept: Boolean) = if accept then Accepted else Refused
+    def apply(mail: Actor.Mail): Action = if mail < Actor.Mail.Received then Refused else Accepted
 
+
+  /**
+   * This is for the  personal or public setting of tracing. If tracing is active for this actor
+   * depends on both settings, in a symmetric manner. See the documentation at their definition
+   * locations.  */
   enum Tracing :
-    case Disabled, Default, Enabled
+    /* Full tracing is disabled, Count Tracing depends on other setting. */
+    case Disabled
+    /* Full / Count Tracing depends on other setting */
+    case Default
+    /* Count Tracing is enabled, Full Tracing depends on other setting. */
+    case Enabled
 
-  class Trace(val time: Long, val action: Action, val post: Post) extends Ordered[Trace] :
+
+  /** Class to capture trace information. */
+  class Trace(val time: Long, val action: Action, val post: Actor.Post) extends Ordered[Trace] :
     import Action.*
     var nr = tracer
     /* Sorting is first on action time and subsequently on trace number. This should be sufficient to be unique in
@@ -267,30 +276,10 @@ object MonitorAid :
       else                                0
     def show = action match
       case Created | Terminated                       => s"time=$time, nr=$nr, action=$action, actor=${post.receiver}"
-      case Accepted | Refused | Initiated | Completed => s"time=$time, nr=$nr, action=$action, ${post.show}"
+      case Accepted | Refused | Initiated | Completed => s"time=$time, nr=$nr, action=$action, ${post.full}"
 
   object Trace :
-    def empty(time: Long) = new Trace(time,Action.Created,Post.empty)
-    def apply[Sender <: Actor](time: Long, accept: Boolean, receiver: String, env: BareActor.Card[Sender]): Trace =
-      apply(time,Action.handOver(accept),receiver,env)
-    def apply[Sender <: Actor](time: Long, action: Action, receiver: String, env: BareActor.Card[Sender]): Trace =
-      new Trace(time,action,Post(receiver,env.letter.toString,env.sender.path))
-    def apply(time: Long, action: Action, receiver: String): Trace =
-      new Trace(time,action,Post(receiver,"",""))
-
-  case class Post(val receiver: String, val letter: String, val sender: String) extends Ordered[Post] :
-    def compare(that: Post): Int =
-      if      this.sender   < that.sender   then -1
-      else if this.sender   > that.sender   then  1
-      else if this.receiver < that.receiver then -1
-      else if this.receiver > that.receiver then  1
-      else if this.letter   < that.letter   then -1
-      else if this.letter   > that.letter   then  1
-      else                                  0
-    def show= s"from=$sender, to=$receiver, letter=$letter"
-
-  object Post :
-    val empty = new Post("","","")
+    def empty(time: Long) = new Trace(time,Action.Created,Actor.Post(""))
 
   /** Class to return the results on a monitor probe. */
   sealed trait Sample :

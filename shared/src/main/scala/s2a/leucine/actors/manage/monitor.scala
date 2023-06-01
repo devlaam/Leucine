@@ -32,7 +32,8 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 /** Extend and Instantiate this class to get a custom made monitor */
 abstract class ActorMonitor :
-  import MonitorAid.{Action, Sample, Trace, Post, Tracing}
+  import Actor.Post
+  import MonitorAid.{Action, Sample, Trace, Tracing}
   import ActorMonitor.Record
 
   /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
@@ -156,7 +157,7 @@ abstract class ActorMonitor :
     /* Construct a basic String representation from the posts. */
     if posts then
       writeln("All Posts:")
-      postsSS.foreach((post,count) => writeln(s"${post.show}: $count"))
+      postsSS.foreach((post,count) => writeln(s"${post.short}: $count"))
     /* Construct a basic String representation for all traced.*/
     if traces then
       writeln("All Traces:")

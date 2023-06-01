@@ -82,4 +82,3 @@ object BareActor :
 
   /** The Envelope is responsible for holding the letter and the sender together. */
   private[actors] class Envelope[A <: Actor, C <: A, S >: C <: A, L[S >: C <: A] <: Actor.Letter[S]](val letter: L[S], val sender: S)
-  private[actors] class Card[S <: Actor](val letter: Actor.Letter[S], val sender: Actor)

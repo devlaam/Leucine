@@ -162,6 +162,53 @@ object Actor :
 
 
   /**
+   * These are the stages a mail can be in. There can be a few reasons why mail is not handled by
+   * the actor. Those will be collected in a separate list for manual inspection. The reason is
+   * specified by one of these causes. Otherwise it
+   */
+  enum Mail extends EnumOrder[Mail] :
+    /** The mail is not yet defined */
+    case Empty
+    /** The mail was not delivered to the actor because it has stopped. */
+    case Undelivered
+    /** The mail was not accepted by the actor because the mailbox is full */
+    case Unaccepted
+    /** The mail was received by the actor for processing. */
+    case Received
+    /** The mail was not matched by the actor because the type is unknown */
+    case Unmatched
+    /** The mail was not read completely by the actor something went wrong during execution */
+    case Unreadable
+    /** The mail was not processed by the actor because it stopped prematurely. */
+    case Unprocessed
+    /** The mail was processed by the actor, this completes the handling. */
+    case Processed
+
+  object Mail :
+    def apply(actorStopped: Boolean, mailboxFull: Boolean): Mail =
+      if      actorStopped  then Actor.Mail.Undelivered
+      else if mailboxFull   then Actor.Mail.Unaccepted
+      else                       Actor.Mail.Received
+
+
+  /** Class to capture the letter, sender en receiver in string form for manual analysis */
+  case class Post(val mail: Mail, val receiver: String, val letter: String, val sender: String) extends Ordered[Post] :
+    def compare(that: Post): Int =
+      if      this.sender   < that.sender   then -1
+      else if this.sender   > that.sender   then  1
+      else if this.receiver < that.receiver then -1
+      else if this.receiver > that.receiver then  1
+      else if this.letter   < that.letter   then -1
+      else if this.letter   > that.letter   then  1
+      else                                  0
+    def short: String = s"from=$sender, to=$receiver, letter=$letter"
+    def full: String  = s"from=$sender, to=$receiver, mail=$mail, letter=$letter@${letter.##.toHexString}"
+
+  object Post :
+    def apply(receiver: String) = new Post(Mail.Empty,receiver,"","")
+    def apply(mail: Mail, receiver: String, envelope: BareDefs#Env[_]) = new Post(mail,receiver,envelope.letter.toString,envelope.sender.path)
+
+  /**
    * Use the Anonymous Actor as a sender if you do not have a context or do want to reveal yourself.
    * It is not possible to return an answer to the Anonymous sender. Also, trying to stop it will fail. */
   object Anonymous extends Actor :

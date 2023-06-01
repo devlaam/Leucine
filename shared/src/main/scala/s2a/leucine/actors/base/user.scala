@@ -31,9 +31,6 @@ transparent trait UserActor(using context: ActorContext) extends Actor, ActorDef
   /** Pack the letter with the sender into an envelope.  */
   private[actors] final def pack[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Env[Sender] = BareActor.Envelope(letter,sender)
 
-  /** Repacking is for the monitor only. */
-  private[actors] def repack[Sender >: Common <: Accept](env: Env[Sender]): BareActor.Card[Sender] = BareActor.Card(env.letter,env.sender)
-
   /** The maximum number of letters this actor accepts. Override to change its value. */
   protected def maxMailboxSize: Int = context.maxMailboxSize
 

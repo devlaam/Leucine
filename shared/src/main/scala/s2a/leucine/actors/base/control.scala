@@ -79,18 +79,23 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
   final private[actors] def sendEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Boolean = synchronized {
     context.traceln(s"TRACE $path/$phase: sendEnvelope(letter=${envelope.letter}, sender=${envelope.sender})")
     /* A letter is only accepted as long as we are active and the mailbox is not too full. */
-    val accept = phase.active && mailbox.size < maxMailboxSize
+    val mail = Actor.Mail(!phase.active, mailbox.size >= maxMailboxSize)
     /* Trace if we have to, we accepted or refused the letter processing */
-    monitorSend(accept,envelope)
+    monitorSend(mail,envelope)
     /* If the message is not accepted say so, else do ... */
-    if !accept then false else
+    if mail >= Actor.Mail.Received
+    then
       /* ... test the current mailbox size for the high level water mark. */
       protectRaise(mailbox.size)
       /* ... put the mail in the box */
       mailbox.enqueue(envelope)
       /* ... trigger the processLoop, so execution starts, if currently in Pause. */
       processTrigger(true)
-      true }
+      /* We accept this email */
+      true
+    else
+      /* We refuse this email */
+      false }
 
   /**
    * Stop this actor asap, but complete the running letter if finish is true. This is an internal call
