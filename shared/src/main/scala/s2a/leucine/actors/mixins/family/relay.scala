@@ -53,27 +53,33 @@ transparent private trait FamilyRelay extends FamilyTypes, ActorDefs :
    * was accepted by the child. */
   private[actors] def passOn[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender)(child: ChildActor): Boolean = child.sendEnvelope(child.pack(letter,sender))
 
+  /**
+   * Forward a message to all children in a specific group. Indexed children are those that were given a name
+   * by hand. Workers are children where the name starts with the worker prefix, usually # followed by a number.
+   * AutoNamed are children the were issued a name automatically, usually based in the class.
+   * Returns the number of children that accepted the letter. */
   private[actors] def relayEnvGrouped[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, toIndexed: Boolean, toWorkers: Boolean, toAutoNamed: Boolean): Int =
+    context.traceln(s"TRACE $path/$phase: relayEnvGrouped(letter=$letter, sender=$sender, toIndexed=$toIndexed, toWorkers=$toWorkers, toAutoNamed=$toAutoNamed), children.size=${_children.size}")
     def include(child: ChildActor): Boolean =
       if      child.isWorker                                            then toWorkers
       else if (toIndexed == toAutoNamed) || _index.contains(child.name) then toIndexed
       else                                                                   toAutoNamed
     val selected = _children.filter(include)
-    if context.actorTracing then println(s"In actor=$path: relayAll: children.size=${_children.size}, selected.size=${selected.size}")
     selected.map(passOn(letter,sender)).count(identity)
 
   /**
    * Forward a message to all children, or children of which the name pass the test 'include'.
    * Returns the number of children that accepted the letter. */
   private[actors] def relayEnvFilter[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, include: String => Boolean): Int =
+    context.traceln(s"TRACE $path/$phase: relayEnvFilter(letter=$letter, sender=$sender, include=$include), children.size=${_children.size}")
     val selected = _index.filter((key,_) => include(key)).values
-    if context.actorTracing then println(s"In actor=$path: relay: children.size=${_children.size}, selected.size=${selected.size}")
     selected.map(passOn(letter,sender)).count(identity)
 
   /**
    * Forward a message to one specific child on the basis of its name. Returns true if successful and
    * false if that child is not present or does not accept the letter. */
   private[actors] def passEnv[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, name: String): Boolean =
+    context.traceln(s"TRACE $path/$phase: passEnv(letter=$letter, sender=$sender, name=$name)")
     _index.get(name).map(passOn(letter,sender)).getOrElse(false)
 
 

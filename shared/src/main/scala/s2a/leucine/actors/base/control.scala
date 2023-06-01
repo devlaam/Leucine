@@ -34,6 +34,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * Called from the guard to drop a needle. If the number of needles exceeds a threshold,
    * the actor is assumed to be silent. */
   private[actors] def dropNeedle(root: Boolean): Unit =
+    context.traceln(s"TRACE $path/$phase: dropNeedle(root=$root)")
     /* Dropping needles only makes sense when we are active. */
     val passOn =  synchronized { activity.active && (
       /* See if we are not double booked. This is the case when this actor is requested to
@@ -76,7 +77,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may have stopped.
    * A letter is accepted if the actor is still active and if there is room in the mailbox to store it. */
   final private[actors] def sendEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Boolean = synchronized {
-    if context.actorTracing then println(s"In actor=$path: Enqueue message $envelope, phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: sendEnvelope(letter=${envelope.letter}, sender=${envelope.sender})")
     /* A letter is only accepted as long as we are active and the mailbox is not too full. */
     val accept = phase.active && mailbox.size < maxMailboxSize
     /* Trace if we have to, we accepted or refused the letter processing */
@@ -95,7 +96,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * Stop this actor asap, but complete the running letter if finish is true. This is an internal call
    * which does not change the stopper value, which holds the primary user action to stop the actor */
   private[actors] def stopWith(finish: Boolean): Unit = synchronized {
-    if context.actorTracing then println(s"In actor=$path: Before stopInternal($finish) message, phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: stopWith(finish=$finish)")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
       case Phase.Start  => deferred(processStop(false,finish)); Phase.Stop
@@ -116,6 +117,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
    * possible if the stop action was not yet initiated. Direct and Finish start immediately, and cannot be retracted. */
   final def stop(value: Stop): Unit =
+    context.traceln(s"TRACE $path/$phase: stop(value=$value)")
     /* Activate/deactivate the needle dropping, which is there to see if the actor turned silent. */
     def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
     /* Stop with finish if there are no children for this actor. */

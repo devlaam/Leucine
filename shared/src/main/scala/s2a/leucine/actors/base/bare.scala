@@ -28,13 +28,14 @@ package s2a.leucine.actors
 /** The BareActor implements all methods needed for basic actor operation. It should not be instantiated by the user. */
 abstract class BareActor(using context: ActorContext) extends ControlActor, NameActor, ActorInit :
 
-  if context.actorTracing then println(s"In actor=$path: Constructed")
+  context.traceln(s"TRACE $path/$phase: Constructed ${getClass.getName}")
 
   /** Use this inside the actor to test for an anonymous sender */
   type Anonymous = Actor.Anonymous.type
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeBare(): Option[MonitorAid.Bare] =
+    context.traceln(s"TRACE $path/$phase: probeBare()")
     val result = MonitorAid.Bare(phase,stopper,mailbox.sum,mailbox.max,excepts,needles,processLoad)
     mailbox.reset()
     Some(result)
@@ -44,6 +45,7 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
 
   /* Kick start the actor. */
   private[actors] def initComplete(): Unit =
+    context.traceln(s"TRACE $path/$phase: initComplete()")
     /* Activates the real time monitoring, if present. */
     monitorStart()
     /* Initiate the execution of this actor in a new thread. */

@@ -35,7 +35,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
 
   /** Triggers the processLoop into execution, depending on the phase. */
   private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
-    if context.actorTracing then println(s"In actor=$path: Trigger message, phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: processTrigger(coreTask=$coreTask)")
     phase = phase match
       /* If this is the very first trigger, called from the constructor. */
       case Phase.Start  => processInit(); Phase.Play
@@ -52,13 +52,14 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
 
   /** Contains the instructions to startup the actor */
   private[actors] def processInit(): Unit =
+    context.traceln(s"TRACE $path/$phase: processInit()")
     /* Process startup code in an other thread. This must be done from the processLoop for
      * otherwise the started() call may be superseded by the first letter. */
     deferred(processLoop(true))
 
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
-    if context.actorTracing then println(s"In actor=$path: processPlay() called in phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: processPlay(reset=$reset)")
     /* Reset the dropped needles counter (note we only call processPlay synchronized.) if
      * requested, otherwise make sure it does not exceed the silentStop value. */
     if reset then needles = 0 else needles = needles min context.silentStop
@@ -70,6 +71,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
   private[actors] def processEnvelope(envelope: Env[?]): Unit =
+    context.traceln(s"TRACE $path/$phase: processEnvelope(letter=${envelope.letter}, sender=${envelope.sender})")
     /* Start measuring the time passed in the user environment, and trace when requested */
     monitorEnter(envelope)
     /* User code is protected by an exception guard.*/
@@ -90,7 +92,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
    * Primary process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queues are exhausted. */
   private[actors] def processLoop(init: Boolean): Unit =
-    if context.actorTracing then println(s"In actor=$path: enter processLoop() in phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: processLoop(init=$init)")
     /* If we come here for the first time we must execute the started() call back */
     if init then deliverStarted()
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
@@ -122,7 +124,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
    * of letters that could not be completed due to a forced stop. If finish is true
    * the stop was not forced, but the current queue was allowed to be completed. */
   private[actors] def processStop(dropped: Boolean, finish: Boolean): Unit = synchronized {
-    if context.actorTracing then println(s"In actor=$path: processStop() called in phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: processStop(dropped=$dropped, finish=$finish)")
     /* Stop all scheduled timers. */
     eventsCancel()
     /* Stop/finish the family tree recursively. */
@@ -141,6 +143,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =
+    context.traceln(s"TRACE $path/$phase: processTerminate(complete=$complete)")
     /* Call the stop event handler of this actor, if implemented. */
     deliverStopped(stopper,complete)
     /* We must abandon after the stopped has called, so that we call all stopped in a family in
@@ -156,7 +159,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
 
   /** After work from the processLoop. If dropped is true, there were letters that could not be completed. */
   private[actors] def processExit(dropped: Boolean): Unit = synchronized {
-    if context.actorTracing then println(s"In actor=$path: exit processLoop() in phase=${phase}")
+    context.traceln(s"TRACE $path/$phase: processExit(dropped=$dropped)")
     /* There are regular (core) tasks that handle some enveloped message. There can stem from the
      * the mailbox, the stash or the event queue. These are all handled in normal operation and when
      * we are finishing, the event queue is ignored. So we first calculate these coreFinishTasks */

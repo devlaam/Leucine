@@ -127,7 +127,6 @@ transparent private trait FamilyChild[RS <: Boolean] extends  ActorDefs, FamilyS
      * index. But, if an actor under the prename already exists, its index entry overwritten. */
     val rename = Auxiliary.rename(prename,child,worker,context.workerPrefix)
     synchronized {
-      if context.actorTracing then println(s"In actor=$name:  adopting: $name")
       /* All children are added. */
       _children += child
       /* If required add it to the index. If the name already exists, overwrite the entry.

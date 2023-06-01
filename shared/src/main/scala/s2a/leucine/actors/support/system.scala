@@ -33,8 +33,8 @@ final val !# = DefaultSystem.workerPrefix * 3
 
 /** Trait to define the parameters needed for the context and platform classes to run. */
 trait SystemParameters :
-  /** Helper value to switch on/off tracing for debugging. Start your debug lines with if trace then ... */
-  def actorTracing: Boolean
+  /** Helper method for tracing while debugging. Wrap your debug lines in traceln() */
+  def traceln(s: => String): Unit
   /** The natural time the system pauses when there are no tasks. The use is platform dependent. */
   def idleThreadPause: FiniteDuration
   /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
@@ -52,9 +52,9 @@ trait SystemParameters :
 /**
  * Default parameters for the system you may use. If other values are needed, construct an instance
  * of your own and initialize the ActorImplementation with that. You may of course also write a
- * completely new ActorImplementation */
+ * completely new ActorImplementation. To make use of tracing, use println(s) for example. */
 object DefaultSystem extends SystemParameters :
-  val actorTracing: Boolean           = false
+  def traceln(s: => String): Unit     = ()
   val idleThreadPause: FiniteDuration = 10.millis
   val threadsPerCore: Int             = 4
   val workerPrefix: String            = "#"
