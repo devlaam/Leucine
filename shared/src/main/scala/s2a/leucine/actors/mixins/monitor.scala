@@ -33,6 +33,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
   private[actors] def probeFamily(): Option[MonitorAid.Family]  = None
+  private[actors] def probeProtect(): Option[MonitorAid.Protect]  = None
   private[actors] def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit = ()
   private[actors] def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
@@ -124,7 +125,7 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
     /* Take the samples in a synchronized way. */
     val (samples,traces,probed) = synchronized {
       /* Do the actual probing work on all mixins and the bare actor trait. */
-      val samples = if probing then List(probeBare(),probeStash(),probeTiming(),probeFamily()).flatten else Nil
+      val samples = if probing then List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect()).flatten else Nil
       /* Get the traces gathered from this actor */
       val traces = if probing then this.traces else Nil
       /* Clean the trace storage */
@@ -301,3 +302,7 @@ object MonitorAid :
   /** Class to marshal all the KPI's of the Families mixins. */
   case class Family(namedChildrenNow: Int, allChildrenNow: Int, workersSum: Long) extends Sample :
     def show = s"namedChildrenNow=$namedChildrenNow, allChildrenNow=$allChildrenNow, workersSum=$workersSum"
+
+  /** Class to marshal all the KPI's of the Timing mixin. */
+  case class Protect(alarmsSum: Int) extends Sample :
+    def show = s"alarmsSum=$alarmsSum"

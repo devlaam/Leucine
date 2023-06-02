@@ -110,7 +110,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
        * letter handling. */
       envs = if eventsPossible then synchronized { eventsDequeue(stashDequeue(envs.tail)) } else stashDequeue(envs.tail)
       /* In case we have mailbox protection we may have to take action, since the queue may have grown */
-      protectAlarm()
+      protectCheck()
     /* If we have any children that were removed report them now. This means we still receive callbacks on the removed
      * children after a Stop, but only as long as they were rejected when this actor was still active. Note that we
      * report outside the inner loop. These callbacks are not that important that we want to test for them every processed

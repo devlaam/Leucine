@@ -29,7 +29,7 @@ package s2a.leucine.actors
 private[actors] trait ProtectDefs :
   private[actors] def protectRaise(size: Int): Unit = ()
   private[actors] def protectReset(): Unit = ()
-  private[actors] def protectAlarm(): Unit = ()
+  private[actors] def protectCheck(): Unit = ()
   private[actors] def protectIdle: Boolean = true
 
 
@@ -43,18 +43,26 @@ trait ProtectAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * once before, which will trigger the call sizeAlarm(false) */
   private var alarm: Alarm = Alarm.Idle
 
+  /* Variable counts the total number of alarms issued. */
+  private var alarms: Int = 0
+
   /** Test the current mailbox size for the high water mark. */
   private[actors] override def protectRaise(size: Int): Unit = synchronized {
     /* We only need to raise an alarm if we did not already do so and if the size exceeds the limit. */
-    if (alarm == Alarm.Idle) && (size >= alarmSize) then alarm = Alarm.Raised }
+    if (alarm == Alarm.Idle) && (size >= protectLevel) then alarm = Alarm.Raised }
 
   /** See if we must issue an alarm and do so only if an alarm was raised before. */
-  private[actors] override def protectAlarm(): Unit =
+  private[actors] override def protectCheck(): Unit =
     val call = synchronized { alarm match
       case Alarm.Idle    => false
       case Alarm.Raised  => alarm = Alarm.Issued; true
       case Alarm.Issued  => false }
-    if call then sizeAlarm(true)
+    if call then
+      /* We issue the alarm, increase the counter */
+      alarms = alarms + 1
+      /* Make the call. */
+      protectAlarm(true,alarms)
+
 
   /**
    * See if we must reset an alarm and do so only if an alarm was issued before.
@@ -64,24 +72,30 @@ trait ProtectAid(using context: ActorContext) extends ActorInit, ActorDefs :
       case Alarm.Idle    => false
       case Alarm.Raised  => alarm = Alarm.Idle; false
       case Alarm.Issued  => alarm = Alarm.Idle; true }
-    if call then sizeAlarm(false)
+    if call then protectAlarm(false,alarms)
 
   /** See if an alarm was raised of issued. If neither is the case this returns true. */
   private[actors] override def protectIdle: Boolean = synchronized { alarm == Alarm.Idle }
 
+  /** Take a snapshot of the internals of this actor. */
+  private[actors] override def probeProtect(): Option[MonitorAid.Protect] = Some(MonitorAid.Protect(alarms))
+
   /**
    * The number of letters in the mailbox that issues an alarm. This must be a constant, since
    * it is called in a synchronized environment, and is called on every letter posted. */
-  protected val alarmSize: Int
+  protected val protectLevel: Int
+
 
   /**
-   * Implement an event handler for the situation the mailbox exceeds the limit set in alarmSize,
+   * Implement an event handler for the situation the mailbox exceeds the limit set in protectLevel,
    * (full = true) and for when mailbox, stash and event queues are all depleted (full = false).
    * Each call happens only once, and you always receive an call signalling empty queues after a
    * a call with full=true was made and before the next call with full=true is made. When stop(Finish)
    * is called the call sizeAlarm(false) will come after the last letter is processed and but before
-   * stopped() is called. When stop(Direct) is called, the sizeAlarm(true/false) may not come at all. */
-  protected def sizeAlarm(full: Boolean): Unit
+   * stopped() is called. When stop(Direct) is called, the sizeAlarm(true/false) may not come at all.
+   * The size parameter reflects the total number of size alarms during the lifetime of the actor
+   * up to now, this one included. */
+  protected def protectAlarm(full: Boolean, size: Int): Unit
 
   /* Called to count this trait */
   private[actors] override def initCount: Int = super.initCount + 1
