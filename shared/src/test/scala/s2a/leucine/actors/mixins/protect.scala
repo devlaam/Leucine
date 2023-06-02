@@ -9,9 +9,9 @@ trait ProtectAidTest(using ac: ActorContext) :
 
   class Digest(val writeln: String => Unit, val done: () => Unit) extends AcceptActor(Digest), ProtectAid :
     override val maxMailboxSize = 4
-    val alarmSize = 2
+    val protectLevel = 2
 
-    protected def sizeAlarm(full: Boolean): Unit =
+    protected def protectAlarm(full: Boolean, size: Int): Unit =
       writeln(s"alarm:$full")
 
     def receive(letter: Digest.Letter): Unit = letter match

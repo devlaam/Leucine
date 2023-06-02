@@ -24,7 +24,7 @@ object RestrictActorTest extends TestSuite :
       case (Joni.Text(text,depth), _: Mary)  => if depth< 5 then sendSara(text,depth) else sendJoni(text,depth)
       case (Joni.Text(text,depth), _: Sara)  => if depth< 5 then sendMary(text,depth) else sendJoni(text,depth)
       case (Joni.Text(_,0), _ : Anonymous)   => sendMary("*",0); sendSara("*",0)
-      case _                                 => writeln(s"Unhandled case $letter: $sender")
+      case _                                 => unmatched(letter,sender)
 
   object Joni extends RestrictDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
@@ -47,7 +47,7 @@ object RestrictActorTest extends TestSuite :
       case (Mary.Text(text,depth), _: Mary)  => writeln(s"$text$depth"); done()
       case (Mary.Text(text,depth), _: Sara)  => if depth< 5 then sendJoni(text,depth) else sendMary(text,depth)
       case (Mary.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendSara("*",0)
-      case _                                 => writeln(s"Unhandled case $letter: $sender")
+      case _                                 => unmatched(letter,sender)
 
   object Mary extends RestrictDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous
@@ -69,7 +69,7 @@ object RestrictActorTest extends TestSuite :
       case (Sara.Text(text,depth), _: Mary)  => if depth< 5 then sendJoni(text,depth) else sendSara(text,depth)
       case (Sara.Text(text,depth), _: Sara)  => writeln(s"$text$depth"); done()
       case (Sara.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendMary("*",0)
-      case _                                 => writeln(s"Unhandled case $letter: $sender")
+      case _                                 => unmatched(letter,sender)
 
   object Sara extends RestrictDefine, Stateless  :
     type Accept = Joni | Mary | Sara | Anonymous

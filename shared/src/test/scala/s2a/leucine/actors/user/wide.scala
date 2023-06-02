@@ -24,7 +24,7 @@ object WideActorTest extends TestSuite :
       case (Common.Text(text,depth), _: Mary)  => if depth< 5 then sendSara(text,depth) else sendJoni(text,depth)
       case (Common.Text(text,depth), _: Sara)  => if depth< 5 then sendMary(text,depth) else sendJoni(text,depth)
       case (Common.Text(_,0), _ : Anonymous)   => sendMary("*",0); sendSara("*",0)
-      case (Common.Text(_,_), _ : Anonymous)   => writeln(s"Unhandled case $letter: $sender")
+      case (Common.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
   object Joni extends WideDefine, Stateless
 
@@ -43,7 +43,7 @@ object WideActorTest extends TestSuite :
       case (Common.Text(text,depth), _: Mary)  => writeln(s"$text$depth"); done()
       case (Common.Text(text,depth), _: Sara)  => if depth< 5 then sendJoni(text,depth) else sendMary(text,depth)
       case (Common.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendSara("*",0)
-      case (Common.Text(_,_), _ : Anonymous)   => writeln(s"Unhandled case $letter: $sender")
+      case (Common.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
   object Mary extends WideDefine, Stateless
 
@@ -61,7 +61,7 @@ object WideActorTest extends TestSuite :
       case (Common.Text(text,depth), _: Mary)  => if depth< 5 then sendJoni(text,depth) else sendSara(text,depth)
       case (Common.Text(text,depth), _: Sara)  => writeln(s"$text$depth"); done()
       case (Common.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendMary("*",0)
-      case (Common.Text(_,_), _ : Anonymous)   => writeln(s"Unhandled case $letter: $sender")
+      case (Common.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
   object Sara extends WideDefine, Stateless
 
