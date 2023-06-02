@@ -98,15 +98,24 @@ abstract class WideActor[Define <: WideDefine](private[actors] val actorDefine: 
 
   /**
    * Override this in your actor to process exceptions that occur while processing the letters. The default implementation
-   * is to ignore the exception and pass on to the next letter. The size is the total number of exceptions this actor
-   * experienced. You may decide to:
+   * is to ignore the exception and pass on to the next letter. The letter itself will be filed as Unreadable at the ActorGuard.
+   * The size is the total number of exceptions this actor experienced. You may decide to:
    * (1) Stop the actor, by calling stop(Actor.Stop.Direct) inside the handler.
    * (2) Continue for all or certain types of exceptions.
    * (3) Inform the parent if part of a family...
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomAid mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  protected def except(letter: Letter, sender: Sender, cause: Exception, size: Int): Unit = ()
+  protected def except(letter: Letter, sender: Sender, cause: Exception, size: Int): Unit =
+    /* If this exception is not handled, the letter is registered as unreadable. */
+    ActorGuard.fail(Actor.Post(Actor.Mail.Unreadable,path,letter,sender))
+
+  /**
+   * The user may, as a precaution, end each match statement of the letter/sender type with an
+   * catch all, and pass the result to unmatched, if the compiler is unable to verify that all
+   * possible cases have been covered. */
+  def unmatched(letter: Letter, sender: Sender): Unit =
+    ActorGuard.fail(Actor.Post(Actor.Mail.Unmatched,path,letter,sender))
 
   /**
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context

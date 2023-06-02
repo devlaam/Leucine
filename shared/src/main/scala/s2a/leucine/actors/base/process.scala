@@ -27,6 +27,7 @@ package s2a.leucine.actors
 /** The ProcessActor implements process methods that convey this actor. */
 transparent trait ProcessActor(using context: ActorContext) extends StatusActor :
   import BareActor.Phase
+  import Actor.{Mail,Post}
 
   /** Execute an action later on the context. */
   private[actors] def deferred(action: => Unit): Unit =
@@ -116,30 +117,29 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
      * report outside the inner loop. These callbacks are not that important that we want to test for them every processed
      * letter. When the callback comes eventually, that is sufficient. */
     familyReport()
-    /* The loop is done, we must exit. If this due to a stop, we may have dropped envelopes. */
-    processExit(!envs.isEmpty)
+    /* The loop is done, we must exit, pass the unprocessed letters along */
+    processExit(envs)
 
   /**
-   * Call processStop to terminate the processLoop. Dropped should contain the number
-   * of letters that could not be completed due to a forced stop. If finish is true
+   * Call processStop to terminate the processLoop. Dropped should contain the
+   * letters that could not be completed due to a forced stop. If finish is true
    * the stop was not forced, but the current queue was allowed to be completed. */
-  private[actors] def processStop(dropped: Boolean, finish: Boolean): Unit = synchronized {
+  private[actors] def processStop(dropped: List[Env[?]], finish: Boolean): Unit = synchronized {
     context.traceln(s"TRACE $path/$phase: processStop(dropped=$dropped, finish=$finish)")
     /* Stop all scheduled timers. */
     eventsCancel()
     /* Stop/finish the family tree recursively. */
     familyStop(finish)
-    /* See if there is anything left that was not processed */
-    val complete = !dropped && mailbox.isEmpty && stashEmpty
-    /* Remove the remaining letters, if any. */
-    mailbox.clear()
-    /* Remove the remaining stashed letters, if any. */
-    stashClear()
+    /* Collect all unprocessed messages */
+    val remain = stashDequeue(mailbox.dequeue(dropped))
+    /* And spool them to the ActorGuard as failed messages. */
+    remain.foreach(env => ActorGuard.fail(Post(Mail.Unprocessed,path,env)))
     /* Stop the monitoring of processed time. */
     monitorStop()
     /* If we have no family or no children any more we may directly terminate, otherwise
-     * we must wait until the last child has terminated. */
-    if familySize == 0 then deferred(processTerminate(complete)) else familyTerminate(complete) }
+     * we must wait until the last child has terminated. Pass the information about remaining
+     * messages. */
+    if familySize == 0 then deferred(processTerminate(remain.isEmpty)) else familyTerminate(remain.isEmpty) }
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =
@@ -157,8 +157,8 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
      * the others have.  */
     synchronized { phase = Phase.Done }
 
-  /** After work from the processLoop. If dropped is true, there were letters that could not be completed. */
-  private[actors] def processExit(dropped: Boolean): Unit = synchronized {
+  /** After work from the processLoop. Dropped contains the letters that could not be completed. */
+  private[actors] def processExit(dropped: List[Env[?]]): Unit = synchronized {
     context.traceln(s"TRACE $path/$phase: processExit(dropped=$dropped)")
     /* There are regular (core) tasks that handle some enveloped message. There can stem from the
      * the mailbox, the stash or the event queue. These are all handled in normal operation and when

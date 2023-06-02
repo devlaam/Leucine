@@ -52,6 +52,9 @@ object ActorGuard :
   /** Contains all actors that require needle drop. */
   private var silent: Set[Actor] = Set.empty
 
+  /** Keeps a list of all letters that failed somehow. */
+  private val failed: BurstQueue[Actor.Post] = new BurstQueue[Actor.Post]
+
   /** Add or remove an actor to the needle dropping for silence detection. */
   private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
     if active then silent += actor else silent -= actor }
@@ -113,11 +116,19 @@ object ActorGuard :
     /* Remove the actor from the primary collection. */
     actors -= actor }
 
+  /** Call fail on every letter that could not be processed somehow. */
+  // Wat gaan we hiermee doen? In feite is alleen een logger zinvol. Opslaan
+  // heeft eigenlijk niet zoveel zin. De gebuiker kan een logger registreren,
+  // die aangeroepen wordt. Het is wel zo, je mag hierin nergens op toegrijpen,
+  // want je weet de context niet.
+  private[actors] def fail(post: Actor.Post): Unit = synchronized { failed.enqueue(post) }
+
   /**
    * Get the actor with this path/name if it exists. It will recurse into the family tree if required.
    * All actors you gave a name manually are indexed. Here is the primary search point. If you are
    * already inside a family actor, it is more efficient to search just that tree. */
   def get(path: String)(using context: ActorContext): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,index)
+
 
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are

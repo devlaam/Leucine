@@ -164,20 +164,20 @@ object Actor :
   /**
    * These are the stages a mail can be in. There can be a few reasons why mail is not handled by
    * the actor. Those will be collected in a separate list for manual inspection. The reason is
-   * specified by one of these causes. Otherwise it
-   */
+   * specified by one of these causes. Otherwise we have the regular stages: Empty, Received and
+   * Processed. */
   enum Mail extends EnumOrder[Mail] :
-    /** The mail is not yet defined */
+    /** The mail is not yet defined. */
     case Empty
     /** The mail was not delivered to the actor because it has stopped. */
     case Undelivered
-    /** The mail was not accepted by the actor because the mailbox is full */
+    /** The mail was not accepted by the actor because the mailbox is full. */
     case Unaccepted
     /** The mail was received by the actor for processing. */
     case Received
-    /** The mail was not matched by the actor because the type is unknown */
+    /** The mail was not matched by the actor because the type is unknown. */
     case Unmatched
-    /** The mail was not read completely by the actor something went wrong during execution */
+    /** The mail was not read completely by the actor because of an unhandled exception. */
     case Unreadable
     /** The mail was not processed by the actor because it stopped prematurely. */
     case Unprocessed
@@ -207,6 +207,7 @@ object Actor :
   object Post :
     def apply(receiver: String) = new Post(Mail.Empty,receiver,"","")
     def apply(mail: Mail, receiver: String, envelope: BareDefs#Env[_]) = new Post(mail,receiver,envelope.letter.toString,envelope.sender.path)
+    def apply(mail: Mail, receiver: String, letter: Actor.Letter[_], sender: Actor) = new Post(mail,receiver,letter.toString,sender.path)
 
   /**
    * Use the Anonymous Actor as a sender if you do not have a context or do want to reveal yourself.

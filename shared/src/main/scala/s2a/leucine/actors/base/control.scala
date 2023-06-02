@@ -82,8 +82,9 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
     val mail = Actor.Mail(!phase.active, mailbox.size >= maxMailboxSize)
     /* Trace if we have to, we accepted or refused the letter processing */
     monitorSend(mail,envelope)
-    /* If the message is not accepted say so, else do ... */
+    /* If the message is (at least) of level Received ... */
     if mail >= Actor.Mail.Received
+    /* ... we may accept */
     then
       /* ... test the current mailbox size for the high level water mark. */
       protectRaise(mailbox.size)
@@ -91,10 +92,13 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       mailbox.enqueue(envelope)
       /* ... trigger the processLoop, so execution starts, if currently in Pause. */
       processTrigger(true)
-      /* We accept this email */
+      /* Say we accept this message */
       true
+    /* ... otherwise we refuse */
     else
-      /* We refuse this email */
+      /* Report this message as refused. */
+      ActorGuard.fail(Actor.Post(mail,path,envelope))
+      /* Say we refuse this message */
       false }
 
   /**
@@ -104,12 +108,12 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
     context.traceln(s"TRACE $path/$phase: stopWith(finish=$finish)")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
-      case Phase.Start  => deferred(processStop(false,finish)); Phase.Stop
+      case Phase.Start  => deferred(processStop(Nil,finish)); Phase.Stop
       /* If we are already looping, proceed to stop, which will halt the looping after the
        * letter is done or finish and let the mailbox complete. */
       case Phase.Play   => if finish then Phase.Finish else Phase.Stop
       /* If we we were just taking a break, we can stop immediately. */
-      case Phase.Pause  => deferred(processStop(false,finish)); Phase.Stop
+      case Phase.Pause  => deferred(processStop(Nil,finish)); Phase.Stop
       /* The finish command was already given but we may want to stop even quicker */
       case Phase.Finish => if finish then Phase.Finish else Phase.Stop
       /* Repeated call to stop has no effect. */
