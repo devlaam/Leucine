@@ -76,30 +76,27 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
    * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
    * for delivery. Note, this does not mean it also processed. In the mean time the actor may have stopped.
    * A letter is accepted if the actor is still active and if there is room in the mailbox to store it. */
-  final private[actors] def sendEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Boolean = synchronized {
-    context.traceln(s"TRACE $path/$phase: sendEnvelope(letter=${envelope.letter}, sender=${envelope.sender})")
-    /* A letter is only accepted as long as we are active and the mailbox is not too full. */
-    val mail = Actor.Mail(!phase.active, mailbox.size >= maxMailboxSize)
-    /* Trace if we have to, we accepted or refused the letter processing */
-    monitorSend(mail,envelope)
-    /* If the message is (at least) of level Received ... */
-    if mail >= Actor.Mail.Received
-    /* ... we may accept */
-    then
-      /* ... test the current mailbox size for the high level water mark. */
-      protectRaise(mailbox.size)
-      /* ... put the mail in the box */
-      mailbox.enqueue(envelope)
-      /* ... trigger the processLoop, so execution starts, if currently in Pause. */
-      processTrigger(true)
-      /* Say we accept this message */
-      true
-    /* ... otherwise we refuse */
-    else
-      /* Report this message as refused. */
-      ActorGuard.fail(Actor.Post(mail,path,envelope))
-      /* Say we refuse this message */
-      false }
+  final private[actors] def sendEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Boolean =
+    val mail = synchronized {
+      context.traceln(s"TRACE $path/$phase: sendEnvelope(letter=${envelope.letter}, sender=${envelope.sender})")
+      /* A letter is only accepted as long as we are active and the mailbox is not too full. */
+      val mail = Actor.Mail(!phase.active, mailbox.size >= maxMailboxSize)
+      /* Trace if we have to, we accepted or refused the letter processing */
+      monitorSend(mail,envelope)
+      /* If the message is of level Received we accept the message */
+      if mail == Actor.Mail.Received then
+        /* ... test the current mailbox size for the high level water mark. */
+        protectRaise(mailbox.size)
+        /* ... put the mail in the box */
+        mailbox.enqueue(envelope)
+        /* ... trigger the processLoop, so execution starts, if currently in Pause. */
+        processTrigger(true)
+      /* Get the result outside. */
+      mail }
+    /* Report this message as refused (must be outside the synchronized environment) when
+     * we do not accept the message. Let the caller know if we accepted as well. */
+    if mail == Actor.Mail.Received then true else { ActorGuard.fail(Actor.Post(mail,path,envelope)); false }
+
 
   /**
    * Stop this actor asap, but complete the running letter if finish is true. This is an internal call

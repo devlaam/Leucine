@@ -45,6 +45,8 @@ object Init extends LogInfo:
   def main(): Unit =
     /* Welcome message */
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
+    /* Define a handler for unhandled messages */
+    ActorGuard.unhandled(post => println(post.full))
     /* Open the console as an actor to get commands from the user. */
     val console = new Console
     /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
