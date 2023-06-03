@@ -83,8 +83,8 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       val mail = Actor.Mail(!phase.active, mailbox.size >= maxMailboxSize)
       /* Trace if we have to, we accepted or refused the letter processing */
       monitorSend(mail,envelope)
-      /* If the message is of level Received we accept the message */
-      if mail == Actor.Mail.Received then
+      /* If the message is of level Received we accept the message, otherwise we count a failed message */
+      if mail != Actor.Mail.Received then failed += 1 else
         /* ... test the current mailbox size for the high level water mark. */
         protectRaise(mailbox.size)
         /* ... put the mail in the box */

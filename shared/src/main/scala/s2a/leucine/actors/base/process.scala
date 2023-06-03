@@ -134,6 +134,8 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     val remain = stashDequeue(mailbox.dequeue(dropped))
     /* And spool them to the ActorGuard as failed messages. */
     remain.foreach(env => ActorGuard.fail(Post(Mail.Unprocessed,path,env)))
+    /* Any remained messages count as failed */
+    failed += remain.size
     /* Stop the monitoring of processed time. */
     monitorStop()
     /* If we have no family or no children any more we may directly terminate, otherwise

@@ -55,6 +55,9 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
   /** Counter for the total number of exceptions during the lifetime of this actor. */
   private[actors] var excepts: Int = 0
 
+  /** Counter for the total number of failed (unhandler) messages during the lifetime of this actor. */
+  private[actors] var failed: Int = 0
+
   /**
    * Counter for the total number of silent periods (needle drops). Anytime the actor starts the
    * processing loop this is reset. It is periodically increased when in pause mode. */

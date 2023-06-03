@@ -121,7 +121,7 @@ object ActorGuard :
   private[actors] def fail(post: Actor.Post): Unit = posted.foreach(_(post))
 
   /**
-   * Here you register a handler for unhandled messages. This includes all messages
+   * Here you register a handler for failed messages. This includes all messages
    * that are fused at sending, cause an exception that is not catched by the user,
    * is unmatched (manually added) or is left over as unprocessed when the actor
    * stops prematurely. The post handler can be called in any context, so the
@@ -129,7 +129,7 @@ object ActorGuard :
    * sending it to an other actor. Nothing more. Define this handler at the
    * beginning of your application and make sure it is only defined once.
    **/
-  def unhandled(post: Actor.Post => Unit): Unit = posted = Some(post)
+  def failed(post: Actor.Post => Unit): Unit = posted = Some(post)
 
   /**
    * Get the actor with this path/name if it exists. It will recurse into the family tree if required.
