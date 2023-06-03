@@ -174,13 +174,13 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
   /** Method called from the actor to indicate that it receives a new letter */
   private[actors] override def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit =
     /* Trace if requested, the letter is received or rejected. */
-    if mayTraceCount then addTrace(Trace(System.nanoTime-monitor.baseline,Action(mail),Actor.Post(mail,path,envelope)))
+    if mayTraceCount then addTrace(Trace(System.nanoTime-monitor.baseline,Action(mail),Actor.Post(mail,path,envelope.letter,envelope.sender)))
 
   /** Method called from the actor to indicate that it starts processing a letter. */
   private[actors] override def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     val time = System.nanoTime
     /* Trace if requested, the letter processing is initiated */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,Actor.Post(Actor.Mail.Received,path,envelope)))
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,Actor.Post(Actor.Mail.Received,path,envelope.letter,envelope.sender)))
     /* The time past since has to be added to the total time in pause. */
     threadPauseTime += gain(time)
 
@@ -190,7 +190,7 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
     /* The time past since has to be added to the total time in play. */
     threadPlayTime += gain(time)
     /* Trace if requested, the letter processing is completed */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Completed,Actor.Post(Actor.Mail.Processed,path,envelope)))
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Completed,Actor.Post(Actor.Mail.Processed,path,envelope.letter,envelope.sender)))
 
   /** Method called from the actor to indicate that we are done in this actor. */
   private[actors] override def monitorStop(): Unit  =

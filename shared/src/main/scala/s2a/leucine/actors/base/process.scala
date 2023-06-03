@@ -133,7 +133,7 @@ transparent trait ProcessActor(using context: ActorContext) extends StatusActor 
     /* Collect all unprocessed messages */
     val remain = stashDequeue(mailbox.dequeue(dropped))
     /* And spool them to the ActorGuard as failed messages. */
-    remain.foreach(env => ActorGuard.fail(Post(Mail.Unprocessed,path,env)))
+    remain.foreach(env => ActorGuard.fail(Post(Mail.Unprocessed,path,env.letter,env.sender)))
     /* Any remained messages count as failed */
     failed += remain.size
     /* Stop the monitoring of processed time. */

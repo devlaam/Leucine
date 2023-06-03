@@ -206,7 +206,6 @@ object Actor :
 
   object Post :
     def apply(receiver: String) = new Post(Mail.Empty,receiver,"","")
-    def apply(mail: Mail, receiver: String, envelope: BareDefs#Env[_]) = new Post(mail,receiver,envelope.letter.toString,envelope.sender.path)
     def apply(mail: Mail, receiver: String, letter: Actor.Letter[_], sender: Actor) = new Post(mail,receiver,letter.toString,sender.path)
 
   /**

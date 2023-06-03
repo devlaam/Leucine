@@ -95,7 +95,7 @@ transparent trait ControlActor(using context: ActorContext) extends ProcessActor
       mail }
     /* Report this message as refused (must be outside the synchronized environment) when
      * we do not accept the message. Let the caller know if we accepted as well. */
-    if mail == Actor.Mail.Received then true else { ActorGuard.fail(Actor.Post(mail,path,envelope)); false }
+    if mail == Actor.Mail.Received then true else { ActorGuard.fail(Actor.Post(mail,path,envelope.letter,envelope.sender)); false }
 
 
   /**
