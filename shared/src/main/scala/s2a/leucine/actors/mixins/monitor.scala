@@ -39,7 +39,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorStart(): Unit = ()
   private[actors] def monitorStop(): Unit = ()
-  protected def processLoad: Double = 0
+  protected def processLoad(alltime: Boolean): Double = 0
 
 
 /** Extend your actor with this mixin to put it under monitoring */
@@ -47,11 +47,21 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
   this: NameActor =>
   import MonitorAid.{Action, Trace, Tracing}
 
-  /* Fields to measure the time spend inside the thread and outside the thread */
+  /* Holds the last value on the call to System.nanoTime */
   private var lastClockTime: Long = 0
-  private var threadStartMoment: Long = 0
+  /* The moments this actor became active and was deactivated */
+  private var actorStartMoment: Long = 0
+  private var actorStopMoment: Long = 0
+  /* Accumulator fields to measure the time spend inside the user thread and outside the user thread */
   private var threadPlayTime: Long = 0
   private var threadPauseTime: Long = 0
+  /* Copies values of the threadPlayTime and threadPauseTime at a monitor Probe */
+  private var threadPlayProbe: Long = 0
+  private var threadPauseProbe: Long = 0
+  /* Field to determine if we are in Play of Pause mode. */
+  private var threadInPlay: Boolean = false
+  /* Separate object to synchronize the time measurements on. */
+  private val timingGuard: Object = new Object
 
   /* Temporary fast storage for the trace objects. */
   private var traces: List[Trace] = Nil
@@ -92,11 +102,25 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
   /** Calculate the gain in time since the last visit. */
   private def gain(newClockTime: Long): Long =
     /* Calculate the increase in time. This should be positive of course, but there never
-     * is an absolute guarantee of the presence of a monotonic clock on every OS. So better
-     * be inaccurate as negative. */
-    val result        = math.abs(newClockTime - lastClockTime)
+     * is an absolute guarantee of the presence of a monotonic clock on every OS */
+    val result        = newClockTime - lastClockTime
+    /* Record the new time as last time to get the next zero level. */
     lastClockTime     = newClockTime
-    result
+    /* Only return a positive value, if negative, zero is the best we can do */
+    if result > 0 then result else 0
+
+  /**
+   * Increase the correct accumulator field with the time spend in there. With flip, you
+   * you can switch between InPlay or InPause mode. */
+  private def threadTimeIncrement(flip: Boolean): Long = timingGuard.synchronized {
+    /* Get the current system time*/
+    val time = System.nanoTime
+    /* Calculate the time increment since last call and add it to the correct accumulator. */
+    if threadInPlay then threadPlayTime += gain(time) else threadPauseTime += gain(time)
+    /* Determine if we are still in Play mode or not. */
+    threadInPlay = threadInPlay ^ flip
+    /* Return the time stamp for further use (to limit the number of calls to System.nanoTime). */
+    time }
 
   /** Variable holding the cancel object for probing the actor. */
   private var cancelProbe = Cancellable.empty
@@ -163,7 +187,7 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
   private[actors] override def monitorStart(): Unit =
     /* Actions to enable time measurement of this actor. */
     val time = System.nanoTime
-    threadStartMoment = gain(time)
+    actorStartMoment = gain(time)
     /* Register this actor in the monitor as existing. */
     monitor.addActor(storePath)
     /* Trace if requested, also trace the actor as created.  */
@@ -178,26 +202,24 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
 
   /** Method called from the actor to indicate that it starts processing a letter. */
   private[actors] override def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
-    val time = System.nanoTime
+    /* The time past since has to be added to the total time in pause. */
+    val time = threadTimeIncrement(true)
     /* Trace if requested, the letter processing is initiated */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Initiated,Actor.Post(Actor.Mail.Received,path,envelope.letter,envelope.sender)))
-    /* The time past since has to be added to the total time in pause. */
-    threadPauseTime += gain(time)
 
   /** Method called from the actor to indicate that it finished processing a letter. */
   private[actors] override def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit  =
-    val time = System.nanoTime
     /* The time past since has to be added to the total time in play. */
-    threadPlayTime += gain(time)
+    val time = threadTimeIncrement(true)
     /* Trace if requested, the letter processing is completed */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Completed,Actor.Post(Actor.Mail.Processed,path,envelope.letter,envelope.sender)))
 
   /** Method called from the actor to indicate that we are done in this actor. */
   private[actors] override def monitorStop(): Unit  =
-    val time = System.nanoTime
-    /* The time past since has to be added to the total time in pause, since we can
-     * never directly stop inside a letter. */
-    threadPauseTime += gain(time)
+    /* Add the last time spend to the pause accumulator field (still active). */
+    val time = threadTimeIncrement(false)
+    /* The actor has stopped, so record this. */
+    actorStopMoment = time
     /* Tell the monitor this actor is done. Depending on the path it may just ignore
      * it or take cleaning up actions. */
     monitor.delActor(storePath)
@@ -206,15 +228,36 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
     /* Trace if requested, the actor is terminated */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,Actor.Post(path)))
 
-  /** Calculate the relative time this actor spend performing processing letters. */
-  protected override def processLoad: Double =
-    /* This is an calculation based on non synchronized values, but if we call this inside
-     * the letter handling we are fine or in callbacks we are fine since they are guaranteed
-     * to be sequential. */
-    val threadRunTime = threadPlayTime + threadPauseTime
+  /**
+   * Calculate the relative time this actor spend performing processing letters. Returns a value between
+   * zero and one. Zero means no time was spend at processing messages and one means 100% of the time was
+   * spend therein. With alltime being true this value reflects the overall performance of the actor, and
+   * with false, the value since the last call to processLoad(false). If this actor is part of a system
+   * ActorMonitor, do not use the latter call, for it may interfere with similar calls from the ActorMonitor
+   * which utilizes the same call to determine the actor process load. */
+  protected override def processLoad(alltime: Boolean): Double =
+    /* Synchronized copying of the accumulator fields, to be sure they are correct and this is quick. */
+    val (threadPlayTime,threadPauseTime) = timingGuard.synchronized {
+      /* Correct the accumulator fields up to now, but only is the actor has not been stopped yet. */
+      if actorStopMoment == 0 then threadTimeIncrement(false)
+       /* Make a thread save copy of the two accumulator fields for further calculations. */
+      (this.threadPlayTime,this.threadPauseTime) }
+    /* Calculate the increase since last time or take the whole value in case we want the all time value. */
+    val threadPlayInc   = if alltime then threadPlayTime  else threadPlayTime  - threadPlayProbe
+    val threadPauseInc  = if alltime then threadPauseTime else threadPauseTime - threadPauseProbe
+    /* If not all time, we save the values as start point for next calculation. */
+    if !alltime then
+      threadPlayProbe  = threadPlayTime
+      threadPauseProbe = threadPauseTime
+    /* Calculate the total time spend in the requested period. */
+    val threadRunInc = threadPlayInc + threadPauseInc
     /* Calculate the relative time if the thread has run at all. */
-    if threadRunTime == 0 then 0D else threadPlayTime.toDouble/threadRunTime.toDouble
+    if threadRunInc == 0 then 0D else threadPlayInc.toDouble/threadRunInc.toDouble
 
+  /**
+   * Returns the total time this actor is active in nano seconds. After the actor has
+   * stopped (i.e. does not accept any messages any more) this value remains constant. */
+  protected def activeTime: Long = if actorStopMoment > 0 then actorStopMoment - actorStartMoment else System.nanoTime - actorStartMoment
 
   /* Called to count this trait */
   private[actors] override def initCount: Int = super.initCount + 1
