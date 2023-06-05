@@ -32,7 +32,7 @@ import s2a.leucine.actors.Actor.Anonymous
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(globalMonitor) :
+class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(globalMonitor) :
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) = println(s"$kind $path")
@@ -42,10 +42,10 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
     /* This is written for all actors. */
     write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
-    if parent.isEmpty then monitor.show(postsAndTraces = true)
+    if parent.isEmpty && debug then monitor.show(postsAndTraces = true)
 
   /* New children must be created with their parent as parameter. */
-  private def newChild(i: Int) = Tree(s"F$i",Some(this))
+  private def newChild(i: Int) = Tree(s"F$i",debug,Some(this))
 
   /* Variable to see if all child actors have reported back that their
    * job is done. */
@@ -59,6 +59,9 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
     post(Tree.Report,6.seconds)
     /* Stop this actor tree when nothing is happening any more. */
     stop(Actor.Stop.Silent)
+
+  /* Only activate the monitor when we are in the debug mode. */
+  probing(debug)
 
   /* Handle the incoming letters. */
   final protected def receive(letter: Letter): Unit = letter match
@@ -90,7 +93,7 @@ class Tree(name: String, val parent: Option[Tree]) extends AcceptActor(Tree,name
       parent match
         case Some(p) => p ! Tree.Backward
         case None    => returns -= 1; if returns == 0 then println("Wait for silent termination (~12s)")
-    case Tree.Report => monitor.show(samples = true)
+    case Tree.Report => if debug then monitor.show(samples = true)
 
 
 object Tree extends AcceptDefine, Stateless :

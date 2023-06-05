@@ -24,15 +24,37 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
+import scala.collection.immutable.{SortedMap, SortedSet}
 import s2a.leucine.actors.*
+
 
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker extends AcceptActor(Ticker), LogInfo :
+class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)) :
+  import Actor.Post
+  import MonitorAid.{Action, Sample, Trace, Tracing}
+
+  /* We allow full tracing for this actor. */
+  final override def tracing = Tracing.Enabled
 
   /* We just log the fact that this actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
+
+  /* Define report functions for each capability */
+  private def sampled(samples: List[Sample]): Unit      = samples.foreach(sample => println(s"== SAMPLE ==> ${sample.show}"))
+  private def posted(posts: SortedMap[Post,Long]): Unit = posts.foreach((post,i) => println(s"== POST ====> ${post.short}: $i"))
+  private def traced(traces: SortedSet[Trace]): Unit    = traces.foreach(trace => println(s"== TRACE ===> ${trace.show}"))
+
+  /* Register the report functions so they are called by the local monitor.*/
+  monitor.register(sampled)
+  monitor.register(posted)
+  monitor.register(traced)
+
+  /* Only activate the monitor when we are in the debug mode. */
+  probing(debug)
 
   /* In order to set the machinery in motion, a first tick must be send. */
   this ! Ticker.Work
@@ -71,7 +93,7 @@ object Ticker extends AcceptDefine :
   type Accept = Actor
   /* The ticker only excepts one letter */
   sealed trait Letter extends Actor.Letter[Actor]
-  object Work extends Letter
+  case object Work extends Letter
   /* This actor can be in two 'states' */
   sealed trait State extends Actor.State
   case class Tick(value: Int) extends State
