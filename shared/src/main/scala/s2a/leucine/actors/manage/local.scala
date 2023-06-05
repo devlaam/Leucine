@@ -25,6 +25,7 @@ package s2a.leucine.actors
  **/
 
 
+import scala.annotation.targetName
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{Map, SortedMap, SortedSet}
@@ -47,6 +48,15 @@ class LocalMonitor(val probeInterval: FiniteDuration) extends ActorMonitor :
   /** Selection of the output can completely be done in the actor. */
   final val tracing: Tracing = Tracing.Default
 
+  /** Callback function that reports that new samples of this actor as a list. */
+  private var sampled: List[Sample] => Unit = _ => ()
+
+  /** Callback function that reports that posts of this actor as a table. */
+  private var posted: SortedMap[Post,Long] => Unit =  _ => ()
+
+  /** Callback function that reports that new traces of this actor as a Sorted Set. */
+  private var traced: SortedSet[Trace] => Unit =  _ => ()
+
   /** It is not possible to add actors in the local monitor */
   private[actors] final def addActor(path: String): Unit = ()
 
@@ -62,20 +72,14 @@ class LocalMonitor(val probeInterval: FiniteDuration) extends ActorMonitor :
   /** Integrate the traces gathered from the specific actor. */
   private[actors] def setTraces(path: String, gathered: List[Trace]): Unit = traced(noTraces ++ gathered)
 
-  /**
-   * Callback function that reports that new samples of an actor were added to the table. Returns a
-   * snapshot of the table, directly after this event. Override this method to make this event visible. */
-  def sampled(gathered: List[Sample]): Unit = ()
+  /** Register a callback function for the collected samples. Set this in your actor constructor. */
+  @targetName("registerSampled")
+  def register(sampled: List[Sample] => Unit): Unit = this.sampled = sampled
 
-  /**
-   * Callback function that reports that posts of an actor were added to the table. Returns a snapshot
-   * of the counting on the posts, directly after this event. Override this method to make this event
-   * visible. */
-  def posted(posts: SortedMap[Post,Long]): Unit = ()
+  /** Register a callback function for the collected posts. Set this in your actor constructor. */
+  @targetName("registerPosted")
+  def register(posted: SortedMap[Post,Long] => Unit): Unit = this.posted = posted
 
-  /**
-   * Callback function that reports that new traces of an actor were integrated to the traces log. They
-   * do not need to be consecutive. minTime is the lowest time index to change. Returns a snapshot
-   * of the whole trace log, directly after this event. Below minTime, there will be no changes.
-   * Override this method to make this event visible. */
-  def traced(traces: SortedSet[Trace]): Unit = ()
+  /** Register a callback function for the collected traces. Set this in your actor constructor. */
+  @targetName("registerTraced")
+  def register(traced: SortedSet[Trace] => Unit): Unit = this.traced = traced
