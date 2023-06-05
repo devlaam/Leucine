@@ -68,7 +68,7 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
 
   /* Variable that keeps the state of taking probes in the actor. If true new probes are
    * scheduled on regular intervals. If false, new probes are not scheduled any more. */
-  private var probing: Boolean = false
+  private var enabled: Boolean = true
 
   /**
    * This is the personal setting of tracing. There is a public setting as well.
@@ -84,18 +84,20 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
    * the tracing TraceFull here as long as the global tracing is Default or Enabled.
    * Setting this to Disabled will always prohibit tracing TraceFull of this actor,
    * and setting it to Default/Enabled leaves the fate in the hands of the global setting.
-   * NOTE: This value is needed at object construction, so DO NOT override with a val. */
+   * NOTE: This value is needed at object construction, so DO NOT override with a val.
+   * You may however change its value during execution to be able to focus on a specific
+   * time window or issue and reduce information you don't need. */
   protected def tracing: Tracing = Tracing.Default
 
   /**
    * See if we may trace this actor in TraceAll mode now. This is the case if one of the
    * tracing settings is Enabled and the other Default or Enabled. */
-  private def mayTraceAll: Boolean = tracing.ordinal + monitor.tracing.ordinal > 2
+  private def mayTraceAll: Boolean = enabled && (tracing.ordinal + monitor.tracing.ordinal > 2)
 
   /**
    * See if we may trace this actor in TraceCount mode now. This is the case if one of the
    * tracing settings is Enabled or both are Default. */
-  private def mayTraceCount: Boolean = tracing.ordinal + monitor.tracing.ordinal > 1
+  private def mayTraceCount: Boolean = enabled && (tracing.ordinal + monitor.tracing.ordinal > 1)
 
   /** Method called from the actor store its activity */
   private def addTrace(trace: Trace): Unit = synchronized { traces = trace :: traces }
@@ -132,13 +134,17 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
     def call(): Unit = if probeNow() then probeRenew() }
 
   /** Start the probe actions */
-  private def probeStart() = synchronized {
-    /* The probing flag must be set to continue scheduling late probes. But we cannot take probes
-     * right away, since the actor may still be in the construction phase (deadlock!). But it will
-     * make no sense either, since there is nothing going on at the start. */
-    probing = true
-    /* Start the probe interval timer.  */
-    probeRenew() }
+  private def probeStart(direct: Boolean) =
+    synchronized {
+      /* The enabled flag must be set to continue scheduling late probes. */
+      enabled = true
+      /* Start the probe interval timer.  */
+      probeRenew() }
+    /* We cannot take probes right away if the actor is still be in the construction phase
+     * (deadlock!). But it will make no sense either, since there is nothing going on at
+     * the start. So direct should be false in that case. */
+    if direct then probeNow()
+
 
   /** Call this to restart the probing, if we are still probing. */
   private def probeRenew(): Unit =
@@ -150,13 +156,13 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
     /* Take the samples in a synchronized way. */
     val (samples,traces,probed) = synchronized {
       /* Do the actual probing work on all mixins and the bare actor trait. */
-      val samples = if probing then List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect()).flatten else Nil
+      val samples = if enabled then List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect()).flatten else Nil
       /* Get the traces gathered from this actor */
-      val traces = if probing then this.traces else Nil
+      val traces = if enabled then this.traces else Nil
       /* Clean the trace storage */
       this.traces = Nil
       /* Communicate the result outside the synchronized environment */
-      (samples,traces,probing) }
+      (samples,traces,enabled) }
     /* If probes were made, store them. */
     if probed then
       /* Store the collected samples in the monitor storage */
@@ -169,32 +175,31 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
     probed
 
   /** Cancel the delayed probe actions, but also perform one last probe action right now. */
-  private def probeStop() =
+  private def probeStop(withLast: Boolean) =
     /* Canceling the scheduled next probe is on best effort basis. It cannot be guaranteed,
      * the event will come never the less. So we must be ready for that. */
     cancelProbe.cancel()
-    /* Make the last probe manually */
-    probeNow()
+    /* Make the last probe manually if requested to do so */
+    if withLast then probeNow()
     /* Setting this to false prohibits the further scheduled executions of probes. */
-    synchronized { probing = false }
+    synchronized { enabled = false }
 
   /* For workers we do not want to use the full name, but a one name for all workers in this family. So
    * we only use the path up to and including the worker prefix. The rest is dropped. */
   /** path under which we store the data for this actor. Its the full family name or a shorten version in case of a worker. */
   private val storePath = if isWorker then path.substring(0,path.length()-name.length()+context.workerPrefix.length()) else path
 
-  /**
-   * Method called from the actor to indicate that operations have commenced. */
+  /** Method called from the actor to indicate that operations have commenced. */
   private[actors] override def monitorStart(): Unit =
     /* Actions to enable time measurement of this actor. */
     val time = System.nanoTime
     actorStartMoment = gain(time)
     /* Register this actor in the monitor as existing. */
     monitor.addActor(storePath)
-    /* Trace if requested, also trace the actor as created.  */
+    /* Trace if requested, also trace the actor as created. */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Created,Actor.Post(path)))
-    /* Make the first probe of the actor and continue to do so on regular intervals. */
-    probeStart()
+    /* Schedule probes regular intervals but do not make the first probe right now, we are still constructing the object. */
+    if enabled then probeStart(false)
 
   /** Method called from the actor to indicate that it receives a new letter */
   private[actors] override def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit =
@@ -225,9 +230,18 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
      * it or take cleaning up actions. */
     monitor.delActor(storePath)
     /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
-    probeStop()
-    /* Trace if requested, the actor is terminated */
+    if enabled then probeStop(true)
+    /* Trace if requested, the actor is terminated (also traced when not enabled). */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,Actor.Post(path)))
+
+  /**
+   * In order to reduce the monitor output, you can switch the probing on and off at will. Per
+   * default probing is on, but you may switch it off directly in the constructor if needed. */
+  protected def probing(enable: Boolean): Unit =
+    /* We may only switch the probing as long as we are active and we do actually change anything */
+    if synchronized( activity.active && (this.enabled != enable) ) then
+      /* Start with directly taking the first probe, but stop without taking the last. */
+      if enable then probeStart(true) else probeStop(false)
 
   /**
    * Calculate the relative time this actor spend performing processing letters. Returns a value between

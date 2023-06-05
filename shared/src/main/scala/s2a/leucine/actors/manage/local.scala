@@ -34,7 +34,7 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
 /**
  * The local monitor is a monitor that is created for each class separately. This can be handy
  * if you just want to inspect one or a few actors. It quick to set up, and remove after the
- * debugging is done. */
+ * debugging is done. You must set the probeInterval for each instant by hand. */
 class LocalMonitor(val probeInterval: FiniteDuration) extends ActorMonitor :
   import Actor.Post
   import MonitorAid.{Action, Sample, Trace, Tracing}

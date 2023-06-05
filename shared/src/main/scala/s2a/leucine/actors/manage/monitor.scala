@@ -91,7 +91,7 @@ object ActorMonitor  :
     def off: Record = copy(active = false)
     def probe(samples: List[Sample]): Record = copy(samples = samples)
     private def samplesStr = samples.map(_.show).mkString("; ")
-    def show = s"incarnations=$incarnations, active=$active, $samplesStr"
+    def show = s"incarnations=$incarnations, active=$active; $samplesStr"
 
   object Record :
     val start = Some(Record(1,true,Nil))
