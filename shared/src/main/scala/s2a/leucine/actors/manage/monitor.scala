@@ -29,57 +29,33 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
-
-/** Extend and Instantiate this class to get a custom made monitor */
-abstract class ActorMonitor :
+/* Basic interface for each ActorMonitor. */
+trait ActorMonitor :
   import Actor.Post
   import MonitorAid.{Action, Sample, Trace, Tracing}
-  import ActorMonitor.Record
 
-  /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
-  private var samples: SortedMap[String,Record] = SortedMap.empty
-
-  /** Holds the posts (for traceCount) and tracks their occurrences. */
-  private var posts: SortedMap[Post,Long] = SortedMap.empty
-
-  /** Holds all trace (for traceFull) entries. This can grow very fast. Purge when needed. */
-  private var traces: SortedSet[Trace] = SortedSet.empty
+  private[actors] def postAdd(col: SortedMap[Post,Long], trace: Trace): SortedMap[Post,Long] =
+    if trace.action == Action.Accepted
+    then col.updatedWith(trace.post)(_.map(_+1)orElse(Some(1)))
+    else col
 
   /** Start of this monitor. To be used as the time baseline for tracing. */
   private[actors] val baseline: Long = System.nanoTime
 
   /** Add one actor to the actors map to be monitored. */
-  private[actors] def addActor(path: String): Unit =
-    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.inc).orElse(Record.start)); samples }
-    added(path,result)
+  private[actors] def addActor(path: String): Unit
 
   /** Delete one actor to the actors map, will not be monitored any longer */
-  private[actors] def delActor(path: String): Unit =
-    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.off)); samples }
-    removed(path,result)
+  private[actors] def delActor(path: String): Unit
 
   /** Update the samples gathered from the specific actor. */
-  private[actors] def setSamples(path: String, gathered: List[Sample]): Unit =
-    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.probe(gathered))); samples }
-    sampled(path,result)
+  private[actors] def setSamples(path: String, gathered: List[Sample]): Unit
 
   /** Integrate the posts gathered from the specific actor. */
-  private[actors] def setPosts(path: String, gathered: Iterable[Trace]): Unit =
-    def add(col: SortedMap[Post,Long], trace: Trace): SortedMap[Post,Long] =
-      if trace.action == Action.Accepted
-      then col.updatedWith(trace.post)(_.map(_+1)orElse(Some(1)))
-      else col
-    val result = synchronized { posts = gathered.foldLeft(posts)(add); posts }
-    posted(path,result)
+  private[actors] def setPosts(path: String, gathered: List[Trace]): Unit
 
   /** Integrate the traces gathered from the specific actor. */
-  private[actors] def setTraces(path: String, gathered: Iterable[Trace]): Unit =
-    var minTime = Long.MaxValue
-    def add(col: SortedSet[Trace], trace: Trace): SortedSet[Trace] =
-      minTime = minTime min trace.time
-      col + trace
-    val result = synchronized { traces = gathered.foldLeft(traces)(add); traces }
-    traced(path,minTime,result)
+  private[actors] def setTraces(path: String, gathered: List[Trace]): Unit
 
   /**
    * This is the public setting of tracing. Every actor has it personal setting as well.
@@ -103,6 +79,103 @@ abstract class ActorMonitor :
    * Default probe interval. Set this to a reasonable value, say 5 seconds for short running
    * applications and maybe 1 minute for servers. */
   def probeInterval: FiniteDuration
+
+
+/**
+ * The local monitor is a monitor that is created for each class separately. This can be handy
+ * if you just want to inspect one or a few actors. It quick to set up, and remove after the
+ * debugging is done. */
+class LocalMonitor(val probeInterval: FiniteDuration) extends ActorMonitor :
+  import Actor.Post
+  import MonitorAid.{Action, Sample, Trace, Tracing}
+
+  /* Start value for building the posts. */
+  private val noPosts: SortedMap[Post,Long] = SortedMap.empty
+
+  /* Start value for building the traces. */
+  private val noTraces: SortedSet[Trace] = SortedSet.empty
+
+  /** Selection of the output can completely be done in the actor. */
+  final val tracing: Tracing = Tracing.Default
+
+  /** It is not possible to add actors in the local monitor */
+  private[actors] final def addActor(path: String): Unit = ()
+
+  /** It is not possible to delete actors in the local monitor */
+  private[actors] final def delActor(path: String): Unit = ()
+
+  /** Update the samples gathered from the specific actor. */
+  private[actors] def setSamples(path: String, gathered: List[Sample]): Unit = sampled(gathered)
+
+  /** Integrate the posts gathered from the specific actor. */
+  private[actors] def setPosts(path: String, gathered: List[Trace]): Unit = posted(gathered.foldLeft(noPosts)(postAdd))
+
+  /** Integrate the traces gathered from the specific actor. */
+  private[actors] def setTraces(path: String, gathered: List[Trace]): Unit = traced(noTraces ++ gathered)
+
+  /**
+   * Callback function that reports that new samples of an actor were added to the table. Returns a
+   * snapshot of the table, directly after this event. Override this method to make this event visible. */
+  def sampled(gathered: List[Sample]): Unit = ()
+
+  /**
+   * Callback function that reports that posts of an actor were added to the table. Returns a snapshot
+   * of the counting on the posts, directly after this event. Override this method to make this event
+   * visible. */
+  def posted(posts: SortedMap[Post,Long]): Unit = ()
+
+  /**
+   * Callback function that reports that new traces of an actor were integrated to the traces log. They
+   * do not need to be consecutive. minTime is the lowest time index to change. Returns a snapshot
+   * of the whole trace log, directly after this event. Below minTime, there will be no changes.
+   * Override this method to make this event visible. */
+  def traced(traces: SortedSet[Trace]): Unit = ()
+
+
+
+/** Extend and Instantiate this class to get a custom made monitor */
+abstract class GlobalMonitor extends ActorMonitor :
+  import Actor.Post
+  import MonitorAid.{Action, Sample, Trace, Tracing}
+  import ActorMonitor.Record
+
+  /** Holds all the actors by path. Worker actors are all stored under the same path per family level. */
+  private var samples: SortedMap[String,Record] = SortedMap.empty
+
+  /** Holds the posts (for traceCount) and tracks their occurrences. */
+  private var posts: SortedMap[Post,Long] = SortedMap.empty
+
+  /** Holds all trace (for traceFull) entries. This can grow very fast. Purge when needed. */
+  private var traces: SortedSet[Trace] = SortedSet.empty
+
+  /** Add one actor to the actors map to be monitored. */
+  private[actors] def addActor(path: String): Unit =
+    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.inc).orElse(Record.start)); samples }
+    added(path,result)
+
+  /** Delete one actor to the actors map, will not be monitored any longer */
+  private[actors] def delActor(path: String): Unit =
+    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.off)); samples }
+    removed(path,result)
+
+  /** Update the samples gathered from the specific actor. */
+  private[actors] def setSamples(path: String, gathered: List[Sample]): Unit =
+    val result = synchronized { samples = samples.updatedWith(path)(_.map(_.probe(gathered))); samples }
+    sampled(path,result)
+
+  /** Integrate the posts gathered from the specific actor. */
+  private[actors] def setPosts(path: String, gathered: List[Trace]): Unit =
+    val result = synchronized { posts = gathered.foldLeft(posts)(postAdd); posts }
+    posted(path,result)
+
+  /** Integrate the traces gathered from the specific actor. */
+  private[actors] def setTraces(path: String, gathered: List[Trace]): Unit =
+    var minTime = Long.MaxValue
+    def add(col: SortedSet[Trace], trace: Trace): SortedSet[Trace] =
+      minTime = minTime min trace.time
+      col + trace
+    val result = synchronized { traces = gathered.foldLeft(traces)(add); traces }
+    traced(path,minTime,result)
 
   /** Clear the actor samples table. */
   def clearSamples(): Unit = synchronized { samples = SortedMap.empty }
