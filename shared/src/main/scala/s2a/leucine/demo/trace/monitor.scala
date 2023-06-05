@@ -36,7 +36,6 @@ import s2a.leucine.actors.*
  * data structures from getting to large. */
 class Monitor extends GlobalMonitor :
   import MonitorAid.{Trace, Action, Tracing}
-  import ActorMonitor.Record
   /* Custom method to show the results obtained so far. Since this example only has one short
    * run the results are show at the end. */
   def show(samples: Boolean = false, postsAndTraces: Boolean = false): Unit = report(println,samples,postsAndTraces,postsAndTraces)
@@ -47,5 +46,5 @@ class Monitor extends GlobalMonitor :
   def tracing = Tracing.Enabled
 
 /* This can be used in the different demonstrations */
-val monitor = new Monitor
+val globalMonitor = new Monitor
 
