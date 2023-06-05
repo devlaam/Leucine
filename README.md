@@ -127,7 +127,8 @@ Started Actor examples on the JVM platform.
 Please state the demo you want to run (ticker, server, crawler or chatgrt):
 ```
 and then choose one of them. The `ticker`,`crawler` and `chatgrt` are stand alone demo's, the `server` requires an application
-that is able to connect with raw TCP sockets on the localhost, port 8180.
+that is able to connect with raw TCP sockets on the localhost, port 8180. To get an impression of the debug capabilities
+you can also `ticker debug` or `crawler debug`. The other demo's do not allow for this extra parameter.
 
 #### Demos on NodeJS
 Compile and package the demo as follows:
@@ -143,7 +144,8 @@ Started Actor examples on the JS platform.
 Please state the demo you want to run (ticker, server, crawler or chatgrt):
 ```
 and then choose one of them. The `ticker`,`crawler` and `chatgrt` are stand alone demo's, the `server` requires an application
-that is able to connect with raw TCP sockets on the localhost, port 8180.
+that is able to connect with raw TCP sockets on the localhost, port 8180. To get an impression of the debug capabilities
+you can also `ticker debug` or `crawler debug`. The other demo's do not allow for this extra parameter.
 And although projectJS is single threaded, the Actor implementation runs as if it is
 working in parallel.
 
@@ -161,7 +163,8 @@ Started Actor examples on the Native platform.
 Please state the demo you want to run (ticker, server, crawler or chatgrt):
 ```
 and then choose one of them.  The `ticker`,`crawler` and `chatgrt` are stand alone demo's,  the `server` requires an application
-that is able to connect with raw TCP sockets on the localhost, port 8180.
+that is able to connect with raw TCP sockets on the localhost, port 8180. To get an impression of the debug capabilities
+you can also `ticker debug` or `crawler debug`. The other demo's do not allow for this extra parameter.
 And although projectNative (currently 0.4.11) is still single threaded, the Actor implementation runs as if it is
 working in parallel. When 0.5.0 comes out, we should have multi threading, but from the user of the actors point
 of view, you will not notice the difference, except a higher execution speed.
