@@ -202,7 +202,7 @@ object Actor :
       else if this.letter   > that.letter   then  1
       else                                  0
     def short: String = s"from=$sender, to=$receiver, letter=$letter"
-    def full: String  = s"from=$sender, to=$receiver, mail=$mail, letter=$letter@${letter.##.toHexString}"
+    def full: String  = s"from=$sender, to=$receiver, mail=$mail, letter=$letter"
 
   object Post :
     def apply(receiver: String) = new Post(Mail.Empty,receiver,"","")
