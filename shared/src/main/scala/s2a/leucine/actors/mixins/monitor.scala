@@ -66,7 +66,7 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
   /* Temporary fast storage for the trace objects. */
   private var traces: List[Trace] = Nil
 
-  /* Variable the keeps the state of taking probes in the actor. If true new probes are
+  /* Variable that keeps the state of taking probes in the actor. If true new probes are
    * scheduled on regular intervals. If false, new probes are not scheduled any more. */
   private var probing: Boolean = false
 

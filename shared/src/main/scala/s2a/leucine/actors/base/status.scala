@@ -55,7 +55,7 @@ transparent trait StatusActor(using context: ActorContext) extends UserActor :
   /** Counter for the total number of exceptions during the lifetime of this actor. */
   private[actors] var excepts: Int = 0
 
-  /** Counter for the total number of failed (unhandler) messages during the lifetime of this actor. */
+  /** Counter for the total number of failed (unhandled) messages during the lifetime of this actor. */
   private[actors] var failed: Int = 0
 
   /**
