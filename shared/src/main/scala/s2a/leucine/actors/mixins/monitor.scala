@@ -43,7 +43,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
 
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends ActorInit, ActorDefs :
+trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: ActorContext) extends ActorInit, ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Tracing}
 
@@ -83,7 +83,8 @@ trait MonitorAid(monitor: ActorMonitor)(using context: ActorContext) extends Act
    * or one of the settings is Enabled. This implies that you can enable/disable
    * the tracing TraceFull here as long as the global tracing is Default or Enabled.
    * Setting this to Disabled will always prohibit tracing TraceFull of this actor,
-   * and setting it to Default/Enabled leaves the fate in the hands of the global setting. */
+   * and setting it to Default/Enabled leaves the fate in the hands of the global setting.
+   * NOTE: This value is needed at object construction, so DO NOT override with a val. */
   protected def tracing: Tracing = Tracing.Default
 
   /**
