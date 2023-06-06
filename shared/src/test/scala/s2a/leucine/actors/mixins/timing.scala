@@ -20,7 +20,7 @@ trait TimingAidTest(using ac: ActorContext) :
 
     post(Clock.Stop,120.millis,new Object)
 
-    def receive(letter: Clock.Letter): Unit = letter match
+    def receive(letter: Clock.Letter, sender: Sender): Unit = letter match
       case  Clock.Result(value: Int) => writeln(s"$value")
       case  Clock.Done               => stop(Actor.Stop.Finish)
       case  Clock.Stop =>
@@ -51,7 +51,7 @@ trait TimingAidTest(using ac: ActorContext) :
     def fullfil(msg: String): Option[Expect.Release] = if event then Some(Expect.Release(msg)) else { writeln("x"); None }
     expect(fullfil("tada!"))
 
-    def receive(letter: Expect.Letter): Unit = letter match
+    def receive(letter: Expect.Letter, sender: Sender): Unit = letter match
       case Expect.Release(msg) =>
         writeln(msg)
         stop(Actor.Stop.Finish)

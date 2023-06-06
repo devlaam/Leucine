@@ -71,7 +71,7 @@ private class Logger extends AcceptActor(Logger,"logger") :
   println("Started Logger")
 
   /* receive method that handles the incoming logger and control messages. */
-  final protected def receive(letter: Letter): Unit = letter match
+  final protected def receive(letter: Letter, sender: Sender): Unit = letter match
     case msg: Message => if msg.level <= this.level then println(msg.show)
     case Switch(level: Level) => this.level = level
     case Stop                 => stop(Actor.Stop.Direct)

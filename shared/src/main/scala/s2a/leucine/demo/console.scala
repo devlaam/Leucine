@@ -34,7 +34,7 @@ import s2a.leucine.actors.*
 private class Console extends AcceptActor(Console,!#), TimingAid :
 
   /* Send a letter to yourself */
-  def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message)
+  def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message.trim)
 
   /* The welcome message. You may choose your demo. As soon as you type the answer, a message is constructed
    * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
@@ -58,7 +58,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid :
     stop()
 
   /* Start the demo of choice but staring its corresponding actor. */
-  def receive(letter: Letter): Unit = letter match
+  def receive(letter: Letter, sender: Sender): Unit = letter match
     case Console.Demo("ticker")        =>  once(new Ticker(false))
     case Console.Demo("ticker debug")  =>  once(new Ticker(true))
     case Console.Demo("clock")         =>  once(new Listener)

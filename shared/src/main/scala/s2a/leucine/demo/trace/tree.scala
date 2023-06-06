@@ -64,7 +64,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
   probing(debug)
 
   /* Handle the incoming letters. */
-  final protected def receive(letter: Letter): Unit = letter match
+  final protected def receive(letter: Letter, sender: Sender): Unit = letter match
     /* This message creates <width> new children for this actor. */
     case Tree.Create(width,level) =>
       /* Calculate how many returns we expect, when we close later on. */

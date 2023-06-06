@@ -14,7 +14,7 @@ trait ProtectAidTest(using ac: ActorContext) :
     protected def protectAlarm(full: Boolean, size: Int): Unit =
       writeln(s"alarm:$full")
 
-    def receive(letter: Digest.Letter): Unit = letter match
+    def receive(letter: Digest.Letter, sender: Sender): Unit = letter match
       case Digest.Knock(i) =>  writeln(s"Knock($i)")
 
   object Digest extends AcceptDefine, Stateless :

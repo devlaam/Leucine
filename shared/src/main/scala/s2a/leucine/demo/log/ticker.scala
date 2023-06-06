@@ -63,7 +63,7 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
   Logger.warn("Ticker Actor created")
 
   /* In receive we handle the incoming letters. */
-  final protected def receive(letter: Letter): (State => State) = (state: State) => {
+  final protected def receive(letter: Letter, sender: Sender): (State => State) = (state: State) => {
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match
