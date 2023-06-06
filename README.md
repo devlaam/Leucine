@@ -62,7 +62,7 @@ object MyActor extends AcceptDefine, Stateless :
   /* Letter that sends some text */
   case class Text(data: String) extends Letter
   /* Letter that sends a number */
-  case object Number(data: Int) extends Letter
+  case class Number(data: Int) extends Letter
 ```
 You can send a `letter` to actor `receiver` from actor `sender` with `receiver.send(letter,sender)`, or with the
 short form `receiver ! letter` from within the `sender`. For example:
@@ -77,7 +77,8 @@ object Main :
     myActor.stop(Actor.Stop.Finish)
     ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie](https://scastie.scala-lang.org/p6332KZjQQihj6JqsU3cMg). Remark: Depending on the release used, there may be syntactical differences.
+See this [run in Scastie](https://scastie.scala-lang.org/devlaam/rpMXSz4wTA2hnLG68swyBA/3).
+Remark: Depending on the release used, there may be syntactical differences.
 
 ### Advanced features
 The functionality of actors can be extended with mixins. There are:
