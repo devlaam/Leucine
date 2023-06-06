@@ -51,7 +51,7 @@ class MyActor(name: String) extends AcceptActor(MyActor,name) :
   println(s"Actor $name started.")
 
   /* Handle all incoming letters. */
-  protected def receive(letter: Letter): Unit = letter match
+  protected def receive(letter: Letter, sender: Sender): Unit = letter match
     case MyActor.Text(data)   => println(s"Received text: $data.")
     case MyActor.Number(data) => println(s"Received number: $data.")
 
