@@ -211,7 +211,7 @@ object Actor :
   /**
    * Use the Anonymous Actor as a sender if you do not have a context or do want to reveal yourself.
    * It is not possible to return an answer to the Anonymous sender. Also, trying to stop it will fail. */
-  object Anonymous extends Actor :
+  case object Anonymous extends Actor :
     /** How to call an Anonymous sender? (smiley: no-mouth) */
     val name = ":x"
     /** Anonymous actor is not part of a family. */
