@@ -6,7 +6,7 @@
 Leucine is a small cross platform actor framework without any dependencies. The idea is that it should provide just enough
 to be of good use, but nothing more. Above the results of the tests on different platforms for this branch. This Readme gives a
 very brief introduction, please see the [wiki](https://github.com/devlaam/Leucine/wiki) for more details (still has to be extended,
-expect this over the coming weeks).
+expect this over the coming weeks). Versioning adheres to [Semantic Versioning](https://semver.org) to the best of my abilities.
 
 ## Motivation
 The project is motivated by the recent [change of license](https://www.lightbend.com/akka/license-faq) of [Akka](https://akka.io) and the
