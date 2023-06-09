@@ -24,5 +24,5 @@ object Helpers :
   extension (value: String)
     def clean(n: Int = 200) = value.replaceAll("\\s","").replaceAll("s2a.leucine.actors.","").take(n)
 
-  def emulatedContext: ActorContext = new ActorContext.ActorContexEmulatedImplementation(DefaultSystem)
+  def emulatedContext: ActorContext = new ActorContext.EmulatedImplementation(DefaultSystem)
 

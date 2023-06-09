@@ -72,17 +72,17 @@ trait ActorContext extends PlatformContext with ExecutionContext :
 object ActorContext :
 
   /** The default ActorImplementation for the users. */
-  class ActorContexDirectImplementation(val parameters: SystemParameters) extends ContextImplementation, ActorContext, SystemParameters :
+  class DirectImplementation(val parameters: SystemParameters) extends ContextImplementation, ActorContext, SystemParameters :
     export parameters.*
     def platform = ContextImplementation.platform
 
   /** Provides a default actor implementation that runs on the threading supported by the platform. */
-  val system: ActorContext = new ActorContexDirectImplementation(DefaultSystem)
+  val system: ActorContext = new DirectImplementation(DefaultSystem)
 
   /** The emulated ActorImplementation for the users. */
-  class ActorContexEmulatedImplementation(val parameters: SystemParameters) extends ContextEmulation, ActorContext, SystemParameters :
+  class EmulatedImplementation(val parameters: SystemParameters) extends ContextEmulation, ActorContext, SystemParameters :
     export parameters.*
     def platform = ContextImplementation.platform
 
   /** Provides a default actor implementation that runs on a platform independent emulation layer for threads. */
-  val emulated: ActorContext = new ActorContexEmulatedImplementation(DefaultSystem)
+  val emulated: ActorContext = new EmulatedImplementation(DefaultSystem)
