@@ -35,7 +35,6 @@ import s2a.leucine.actors.*
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
 class Monitor extends GlobalMonitor :
-  import MonitorAid.{Trace, Action, Tracing}
   /* Custom method to show the results obtained so far. Since this example only has one short
    * run the results are show at the end. */
   def show(samples: Boolean = false, postsAndTraces: Boolean = false): Unit = report(println,samples,postsAndTraces,postsAndTraces)
@@ -43,7 +42,9 @@ class Monitor extends GlobalMonitor :
   def probeInterval: FiniteDuration = 5.seconds
   /* Global setting of tracing. Here we enable is for all actors. Since the personal setting is Default
    * this should activate TraceCount and TraceFull. */
-  def tracing = Tracing.Enabled
+  def tracing = MonitorAid.Tracing.Enabled
+  /* Start the monitor directly. */
+  start()
 
 /* This can be used in the different demonstrations */
 val globalMonitor = new Monitor
