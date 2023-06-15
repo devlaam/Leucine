@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 /** The UserActor contains all methods the user of the library must implement or may override. */
-transparent trait UserActor(using context: ActorContext) extends Actor, ActorDefs :
+private transparent trait UserActor(using context: ActorContext) extends Actor, ActorDefs :
   import Actor.Stop
 
   /** Pack the letter with the sender into an envelope.  */

@@ -55,7 +55,6 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
   initReady()
 
 
-
 object BareActor :
 
   /* The actor passes different phases in its lifetime; not called states, for these are external to the handling.

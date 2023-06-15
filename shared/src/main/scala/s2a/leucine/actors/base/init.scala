@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+
 /**
  * Mixin which enables the initialization of a class with an unknown number of mixins.
  * Note, this is only required for the mixins that are used by the library user. Make sure

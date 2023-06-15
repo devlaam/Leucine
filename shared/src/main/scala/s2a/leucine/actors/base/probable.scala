@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+
 /** Trait to make an actor susceptible to probing from a monitor. */
 private transparent trait ProbableActor extends NameActor :
   /** Implement the probe actions here. */

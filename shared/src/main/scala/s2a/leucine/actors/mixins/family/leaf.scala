@@ -25,8 +25,6 @@ package s2a.leucine.actors
  **/
 
 
-type RSPfl = true
-
 /**
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
  * but without the possibility to define children. */

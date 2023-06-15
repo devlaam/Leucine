@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /** The ControlActor implements the methods that may change the behavior of the actor. */
-transparent trait ControlActor(using context: ActorContext) extends ProcessActor :
+private transparent trait ControlActor(using context: ActorContext) extends ProcessActor :
   import Actor.Stop
   import BareActor.Phase
 

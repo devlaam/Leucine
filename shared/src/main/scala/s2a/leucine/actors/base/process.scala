@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 /** The ProcessActor implements process methods that convey this actor. */
-transparent trait ProcessActor(using context: ActorContext) extends StatusActor :
+private transparent trait ProcessActor(using context: ActorContext) extends StatusActor :
   import BareActor.Phase
   import Actor.{Mail,Post}
 

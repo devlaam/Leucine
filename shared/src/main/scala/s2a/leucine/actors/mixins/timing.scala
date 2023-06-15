@@ -30,7 +30,7 @@ import scala.concurrent.duration.FiniteDuration
 
 
 /* Methods stub for when there is no timing mixin used. */
-private[actors] trait TimingDefs extends BareDefs :
+private trait TimingDefs extends BareDefs :
   private[actors] def eventsPossible: Boolean = false
   private[actors] def eventsPresent: Boolean = false
   private[actors] def eventsCancel(): Unit = ()

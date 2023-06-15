@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+
 /**
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family

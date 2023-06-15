@@ -30,7 +30,7 @@ import scala.concurrent.duration.DurationInt
 
 
 /* Methods stub for when there is no monitor mixin used. */
-private[actors] trait MonitorDefs  extends BareDefs:
+private trait MonitorDefs  extends BareDefs:
   private[actors] def probeBare(): Option[MonitorAid.Bare]  = None
   private[actors] def probeStash(): Option[MonitorAid.Stash]  = None
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None

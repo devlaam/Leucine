@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 /** The StatusActor contains the variable state of the actor */
-transparent trait StatusActor(using context: ActorContext) extends UserActor :
+private transparent trait StatusActor(using context: ActorContext) extends UserActor :
   import Actor.{Activity, Stop}
   import BareActor.Phase
 

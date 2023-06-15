@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 
-private[actors] trait BareDefs :
+private trait BareDefs :
   /** All actors that may send messages to this actor. Note, you may always send a message to yourself. */
   /** The upper bound for the collection of all accepted Senders. */
   type Accept <: Actor
@@ -43,7 +43,7 @@ private[actors] trait BareDefs :
   private[actors] type Env[Sender >: Common <: Accept] = BareActor.Envelope[Accept,Common,Sender,MyLetter]
 
 /** Used as a type-parameter free base trait for all mixins. */
-private[actors] trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:
+private trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, MonitorDefs:
   /** The name of this actor. */
   def name: String
   /** The full name of this actor, contains the full path to the first ancestor.*/

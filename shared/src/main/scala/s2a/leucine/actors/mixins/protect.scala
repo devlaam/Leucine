@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /* Methods stub for when there is no timing mixin used. */
-private[actors] trait ProtectDefs :
+private trait ProtectDefs :
   private[actors] def protectRaise(size: Int): Unit = ()
   private[actors] def protectReset(): Unit = ()
   private[actors] def protectCheck(): Unit = ()

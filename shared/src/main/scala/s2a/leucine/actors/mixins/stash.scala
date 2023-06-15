@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 
 /* Methods stub for when there is no stash mixin used. */
-private[actors] trait StashDefs extends BareDefs:
+private trait StashDefs extends BareDefs:
   private[actors] def stashFlush: Boolean = false
   private[actors] def stashEnqueue(envelope: Env[?]): Unit = ()
   private[actors] def stashDequeue(tail: List[Env[?]]): List[Env[?]] = tail
