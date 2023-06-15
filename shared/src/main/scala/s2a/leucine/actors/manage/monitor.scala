@@ -31,32 +31,38 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 
 /** Basic interface for each ActorMonitor. */
-trait ActorMonitor :
+trait ActorMonitor extends Probing:
   import Actor.Post
-  import MonitorAid.{Action, Sample, Trace, Tracing}
+  import MonitorAid.{Action, Trace, Tracing, Sample}
+
 
   private[actors] def postAdd(col: SortedMap[Post,Long], trace: Trace): SortedMap[Post,Long] =
     if trace.action == Action.Accepted
     then col.updatedWith(trace.post)(_.map(_+1)orElse(Some(1)))
     else col
 
+  private[actors] def traceAdd(col: SortedSet[Trace], trace: Trace): SortedSet[Trace] = col + trace
+
   /** Start of this monitor. To be used as the time baseline for tracing. */
   private[actors] val baseline: Long = System.nanoTime
 
   /** Add one actor to the actors map to be monitored. */
-  private[actors] def addActor(path: String): Unit
+  private[actors] def addActor(actor: ProbableActor): Unit
 
   /** Delete one actor to the actors map, will not be monitored any longer */
-  private[actors] def delActor(path: String): Unit
+  private[actors] def delActor(actor: ProbableActor): Unit
 
   /** Update the samples gathered from the specific actor. */
   private[actors] def setSamples(path: String, gathered: List[Sample]): Unit
 
   /** Integrate the posts gathered from the specific actor. */
-  private[actors] def setPosts(path: String, gathered: List[Trace]): Unit
+  private[actors] def setPosts(gathered: List[Trace]): Unit
 
   /** Integrate the traces gathered from the specific actor. */
-  private[actors] def setTraces(path: String, gathered: List[Trace]): Unit
+  private[actors] def setTraces(gathered: List[Trace]): Unit
+
+  /** Tells you if the current monitor is local, if it is not, it is global. */
+  def isLocal: Boolean
 
   /**
    * This is the public setting of tracing. Every actor has it personal setting as well.
@@ -86,12 +92,12 @@ trait ActorMonitor :
 object ActorMonitor  :
   import MonitorAid.Sample
 
-  case class Record(val incarnations: Int, val active: Boolean, val samples: List[Sample]) :
+  case class Record(val incarnations: Int, val worker: Boolean, val active: Boolean, val samples: List[Sample]) :
     def inc: Record = copy(incarnations+1,true)
     def off: Record = copy(active = false)
     def probe(samples: List[Sample]): Record = copy(samples = samples)
     private def samplesStr = samples.map(_.show).mkString("; ")
-    def show = s"incarnations=$incarnations, active=$active; $samplesStr"
+    def show = s"incarnations=$incarnations, worker=$worker, active=$active; $samplesStr"
 
   object Record :
-    val start = Some(Record(1,true,Nil))
+    def start(worker: Boolean) = Some(Record(1,worker,true,Nil))

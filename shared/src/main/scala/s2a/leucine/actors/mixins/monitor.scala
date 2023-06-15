@@ -25,6 +25,8 @@ package s2a.leucine.actors
  **/
 
 import java.util.concurrent.Callable
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.DurationInt
 
 
 /* Methods stub for when there is no monitor mixin used. */
@@ -43,7 +45,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
 
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: ActorContext) extends ActorInit, ActorDefs :
+trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: ActorContext) extends ProbableActor, ActorInit, ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Tracing}
 
@@ -125,69 +127,24 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
     /* Return the time stamp for further use (to limit the number of calls to System.nanoTime). */
     time }
 
-  /** Variable holding the cancel object for probing the actor. */
-  private var cancelProbe = Cancellable.empty
-
-  /** Method to create a new schedulable object to probe the actor. */
-  private def callProbe = new Callable[Unit] {
-    /* Try to make a probe and if successful, schedule a new one. */
-    def call(): Unit = if probeNow() then probeRenew() }
-
-  /** Start the probe actions */
-  private def probeStart(direct: Boolean) =
-    synchronized {
-      /* The enabled flag must be set to continue scheduling late probes. */
-      enabled = true
-      /* Start the probe interval timer.  */
-      probeRenew() }
-    /* We cannot take probes right away if the actor is still be in the construction phase
-     * (deadlock!). But it will make no sense either, since there is nothing going on at
-     * the start. So direct should be false in that case. */
-    if direct then probeNow()
-
-
-  /** Call this to restart the probing, if we are still probing. */
-  private def probeRenew(): Unit =
-    /* Schedule the probing to take place over a fixed amount of time. */
-    context.schedule(callProbe,monitor.probeInterval)
-
-  /** Method to do the actual probing of the actor. Returns if probes were made. */
-  private def probeNow(): Boolean =
+  /** Method to do the actual probing of the actor if enabled for this actor. */
+  private[actors] protected def probe(): Unit = if enabled then
     /* Take the samples in a synchronized way. */
-    val (samples,traces,probed) = synchronized {
+    val (samples,traces) = synchronized {
       /* Do the actual probing work on all mixins and the bare actor trait. */
-      val samples = if enabled then List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect()).flatten else Nil
+      val samples = List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect()).flatten
       /* Get the traces gathered from this actor */
-      val traces = if enabled then this.traces else Nil
+      val traces = this.traces
       /* Clean the trace storage */
       this.traces = Nil
       /* Communicate the result outside the synchronized environment */
-      (samples,traces,enabled) }
-    /* If probes were made, store them. */
-    if probed then
-      /* Store the collected samples in the monitor storage */
-      monitor.setSamples(storePath,samples)
-      /* Store the posts in the monitor storage */
-      if mayTraceCount then monitor.setPosts(path,traces)
-      /* Store the traces in the monitor storage */
-      if mayTraceAll then monitor.setTraces(path,traces)
-    /* Return the fact if we made any probes.*/
-    probed
-
-  /** Cancel the delayed probe actions, but also perform one last probe action right now. */
-  private def probeStop(withLast: Boolean) =
-    /* Canceling the scheduled next probe is on best effort basis. It cannot be guaranteed,
-     * the event will come never the less. So we must be ready for that. */
-    cancelProbe.cancel()
-    /* Make the last probe manually if requested to do so */
-    if withLast then probeNow()
-    /* Setting this to false prohibits the further scheduled executions of probes. */
-    synchronized { enabled = false }
-
-  /* For workers we do not want to use the full name, but a one name for all workers in this family. So
-   * we only use the path up to and including the worker prefix. The rest is dropped. */
-  /** path under which we store the data for this actor. Its the full family name or a shorten version in case of a worker. */
-  private val storePath = if isWorker then path.substring(0,path.length()-name.length()+context.workerPrefix.length()) else path
+      (samples,traces) }
+    /* Store the collected samples in the monitor storage */
+    monitor.setSamples(path,samples)
+    /* Store the posts in the monitor storage */
+    if mayTraceCount then monitor.setPosts(traces)
+    /* Store the traces in the monitor storage */
+    if mayTraceAll then monitor.setTraces(traces)
 
   /** Method called from the actor to indicate that operations have commenced. */
   private[actors] override def monitorStart(): Unit =
@@ -195,11 +152,11 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
     val time = System.nanoTime
     actorStartMoment = gain(time)
     /* Register this actor in the monitor as existing. */
-    monitor.addActor(storePath)
+    monitor.addActor(this)
     /* Trace if requested, also trace the actor as created. */
     if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Created,Actor.Post(path)))
     /* Schedule probes regular intervals but do not make the first probe right now, we are still constructing the object. */
-    if enabled then probeStart(false)
+    if monitor.isLocal then monitor.probeStart(false)
 
   /** Method called from the actor to indicate that it receives a new letter */
   private[actors] override def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit =
@@ -226,22 +183,27 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
     val time = threadTimeIncrement(false)
     /* The actor has stopped, so record this. */
     actorStopMoment = time
+    /* Trace if requested, the actor is terminated. */
+    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,Actor.Post(path)))
+    /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
+    if monitor.isLocal then monitor.probeStop(true)
     /* Tell the monitor this actor is done. Depending on the path it may just ignore
      * it or take cleaning up actions. */
-    monitor.delActor(storePath)
-    /* Probing makes no sense any more. Determine the last samples and stop scheduled probe actions. */
-    if enabled then probeStop(true)
-    /* Trace if requested, the actor is terminated (also traced when not enabled). */
-    if mayTraceAll then addTrace(Trace(time-monitor.baseline,Action.Terminated,Actor.Post(path)))
+    monitor.delActor(this)
 
   /**
    * In order to reduce the monitor output, you can switch the probing on and off at will. Per
-   * default probing is on, but you may switch it off directly in the constructor if needed. */
+   * default probing is on, but you may switch it off directly in the constructor if needed.
+   * This works for local and global monitors alike. */
   protected def probing(enable: Boolean): Unit =
     /* We may only switch the probing as long as we are active and we do actually change anything */
-    if synchronized( activity.active && (this.enabled != enable) ) then
-      /* Start with directly taking the first probe, but stop without taking the last. */
-      if enable then probeStart(true) else probeStop(false)
+    if activity.active && (enabled != enable) then
+      /* Set the new enabled state. */
+      enabled = enable
+      /* For local monitoring we must control the probing. */
+      if monitor.isLocal then
+        /* Start with directly taking the first probe, but stop without taking the last. */
+        if enable then monitor.probeStart(true) else monitor.probeStop(false)
 
   /**
    * Calculate the relative time this actor spend performing processing letters. Returns a value between

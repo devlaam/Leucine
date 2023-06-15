@@ -27,7 +27,6 @@ package s2a.leucine.actors
 
 import scala.annotation.targetName
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{Map, SortedMap, SortedSet}
 
 
@@ -35,9 +34,12 @@ import scala.collection.immutable.{Map, SortedMap, SortedSet}
  * The local monitor is a monitor that is created for each class separately. This can be handy
  * if you just want to inspect one or a few actors. It quick to set up, and remove after the
  * debugging is done. You must set the probeInterval for each instant by hand. */
-class LocalMonitor(val probeInterval: FiniteDuration) extends ActorMonitor :
+class LocalMonitor(val probeInterval: FiniteDuration)(using context: ActorContext) extends ActorMonitor :
   import Actor.Post
-  import MonitorAid.{Action, Sample, Trace, Tracing}
+  import MonitorAid.{Trace, Tracing, Sample}
+
+  /* Holds the host actor to be probed for this monitor. */
+  private var actor: Option[ProbableActor] = None
 
   /* Start value for building the posts. */
   private val noPosts: SortedMap[Post,Long] = SortedMap.empty
@@ -57,20 +59,29 @@ class LocalMonitor(val probeInterval: FiniteDuration) extends ActorMonitor :
   /** Callback function that reports that new traces of this actor as a Sorted Set. */
   private var traced: SortedSet[Trace] => Unit =  _ => ()
 
-  /** It is not possible to add actors in the local monitor */
-  private[actors] final def addActor(path: String): Unit = ()
+  /** Add the  underlying actor to this local monitor. */
+  private[actors] final def addActor(actor: ProbableActor): Unit = this.actor = Some(actor)
 
-  /** It is not possible to delete actors in the local monitor */
-  private[actors] final def delActor(path: String): Unit = ()
+  /** Remove the  underlying actor from this local monitor. */
+  /* Not implemented for the local monitor knows just one actor, and after stop the last probe
+   * must still be made. This does not lead to a memory leak, since the instance of LocalMonitor
+   * should be contained as parameter in the Actor class itself. */
+  private[actors] final def delActor(actor: ProbableActor): Unit = ()
 
   /** Update the samples gathered from the specific actor. */
   private[actors] def setSamples(path: String, gathered: List[Sample]): Unit = sampled(gathered)
 
   /** Integrate the posts gathered from the specific actor. */
-  private[actors] def setPosts(path: String, gathered: List[Trace]): Unit = posted(gathered.foldLeft(noPosts)(postAdd))
+  private[actors] def setPosts(gathered: List[Trace]): Unit = posted(gathered.foldLeft(noPosts)(postAdd))
 
   /** Integrate the traces gathered from the specific actor. */
-  private[actors] def setTraces(path: String, gathered: List[Trace]): Unit = traced(noTraces ++ gathered)
+  private[actors] def setTraces(gathered: List[Trace]): Unit = traced(noTraces ++ gathered)
+
+  /** Probe the underlying actor, if present. */
+  private[actors] protected def probeNow(): Unit = actor.foreach(_.probe())
+
+  /** Tells you the current monitor is local. */
+  final def isLocal: Boolean = true
 
   /** Register a callback function for the collected samples. Set this in your actor constructor. */
   @targetName("registerSampled")
