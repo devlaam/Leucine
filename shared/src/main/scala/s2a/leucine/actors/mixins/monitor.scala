@@ -41,8 +41,7 @@ private[actors] trait MonitorDefs  extends BareDefs:
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorStart(): Unit = ()
   private[actors] def monitorStop(): Unit = ()
-  protected def processLoad(alltime: Boolean): Double = 0
-
+  private[actors] def monitorLoad(): Double = 0
 
 /** Extend your actor with this mixin to put it under monitoring */
 trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: ActorContext) extends ProbableActor, ActorInit, ActorDefs :
@@ -191,6 +190,9 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
      * it or take cleaning up actions. */
     monitor.delActor(this)
 
+  /** Load of the process for internal use. */
+  private[actors] override def monitorLoad(): Double = processLoad(false)
+
   /**
    * In order to reduce the monitor output, you can switch the probing on and off at will. Per
    * default probing is on, but you may switch it off directly in the constructor if needed.
@@ -212,7 +214,7 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: A
    * with false, the value since the last call to processLoad(false). If this actor is part of a system
    * ActorMonitor, do not use the latter call, for it may interfere with similar calls from the ActorMonitor
    * which utilizes the same call to determine the actor process load. */
-  protected override def processLoad(alltime: Boolean): Double =
+  protected def processLoad(alltime: Boolean): Double =
     /* Synchronized copying of the accumulator fields, to be sure they are correct and this is quick. */
     val (threadPlayTime,threadPauseTime) = timingGuard.synchronized {
       /* Correct the accumulator fields up to now, but only is the actor has not been stopped yet. */
