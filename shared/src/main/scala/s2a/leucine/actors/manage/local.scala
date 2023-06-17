@@ -47,9 +47,6 @@ class LocalMonitor(val probeInterval: FiniteDuration)(using context: ActorContex
   /* Start value for building the traces. */
   private val noTraces: SortedSet[Trace] = SortedSet.empty
 
-  /** Selection of the output can completely be done in the actor. */
-  final val tracing: Tracing = Tracing.Default
-
   /** Callback function that reports that new samples of this actor as a list. */
   private var sampled: List[Sample] => Unit = _ => ()
 
@@ -79,6 +76,9 @@ class LocalMonitor(val probeInterval: FiniteDuration)(using context: ActorContex
 
   /** Probe the underlying actor, if present. */
   private[actors] protected def probeNow(): Unit = actor.foreach(_.probe())
+
+  /** Selection of the output can completely be done in the actor. */
+  final def tracing: Tracing = Tracing.Default
 
   /** Tells you the current monitor is local. */
   final def isLocal: Boolean = true

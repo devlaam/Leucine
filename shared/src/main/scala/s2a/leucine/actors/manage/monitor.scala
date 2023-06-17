@@ -35,16 +35,20 @@ trait ActorMonitor extends Probing:
   import Actor.Post
   import MonitorAid.{Action, Trace, Tracing, Sample}
 
+  /** Start of this monitor. To be used as the time baseline for tracing. */
+  private[actors] val baseline: Long = System.nanoTime
 
+  /** Internal method to add one Post entry to the collection. */
   private[actors] def postAdd(col: SortedMap[Post,Long], trace: Trace): SortedMap[Post,Long] =
+    /* An accepted trace implies a new message. The message may already have been seen before,
+     * in which case the counter is increased, otherwise a new entry is made. Other actions
+     * are ignored here for they do not constitute a accepted message. */
     if trace.action == Action.Accepted
     then col.updatedWith(trace.post)(_.map(_+1)orElse(Some(1)))
     else col
 
+  /** Internal method to add one Trace entry to the collection. */
   private[actors] def traceAdd(col: SortedSet[Trace], trace: Trace): SortedSet[Trace] = col + trace
-
-  /** Start of this monitor. To be used as the time baseline for tracing. */
-  private[actors] val baseline: Long = System.nanoTime
 
   /** Add one actor to the actors map to be monitored. */
   private[actors] def addActor(actor: ProbableActor): Unit
