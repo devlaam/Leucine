@@ -28,10 +28,10 @@ package s2a.leucine.actors
 /**
  * Holds all the methods needed for accessing the parent of this family. For internal use.
  * Not all actors have a parent, so this is not mixed in for the root of the family. */
-transparent private trait FamilyParent[RS <: Boolean] extends ActorDefs :
+transparent private trait FamilyParent extends ActorDefs :
 
   /* Local type */
-  private[actors] type PA <: Actor.Parent[RS]
+  private[actors] type PA <: Actor.Parent
 
   /** The type of the parent for this actor. */
   type Parent = PA

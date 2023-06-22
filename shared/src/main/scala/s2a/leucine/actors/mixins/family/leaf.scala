@@ -27,8 +27,9 @@ package s2a.leucine.actors
 
 /**
  * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
- * but without the possibility to define children. */
-trait FamilyLeaf[Parent <: Actor.Parent[false]] extends FamilyMain, FamilyParent[false], FamilySelect[false,Parent], ActorInit :
+ * but without the possibility to define children. This variant is not able to be accept relayed
+ * messages from the Parent. */
+trait FamilyLeaf[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */
@@ -51,8 +52,11 @@ trait FamilyLeaf[Parent <: Actor.Parent[false]] extends FamilyMain, FamilyParent
   initReady()
 
 
-
-trait FamilyLeafRelayed[Parent <: Actor.Parent[true]] extends FamilyMain, FamilyParent[true], FamilySelect[true,Parent], ActorInit :
+/**
+ * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
+ * but without the possibility to define children. This variant is able to be accept relayed
+ * messages from the Parent. */
+trait FamilyLeafRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */

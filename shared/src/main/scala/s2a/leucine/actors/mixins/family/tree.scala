@@ -31,7 +31,7 @@ package s2a.leucine.actors
  * root of the tree should not have a parent. The type of the parent equals the type of the FamilyTree
  * and all letters are derived from one common ancestor. Since all letters are accepted by all family members
  * relaying is implied (no need to mixin FamilyRelay) */
-trait FamilyTree[Tree <: Actor.Parent[true]] extends FamilyChild[true], FamilyMain, FamilySelect[true,Tree], FamilyRelay, NameActor, ActorInit :
+trait FamilyTree[Tree <: Actor.Parent & FamilyRelay] extends FamilyChild, FamilyRelay, FamilyMain, FamilyDoSelect[Tree], NameActor, ActorInit :
   self: BareActor =>
   type FamilyAccept = Accept
   type FamilyCommon = Common
@@ -59,13 +59,13 @@ trait FamilyTree[Tree <: Actor.Parent[true]] extends FamilyChild[true], FamilyMa
   /** Register this actor. */
   private[actors] override def register(prename: String): String =
     // This works:
-    //parent.map(_.adopt(prename,self)).getOrElse(super.register(prename))
+    parent.map(_.adopt(prename,self)).getOrElse(super.register(prename))
     // Code below gives: Recursion limit exceeded. Maybe there is an illegal cyclic reference?
-    parent match
-    /* Children register at the parent. */
-      case Some(p) => p.adopt(prename,self)
-      /* If this is the root of the family then we register at the guard. */
-      case None    => super.register(prename)
+    // parent match
+    // /* Children register at the parent. */
+    //   case Some(p) => p.adopt(prename,self)
+    //   /* If this is the root of the family then we register at the guard. */
+    //   case None    => super.register(prename)
 
   /**
    * The path returns the full lineage of this actor: dot separated names of all parents.

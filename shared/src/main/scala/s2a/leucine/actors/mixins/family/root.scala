@@ -29,7 +29,7 @@ package s2a.leucine.actors
  * Mixin you need to create the root actor and setup a family tree. You need to specify the base
  * type of all child letters the children of this actor may receive. You may have multiple family
  * trees in your system, each with its own root. */
-trait FamilyRoot extends FamilyChild[false], FamilyMain, ActorInit :
+trait FamilyRoot extends FamilyChild, FamilyNoRelay, FamilyMain, ActorInit :
   self: BareActor =>
 
   final override def path: String = name
@@ -42,7 +42,7 @@ trait FamilyRoot extends FamilyChild[false], FamilyMain, ActorInit :
 
 
 
-trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild[true], FamilyMain, ActorInit :
+trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, ActorInit :
   self: BareActor =>
 
   type FamilyCommon = familyDefine.FamilyCommon

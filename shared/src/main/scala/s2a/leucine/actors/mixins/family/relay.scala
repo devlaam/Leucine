@@ -24,13 +24,26 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+/** Mixin you must use if no relaying is needed. */
+transparent private trait FamilyNoRelay extends ActorDefs :
+  this: ControlActor & FamilyChild =>
+
+  /* In this case the ChildActor is just an other actor. */
+  type ChildActor = BareActor
 
 /**
  * Mixin you can use to relay messages within the family without first testing
  * the sender type. This requires that (some) letters can be received by the
  * parent as well as by all children. */
-transparent private trait FamilyRelay extends FamilyTypes, ActorDefs :
-  this: ControlActor & FamilyChild[true] =>
+transparent private trait FamilyRelay extends ActorDefs :
+  this: ControlActor & FamilyChild =>
+
+  /** The type for all Senders for messages that can be relayed between parent and child. */
+  type FamilyAccept <: Actor
+  /** The bottom type for all common letters. */
+  type FamilyCommon <: FamilyAccept
+  /** The super type for the letters the children may receive. */
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
 
   /** The actor type of the combined children. */
   /* These type relations ensure that the ChildRelayActor accepts at least the letters from at least
@@ -74,11 +87,3 @@ transparent private trait FamilyRelay extends FamilyTypes, ActorDefs :
   private[actors] def passEnv[Sender >: FamilyCommon <: FamilyAccept](letter: MyFamilyLetter[Sender], sender: Sender, name: String): Boolean =
     context.traceln(s"TRACE $path/$phase: passEnv(letter=$letter, sender=$sender, name=$name)")
     _index.get(name).map(passOn(letter,sender)).getOrElse(false)
-
-
-object NoRelay extends FamilyDefine :
-  type WithRelay = false
-  type FamilyAccept = Nothing
-  type FamilyCommon = Nothing
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Nothing
-

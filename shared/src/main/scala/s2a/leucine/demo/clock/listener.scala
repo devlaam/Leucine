@@ -122,7 +122,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot, Lo
 
 
 /* This is the natural location to define all the letters the actor may receive. */
-object Listener extends SelectDefine, FamilyDefine, Stateless :
+object Listener extends SelectDefine, Stateless :
   type Accept = Listener | Anonymous
   /* Base type of all Listener Letters, sealed because that enables the compiler to see
    * if we handled them all. */

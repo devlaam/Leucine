@@ -32,7 +32,7 @@ package s2a.leucine.actors
  * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
  * after creation manually. */
 
-trait FamilyBranch[Parent <: Actor.Parent[false]] extends FamilyChild[false], FamilyMain, FamilyParent[false], FamilySelect[false,Parent], ActorInit :
+trait FamilyBranch[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyChild, FamilyNoRelay, FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */
@@ -48,9 +48,10 @@ trait FamilyBranch[Parent <: Actor.Parent[false]] extends FamilyChild[false], Fa
   initReady()
 
 
-trait FamilyBranchRelay[Parent <: Actor.Parent[false], Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild[true], FamilyMain, FamilyParent[false], FamilySelect[false,Parent], ActorInit :
+trait FamilyBranchRelay[Parent <: Actor.Parent & FamilyNoRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
+  /* Explicit Family type definitions */
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
@@ -68,7 +69,7 @@ trait FamilyBranchRelay[Parent <: Actor.Parent[false], Define <: FamilyDefine](p
   initReady()
 
 
-trait FamilyBranchRelayed[Parent <: Actor.Parent[true]] extends FamilyChild[false], FamilyMain, FamilyParent[true], FamilySelect[true,Parent], ActorInit :
+trait FamilyBranchRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyChild, FamilyNoRelay, FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */
@@ -84,9 +85,10 @@ trait FamilyBranchRelayed[Parent <: Actor.Parent[true]] extends FamilyChild[fals
   initReady()
 
 
-trait FamilyBranchRelayRelayed[Parent <: Actor.Parent[true], Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild[true], FamilyMain, FamilyParent[true], FamilySelect[true,Parent], ActorInit :
+trait FamilyBranchRelayRelayed[Parent <: Actor.Parent & FamilyRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 
+  /* Explicit Family type definitions */
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]

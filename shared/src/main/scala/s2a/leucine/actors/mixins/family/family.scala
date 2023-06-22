@@ -35,21 +35,17 @@ private trait FamilyDefs :
   private[actors] def familyAbandon(): Boolean = false
   private[actors] def familyReport(): Unit = ()
 
-
-
+/**
+ * Base type for you family definitions. These are the types you use to define
+ * the messages that need to be relayed from parent to child. Without relaying,
+ * there is no need to make use of these. Note that, if you want to relay messages
+ * from the outside, that is, that are received by the parent first, this parent
+ * must of course also be able to receive them, which must be incorporated in the
+ * types of the parent. */
 trait FamilyDefine :
+  /** The type for all Senders for messages that can be relayed between parent and child. */
   type FamilyAccept <: Actor
+  /** The bottom type for all common letters. */
   type FamilyCommon <: FamilyAccept
+  /** The super type for the letters the children may receive. */
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
-
-//Example that can be used for families that accept all letters ???
-object FamilyDefineAccept extends FamilyDefine :
-  type FamilyAccept = Actor
-  type FamilyCommon = Actor
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Actor.Letter[Sender]
-
-object FamilyDefineRefuse extends FamilyDefine :
-  type FamilyAccept = Nothing
-  type FamilyCommon = Nothing
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Nothing
-

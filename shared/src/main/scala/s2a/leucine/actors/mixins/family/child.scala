@@ -25,37 +25,22 @@ package s2a.leucine.actors
  **/
 
 
+/* Discussion: Here you can switch between two versions of the type FamilyChild. With
+ * FamilyNoRelay you only have basic Family support, with FamilyRelay you can send
+ * letters between the family members. This requires extra Family types which also
+ * may restrict other uses. So we want the user to choose. But how?? It is not possible
+ * to let the lib user mixin FamilyNoRelay/FamilyRelay from the outside, because the
+ * exact types are needed to define the Parent. */
+
 /**
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
-
-transparent private trait FamilyTypes :
-  /** The type for all Senders for messages that can be relayed between parent and child. */
-  type FamilyAccept <: Actor
-  /** The bottom type for all common letters. */
-  type FamilyCommon <: FamilyAccept
-  /** The super type for the letters the children may receive. */
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
-
-
-transparent private trait FamilySwitchRelay[RS <: Boolean] extends FamilyTypes :
-  type RelaySelector = RS
-  type ChildActor <: BareActor = RS match
-    case true => BareActor {
-      type Accept >: FamilyAccept
-      type Common <: FamilyCommon
-      type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: MyFamilyLetter[Sender] }
-    case false => BareActor
-
-/* Discussion: Here you can switch between two versions of the type FamilyChild. With
- * FamilyDirect you only have basic Family support, with FamilyRelay you can send
- * letters between the family members. This requires extra Family types which also
- * may restrict other uses. So we want the user to choose. But how?? It is not possible
- * to let the lib user mixin FamilyRelay/FamilyDirect from the outside, because the
- * exact types are needed to define the Parent. */
-transparent private trait FamilyChild[RS <: Boolean] extends  ActorDefs, FamilySwitchRelay[RS]  :
+transparent private trait FamilyChild extends  ActorDefs :
   this: ControlActor =>
+
+  /** Externally defined type for the children*/
+  type ChildActor <: BareActor
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext
@@ -204,7 +189,7 @@ private[actors] object FamilyChild :
       /* If there is some more to the path, that must be a child of the actor with the prior name. */
       case (name,rest) => actors.get(name) match
         /* So it must be of the type FamilyChild to be able to have children. */
-        case Some(fc: FamilyChild[?]) => Right(fc: FamilyChild[?],rest)
+        case Some(fc: FamilyChild) => Right(fc: FamilyChild,rest)
         /* If not, this actor does not exists. */
         case _                     => Left(None)
     /* In order to make sure we get no nested stack frames we must end with the drill down call on the child. */
