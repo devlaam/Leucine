@@ -29,8 +29,8 @@ package s2a.leucine.actors
  * Mixin to construct a family tree where all levels accept the same letters from the same set of actors,
  * and which may be build dynamically/recursively. The field 'parent' is an option in this case and the
  * root of the tree should not have a parent. The type of the parent equals the type of the FamilyTree
- * and all letters are derived from one common ancestor. Since all letters are accepted by all family members
- * relaying is implied (no need to mixin FamilyRelay) */
+ * and all letters are derived from one common ancestor. Since all letters are accepted by all family
+ * members relaying is implied (no need to mixin FamilyRelay) */
 trait FamilyTree[Tree <: Actor.Parent & FamilyRelay] extends FamilyChild, FamilyRelay, FamilyMain, FamilyDoSelect[Tree], NameActor, ActorInit :
   self: BareActor =>
   type FamilyAccept = Accept

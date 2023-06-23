@@ -26,9 +26,11 @@ package s2a.leucine.actors
 
 
 /**
- * Mixin you need to create the root actor and setup a family tree. You need to specify the base
- * type of all child letters the children of this actor may receive. You may have multiple family
- * trees in your system, each with its own root. */
+ * Mixin you need to create the root actor and setup a family tree. * There may be multiple family
+ * trees in the system, each with its own root. Use this mixin if the children are independent,
+ * in the sense that messages are not relayed unmatched from parent to child (using a relay
+ * method. Messages can always be resend to the child after the type has become known by
+ * type matching of course. */
 trait FamilyRoot extends FamilyChild, FamilyNoRelay, FamilyMain, ActorInit :
   self: BareActor =>
 
@@ -41,7 +43,10 @@ trait FamilyRoot extends FamilyChild, FamilyNoRelay, FamilyMain, ActorInit :
   initReady()
 
 
-
+/**
+ * Mixin you need to create the root actor and setup a family tree. * There may be multiple family
+ * trees in the system, each with its own root. Use this mixin if messages need to be relayed to the
+ * children (without individual type matching, using a relay method). */
 trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, ActorInit :
   self: BareActor =>
 

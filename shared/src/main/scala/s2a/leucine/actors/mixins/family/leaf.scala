@@ -26,9 +26,9 @@ package s2a.leucine.actors
 
 
 /**
- * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
- * but without the possibility to define children. This variant is not able to be accept relayed
- * messages from the Parent. */
+ * Mixin that you can use to terminate the family branching at this point. It does have a parent,
+ * but cannot have children of its own. Note that it may always create actors, but they will not
+ * be accepted as child. This variant is not able to be accept relayed messages from the Parent. */
 trait FamilyLeaf[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
@@ -53,9 +53,9 @@ trait FamilyLeaf[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyMain, Fam
 
 
 /**
- * Mixin that you can use to terminate the family branching at this point. It is like the FamilyBranch,
- * but without the possibility to define children. This variant is able to be accept relayed
- * messages from the Parent. */
+ * Mixin that you can use to terminate the family branching at this point. It does have a parent,
+ * but cannot have children of its own. Note that it may always create actors, but they will not
+ * be accepted as child. This variant is able to be accept relayed messages from the Parent. */
 trait FamilyLeafRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 

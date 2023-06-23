@@ -24,14 +24,13 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-/**
- * Mixin you need to create child actors. Actual creation should be done within the parent
- * without enclosing any of its variable state. This is your responsibility. You need to specify the base
- * type of all child letters the children of this actor may receive, as well as the parent actor type.
- * Also, your actor class needs to implement the parent. The best way to do this is to make it a class
- * parameter. That way you are obliged to define it at creation. New children must be adopted by the parent
- * after creation manually. */
 
+/**
+ * Mixin you need to create child actors, that allow for have children of their own. Actual creation could
+ * be done within or outside the parent but without enclosing any of its variable state. You need to specify the
+ * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
+ * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin does
+ * not allow to relay messages to its own children, not is it able to receive relayed messages from the parent. */
 trait FamilyBranch[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyChild, FamilyNoRelay, FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
@@ -48,6 +47,12 @@ trait FamilyBranch[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyChild, 
   initReady()
 
 
+/**
+ * Mixin you need to create child actors, that allow for have children of their own. Actual creation could
+ * be done within or outside the parent but without enclosing any of its variable state. You need to specify the
+ * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
+ * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin is
+ * able to relay messages to its own children, but not to receive relayed messages from the parent. */
 trait FamilyBranchRelay[Parent <: Actor.Parent & FamilyNoRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
@@ -69,6 +74,12 @@ trait FamilyBranchRelay[Parent <: Actor.Parent & FamilyNoRelay, Define <: Family
   initReady()
 
 
+/**
+ * Mixin you need to create child actors, that allow for have children of their own. Actual creation could
+ * be done within or outside the parent but without enclosing any of its variable state. You need to specify the
+ * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
+ * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin does
+ * not allow to relay messages to its own children, but is able to receive relayed messages from the parent. */
 trait FamilyBranchRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyChild, FamilyNoRelay, FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 
@@ -85,6 +96,12 @@ trait FamilyBranchRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyCh
   initReady()
 
 
+/**
+ * Mixin you need to create child actors, that allow for have children of their own. Actual creation could
+ * be done within or outside the parent but without enclosing any of its variable state. You need to specify the
+ * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
+ * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin is
+ * able to relay messages to its own children, and able to receive relayed messages from the parent. */
 trait FamilyBranchRelayRelayed[Parent <: Actor.Parent & FamilyRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 

@@ -41,11 +41,27 @@ private trait FamilyDefs :
  * there is no need to make use of these. Note that, if you want to relay messages
  * from the outside, that is, that are received by the parent first, this parent
  * must of course also be able to receive them, which must be incorporated in the
- * types of the parent. */
+ * types of the parent. It is good practice that, if you use relaying all children
+ * are derived from the same actor type. */
 trait FamilyDefine :
-  /** The type for all Senders for messages that can be relayed between parent and child. */
+  /**
+   * The type for all Senders for messages that can be relayed between parent and child.
+   * This is analogous to the Accept type you define for each actor. The type FamilyAccept
+   * should be a subtype of each child in the family otherwise the sender cannot be relayed.*/
   type FamilyAccept <: Actor
-  /** The bottom type for all common letters. */
+  /**
+   * The bottom type for all common letters. This type only has a hidden analogous in the
+   * actors. In other words, all actor types have a Common, but you never set this yourself.
+   * So what should this type be? From the requirement you learn that it should be a subtype
+   * of FamilyAccept. But, it should also be a supertype of all Common's of the actors.
+   * So, depending on the actor types of the children, you can use this list to choose from:
+   *   AcceptActor   :   FamilyCommon = Actor
+   *   RestrictActor :   FamilyCommon = Nothing
+   *   SelectActor   :   FamilyCommon = union of all Accept of all children
+   *   WideActor     :   FamilyCommon = Actor
+   **/
   type FamilyCommon <: FamilyAccept
-  /** The super type for the letters the children may receive. */
+  /**
+   * The super type for the letters the children may receive. This type usually is the intersection
+   * of all Letter types of all children. Derived letters may than be relay to all children as well. */
   type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
