@@ -47,7 +47,7 @@ trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: 
 
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.MyFamilyLetter[Sender]
+  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[Sender]
 
   final override def path: String = name
 

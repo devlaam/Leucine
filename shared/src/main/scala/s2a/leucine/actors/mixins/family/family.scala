@@ -48,4 +48,4 @@ trait FamilyDefine :
   /** The bottom type for all common letters. */
   type FamilyCommon <: FamilyAccept
   /** The super type for the letters the children may receive. */
-  type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
+  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]

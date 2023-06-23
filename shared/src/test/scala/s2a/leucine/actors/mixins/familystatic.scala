@@ -36,7 +36,7 @@ object ActorFamilySupply extends TestSuite :
     case object Test0 extends Letter[Accept]
     type FamilyAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
     type FamilyCommon = Nothing
-    type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Letter[Sender] & Level1A_.Letter[Sender] & Level1B_.Letter[Sender] & Level1C_.Letter[Sender]
+    type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Letter[Sender] & Level1A_.Letter[Sender] & Level1B_.Letter[Sender] & Level1C_.Letter[Sender]
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
@@ -45,7 +45,7 @@ object ActorFamilySupply extends TestSuite :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1A extends Letter[Accept]
     type FamilyAccept = Actor
-    type MyFamilyLetter[Sender <: FamilyAccept] =  Level2A_.Letter[Sender]
+    type FamilyLetter[Sender <: FamilyAccept] =  Level2A_.Letter[Sender]
 
   object Level1B_ extends RestrictDefine, Stateless  :
     type Accept = Anonymous | Outside
