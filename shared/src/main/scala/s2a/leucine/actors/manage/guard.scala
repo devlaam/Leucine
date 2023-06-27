@@ -135,7 +135,7 @@ object ActorGuard :
    * Get the actor with this path/name if it exists. It will recurse into the family tree if required.
    * All actors you gave a name manually are indexed. Here is the primary search point. If you are
    * already inside a family actor, it is more efficient to search just that tree. */
-  def get(path: String)(using context: ActorContext): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,index)
+  def get(path: String)(using context: ActorContext): Option[Actor] = FamilyParent.searchFor(path,context.familyPathSeparator,index)
 
 
   /**

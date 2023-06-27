@@ -111,7 +111,7 @@ trait Actor :
 
 object Actor :
   /** Having children defines the parent */
-  type Parent = Actor with FamilyChild
+  type Parent = Actor with FamilyParent
 
   /** This is the base type for all your mail. */
   trait Letter[Sender <: Actor] :

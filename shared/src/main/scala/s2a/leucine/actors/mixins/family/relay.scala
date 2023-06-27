@@ -26,7 +26,7 @@ package s2a.leucine.actors
 
 /** Mixin you must use if no relaying is needed. */
 transparent private trait FamilyNoRelay extends ActorDefs :
-  this: ControlActor & FamilyChild =>
+  this: ControlActor & FamilyParent =>
 
   /* In this case the ChildActor is just an other actor. */
   type ChildActor = BareActor
@@ -36,7 +36,7 @@ transparent private trait FamilyNoRelay extends ActorDefs :
  * the sender type. This requires that (some) letters can be received by the
  * parent as well as by all children. */
 transparent private trait FamilyRelay extends ActorDefs :
-  this: ControlActor & FamilyChild =>
+  this: ControlActor & FamilyParent =>
 
   /** The type for all Senders for messages that can be relayed between parent and child. */
   type FamilyAccept <: Actor

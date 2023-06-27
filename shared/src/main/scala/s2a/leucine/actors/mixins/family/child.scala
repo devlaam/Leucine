@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 
-/* Discussion: Here you can switch between two versions of the type FamilyChild. With
+/* Discussion: Here you can switch between two versions of the type FamilyParent. With
  * FamilyNoRelay you only have basic Family support, with FamilyRelay you can send
  * letters between the family members. This requires extra Family types which also
  * may restrict other uses. So we want the user to choose. But how?? It is not possible
@@ -36,7 +36,7 @@ package s2a.leucine.actors
  * Holds all the methods needed for managing the children of the family actor member.
  * For internal use. Not all families have children, so this is only mixed in
  * when children are expected. */
-transparent private trait FamilyChild extends  ActorDefs :
+transparent private trait FamilyParent extends  ActorDefs :
   this: ControlActor =>
 
   /** Externally defined type for the children*/
@@ -176,11 +176,11 @@ transparent private trait FamilyChild extends  ActorDefs :
 
 
   /** Get the actor with this path/name if it exists. It will recurse into the family tree if needed. */
-  protected[actors] def get(path: String): Option[Actor] = FamilyChild.searchFor(path,context.familyPathSeparator,_index)
+  protected[actors] def get(path: String): Option[Actor] = FamilyParent.searchFor(path,context.familyPathSeparator,_index)
 
 
-/* Contains method specific to the FamilyChild. */
-private[actors] object FamilyChild :
+/* Contains method specific to the FamilyParent. */
+private[actors] object FamilyParent :
   /** General method to search a the family tree. */
   def searchFor(path: String, separator: Char, actors: Map[String,Actor]): Option[Actor] =
     Auxiliary.splitAt(path,separator) match
@@ -188,8 +188,8 @@ private[actors] object FamilyChild :
       case (name,"")   => Left(actors.get(name))
       /* If there is some more to the path, that must be a child of the actor with the prior name. */
       case (name,rest) => actors.get(name) match
-        /* So it must be of the type FamilyChild to be able to have children. */
-        case Some(fc: FamilyChild) => Right(fc: FamilyChild,rest)
+        /* So it must be of the type FamilyParent to be able to have children. */
+        case Some(fc: FamilyParent) => Right(fc: FamilyParent,rest)
         /* If not, this actor does not exists. */
         case _                     => Left(None)
     /* In order to make sure we get no nested stack frames we must end with the drill down call on the child. */

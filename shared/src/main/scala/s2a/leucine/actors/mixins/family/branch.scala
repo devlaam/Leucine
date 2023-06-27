@@ -31,7 +31,7 @@ package s2a.leucine.actors
  * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
  * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin does
  * not allow to relay messages to its own children, not is it able to receive relayed messages from the parent. */
-trait FamilyBranch[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyChild, FamilyNoRelay, FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
+trait FamilyBranch[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyParent, FamilyNoRelay, FamilyMain, FamilyChild, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */
@@ -53,7 +53,7 @@ trait FamilyBranch[Parent <: Actor.Parent & FamilyNoRelay] extends FamilyChild, 
  * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
  * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin is
  * able to relay messages to its own children, but not to receive relayed messages from the parent. */
-trait FamilyBranchRelay[Parent <: Actor.Parent & FamilyNoRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, FamilyParent, FamilyNoSelect[Parent], ActorInit :
+trait FamilyBranchRelay[Parent <: Actor.Parent & FamilyNoRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyParent, FamilyRelay, FamilyMain, FamilyChild, FamilyNoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /* Explicit Family type definitions */
@@ -80,7 +80,7 @@ trait FamilyBranchRelay[Parent <: Actor.Parent & FamilyNoRelay, Define <: Family
  * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
  * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin does
  * not allow to relay messages to its own children, but is able to receive relayed messages from the parent. */
-trait FamilyBranchRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyChild, FamilyNoRelay, FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
+trait FamilyBranchRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyParent, FamilyNoRelay, FamilyMain, FamilyChild, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /** Internally called to remove an actor from its parents list, just before termination. */
@@ -102,7 +102,7 @@ trait FamilyBranchRelayed[Parent <: Actor.Parent & FamilyRelay] extends FamilyCh
  * type of the parent here. Also, your actor class needs to implement the parent itself. The best way to do
  * this is to make it a class parameter. That way you are obliged to define it at creation. This mixin is
  * able to relay messages to its own children, and able to receive relayed messages from the parent. */
-trait FamilyBranchRelayRelayed[Parent <: Actor.Parent & FamilyRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyChild, FamilyRelay, FamilyMain, FamilyParent, FamilyDoSelect[Parent], ActorInit :
+trait FamilyBranchRelayRelayed[Parent <: Actor.Parent & FamilyRelay, Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyParent, FamilyRelay, FamilyMain, FamilyChild, FamilyDoSelect[Parent], ActorInit :
   self: BareActor  =>
 
   /* Explicit Family type definitions */
