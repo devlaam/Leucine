@@ -13,7 +13,7 @@ val stable  = "3.2.1"
 val publishMe: Int = 0
 
 ThisBuild / version       :=  "0.5.2"
-ThisBuild / scalaVersion  :=  latest
+ThisBuild / scalaVersion  :=  stable
 
 val sharedSettings = Seq(
   name                    :=  "leucine",

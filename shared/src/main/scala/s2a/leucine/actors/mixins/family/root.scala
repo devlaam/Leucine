@@ -26,13 +26,17 @@ package s2a.leucine.actors
 
 
 /**
- * Mixin you need to create the root actor and setup a family tree. * There may be multiple family
+ * Mixin you need to create the root actor and setup a family tree. There may be multiple family
  * trees in the system, each with its own root. Use this mixin if the children are independent,
  * in the sense that messages are not relayed unmatched from parent to child (using a relay
- * method. Messages can always be resend to the child after the type has become known by
- * type matching of course. */
-trait FamilyRoot extends FamilyParent, FamilyNoRelay, FamilyMain, ActorInit :
+ * method). Messages can always be resend to the child after the type has become known by
+ * type matching of course. If the ChildActor needs to be a specific type, this can be defined
+ * in the familyDefine, otherwise it will be of type BareActor. */
+trait FamilyRoot[Define <: FamilyDefine](private[actors] val familyDefine: Define = BareFamily) extends FamilyParent, FamilyNoRelay, FamilyMain, ActorInit :
   self: BareActor =>
+
+  /** Defining the shared type of all children */
+  type FamilyShared = familyDefine.ChildActor
 
   final override def path: String = name
 
@@ -44,12 +48,14 @@ trait FamilyRoot extends FamilyParent, FamilyNoRelay, FamilyMain, ActorInit :
 
 
 /**
- * Mixin you need to create the root actor and setup a family tree. * There may be multiple family
+ * Mixin you need to create the root actor and setup a family tree.  There may be multiple family
  * trees in the system, each with its own root. Use this mixin if messages need to be relayed to the
- * children (without individual type matching, using a relay method). */
+ * children (without individual type matching, using a relay method). With the familyDefine you
+ * can the family specific types. */
 trait FamilyRootRelay[Define <: FamilyDefine](private[actors] val familyDefine: Define) extends FamilyParent, FamilyRelay, FamilyMain, ActorInit :
   self: BareActor =>
 
+  type FamilyShared = familyDefine.ChildActor
   type FamilyCommon = familyDefine.FamilyCommon
   type FamilyAccept = familyDefine.FamilyAccept
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = familyDefine.FamilyLetter[Sender]

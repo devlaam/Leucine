@@ -44,11 +44,21 @@ private trait FamilyDefs :
  * types of the parent. It is good practice that, if you use relaying all children
  * are derived from the same actor type. */
 trait FamilyDefine :
+
+  /**
+   * Here you define the type that all children hold in common. Often, there is only
+   * one actor type for all children, in which case you may use that one. When there
+   * are more, you may define the union type to be the ChildActor type. Otherwise,
+   * just define this to be the BareActor, you cannot skip its definition. */
+  type ChildActor <: BareActor
+
   /**
    * The type for all Senders for messages that can be relayed between parent and child.
    * This is analogous to the Accept type you define for each actor. The type FamilyAccept
-   * should be a subtype of each child in the family otherwise the sender cannot be relayed.*/
+   * should be a subtype of each child in the family otherwise the sender cannot be relayed.
+   * Without relaying, there is no need to define this type. */
   type FamilyAccept <: Actor
+
   /**
    * The bottom type for all common letters. This type only has a hidden analogous in the
    * actors. In other words, all actor types have a Common, but you never set this yourself.
@@ -59,9 +69,16 @@ trait FamilyDefine :
    *   RestrictActor :   FamilyCommon = Nothing
    *   SelectActor   :   FamilyCommon = union of all Accept of all children
    *   WideActor     :   FamilyCommon = Actor
-   **/
+   * Without relaying, there is no need to define this type. */
   type FamilyCommon <: FamilyAccept
+
   /**
    * The super type for the letters the children may receive. This type usually is the intersection
-   * of all Letter types of all children. Derived letters may than be relay to all children as well. */
+   * of all Letter types of all children. Derived letters may than be relay to all children as well.
+   * Without relaying, there is no need to define this type. */
   type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
+
+/** This object is used as default FamilyDefine in case there is no special type to define manually. */
+object BareFamily extends FamilyDefine :
+   type ChildActor = BareActor
+

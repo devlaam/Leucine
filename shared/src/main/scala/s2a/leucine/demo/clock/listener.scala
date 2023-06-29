@@ -37,7 +37,7 @@ import s2a.leucine.actors.*
  * as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot, LogInfo :
+class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), LogInfo :
 
   /* Time this demo will last. */
   private val runtime = 60.seconds

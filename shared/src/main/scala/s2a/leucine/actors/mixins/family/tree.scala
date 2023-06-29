@@ -33,12 +33,13 @@ package s2a.leucine.actors
  * members relaying is implied (no need to mixin FamilyRelay) */
 trait FamilyTree[Tree <: Actor.Parent & FamilyRelay & BareActor] extends FamilyParent, FamilyRelay, FamilyMain, FamilyDoSelect[Tree], NameActor, ActorInit :
   self: Tree  =>
+
+  /* In a Tree every element is a Tree itself. */
+  type FamilyShared = Tree
   type FamilyAccept = Accept
   type FamilyCommon = Common
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = MyLetter[Sender]
-
-  type SharedActor = Tree
-  type Parent = PA
+  type Parent = FamilyParent
 
   /**
    * Access to the parent of this actor. It should be implemented as value parameter in the
