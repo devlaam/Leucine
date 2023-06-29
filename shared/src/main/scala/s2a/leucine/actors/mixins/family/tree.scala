@@ -31,12 +31,13 @@ package s2a.leucine.actors
  * root of the tree should not have a parent. The type of the parent equals the type of the FamilyTree
  * and all letters are derived from one common ancestor. Since all letters are accepted by all family
  * members relaying is implied (no need to mixin FamilyRelay) */
-trait FamilyTree[Tree <: Actor.Parent & FamilyRelay] extends FamilyParent, FamilyRelay, FamilyMain, FamilyDoSelect[Tree], NameActor, ActorInit :
-  self: BareActor =>
+trait FamilyTree[Tree <: Actor.Parent & FamilyRelay & BareActor] extends FamilyParent, FamilyRelay, FamilyMain, FamilyDoSelect[Tree], NameActor, ActorInit :
+  self: Tree  =>
   type FamilyAccept = Accept
   type FamilyCommon = Common
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = MyLetter[Sender]
 
+  type SharedActor = Tree
   type Parent = PA
 
   /**

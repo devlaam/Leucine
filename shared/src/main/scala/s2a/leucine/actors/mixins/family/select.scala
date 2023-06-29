@@ -31,7 +31,8 @@ transparent private trait FamilyNoSelect[Parent <: Actor.Parent] :
 
   /* In case the actor is not able to accept relayed messages there are no
    * special restrictions to the Parent type. */
-  private[actors] type PA = Parent
+  private[actors] type PA = Parent {
+    type SharedActor >: self.type }
 
 
 /** Mixin for the situation the child does accept relayed messages. */
@@ -42,6 +43,7 @@ transparent private trait FamilyDoSelect[Parent <: Actor.Parent] :
    * special restrictions to the Parent Family types in relation to this
    * child. These are enforced here. */
   private[actors] type PA = Parent {
+    type SharedActor >: self.type
     type FamilyAccept <: self.Accept
     type FamilyCommon >: self.Common
     type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: self.MyLetter[Sender] }

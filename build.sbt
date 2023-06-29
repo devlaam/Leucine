@@ -5,7 +5,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-val nightly = "3.3.1-RC1-bin-20230416-2f4cc4c-NIGHTLY"
+val nightly = "3.3.2-RC1-bin-20230624-be42772-NIGHTLY"
 val latest  = "3.3.0"
 val stable  = "3.2.1"
 
@@ -13,7 +13,7 @@ val stable  = "3.2.1"
 val publishMe: Int = 0
 
 ThisBuild / version       :=  "0.5.2"
-ThisBuild / scalaVersion  :=  stable
+ThisBuild / scalaVersion  :=  latest
 
 val sharedSettings = Seq(
   name                    :=  "leucine",

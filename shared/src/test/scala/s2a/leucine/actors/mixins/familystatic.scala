@@ -72,6 +72,7 @@ object ActorFamilySupply extends TestSuite :
       case(Outside_.Text(msg),_) => ()
 
   abstract class Level0 extends RestrictActor(Level0_,"l0"), FamilyRootRelay(Level0_) :
+    type SharedActor = BareActor
     def outside: Outside
     val level1A = Level1A(this)
     val level1B = Level1B(this)
@@ -93,8 +94,8 @@ object ActorFamilySupply extends TestSuite :
       case(Level0_.Test0,_) => ()
 
 
-
   class Level1A(protected val parent: Level0) extends RestrictActor(Level1A_,"1a"), FamilyBranchRelayRelayed[Level0,Level1A_.type](Level1A_) :
+    type SharedActor = BareActor
     val level2A = Level2A(this)
     level2A.send(Level2A_.Text("hi"),this)
     level2A.send(Level2A_.Text("hi"),Actor.Anonymous)

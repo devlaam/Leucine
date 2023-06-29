@@ -39,8 +39,10 @@ package s2a.leucine.actors
 transparent private trait FamilyParent extends  ActorDefs :
   this: ControlActor =>
 
-  /** Externally defined type for the children*/
-  type ChildActor <: BareActor
+  type SharedActor <: BareActor
+
+  /** Externally defined type for the children */
+  type ChildActor <: SharedActor
 
   /** Reference to the actor context. */
   private[actors] def context: ActorContext

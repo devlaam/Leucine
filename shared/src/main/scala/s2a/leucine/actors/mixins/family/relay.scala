@@ -28,8 +28,11 @@ package s2a.leucine.actors
 transparent private trait FamilyNoRelay extends ActorDefs :
   this: ControlActor & FamilyParent =>
 
+  type SharedActor <: BareActor
+
   /* In this case the ChildActor is just an other actor. */
-  type ChildActor = BareActor
+  type ChildActor = SharedActor
+
 
 /**
  * Mixin you can use to relay messages within the family without first testing
@@ -45,11 +48,13 @@ transparent private trait FamilyRelay extends ActorDefs :
   /** The super type for the letters the children may receive. */
   type MyFamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
 
+  type SharedActor <: BareActor
+
   /** The actor type of the combined children. */
   /* These type relations ensure that the ChildRelayActor accepts at least the letters from at least
    * the senders the whole family does. It may accept more. Regarding the common actors, all
    * the senders that the letters hold in common, must also be hold in common by the family. */
-  type ChildActor = BareActor {
+  type ChildActor = SharedActor {
     type Accept >: FamilyAccept
     type Common <: FamilyCommon
     type MyLetter[Sender >: FamilyCommon <: FamilyAccept] >: MyFamilyLetter[Sender] }
