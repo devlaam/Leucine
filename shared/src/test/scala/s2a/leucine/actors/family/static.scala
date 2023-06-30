@@ -36,7 +36,6 @@ object ActorFamilySupply extends TestSuite :
     case object Test0 extends Letter[Accept]
     type ChildActor = BareActor
     type FamilyAccept = Accept & Level1A_.Accept & Level1B_.Accept & Level1C_.Accept
-    type FamilyCommon = Nothing
     type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = Letter[Sender] & Level1A_.Letter[Sender] & Level1B_.Letter[Sender] & Level1C_.Letter[Sender]
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]

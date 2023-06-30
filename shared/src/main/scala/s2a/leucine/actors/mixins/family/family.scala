@@ -56,7 +56,8 @@ trait FamilyDefine :
    * The type for all Senders for messages that can be relayed between parent and child.
    * This is analogous to the Accept type you define for each actor. The type FamilyAccept
    * should be a subtype of each child in the family otherwise the sender cannot be relayed.
-   * Without relaying, there is no need to define this type. */
+   * Without relaying, there is no need to define this type, but it could be used for your
+   * own letter distribution among children just the same.  */
   type FamilyAccept <: Actor
 
   /**
@@ -69,13 +70,17 @@ trait FamilyDefine :
    *   RestrictActor :   FamilyCommon = Nothing
    *   SelectActor   :   FamilyCommon = union of all Accept of all children
    *   WideActor     :   FamilyCommon = Actor
-   * Without relaying, there is no need to define this type. */
+   * Without relaying, there is no need to define this type, but it could be used for your
+   * own letter distribution among children just the same. If you combine FamilyDefine and
+   * the ActorDefine into one Define, this is already defined for AcceptActor, RestrictActor
+   * and WideActor to be the correct type. */
   type FamilyCommon <: FamilyAccept
 
   /**
    * The super type for the letters the children may receive. This type usually is the intersection
    * of all Letter types of all children. Derived letters may than be relay to all children as well.
-   * Without relaying, there is no need to define this type. */
+   * Without relaying, there is no need to define this type, but it could be used for your
+   * own letter distribution among children just the same.  */
   type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] <: Actor.Letter[Sender]
 
 /** This object is used as default FamilyDefine in case there is no special type to define manually. */

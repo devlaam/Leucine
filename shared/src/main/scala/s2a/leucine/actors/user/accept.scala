@@ -135,6 +135,8 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
 trait AcceptDefine :
+  /** If this trait is used in combination with a family definition, this type is fixed */
+  type FamilyCommon = Actor
   /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
   type State <: Actor.State
   /** Your class should contain a sealed trait Letter derived from Actor.Letter[Actor]. */

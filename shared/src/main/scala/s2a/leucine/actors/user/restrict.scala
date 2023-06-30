@@ -133,6 +133,8 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
 trait RestrictDefine :
+  /** If this trait is used in combination with a family definition, this type is fixed */
+  type FamilyCommon = Nothing
   /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
   type State <: Actor.State
   /** Your class should contain a union of types you will accept as valid Senders. */

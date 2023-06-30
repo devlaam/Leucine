@@ -134,6 +134,8 @@ abstract class WideActor[Define <: WideDefine](private[actors] val actorDefine: 
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
 trait WideDefine :
+  /** If this trait is used in combination with a family definition, this type is fixed */
+  type FamilyCommon = Actor
   /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
   type State <: Actor.State
   /** Your class may contain a sealed trait Letter derived from Actor.Letter[Accept]. */
