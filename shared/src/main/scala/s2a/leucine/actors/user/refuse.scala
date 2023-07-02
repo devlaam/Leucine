@@ -102,11 +102,7 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
 
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
-trait RefuseDefine :
-  /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
-  type State <: Actor.State
-  /** Define the initial value of the state. */
-  def initial: State
+trait RefuseDefine extends ShareDefine
 
 /**
  * Default object for Refuse actors that don't need any state. Since no other types need to be

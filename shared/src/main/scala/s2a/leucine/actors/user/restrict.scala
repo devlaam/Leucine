@@ -106,8 +106,12 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
   def ![Sender <: Accept](letter: Letter[Sender])(using sender: Sender): Unit = sendEnvelope(pack(letter,sender))
 
 
-/** Derive your companion object from this trait, so you can define your own typed letters. */
-trait RestrictDefine :
+/**
+ * Derive your companion object from this trait, so you can define your own typed letters.
+ * You may use this define to implement the FamilyDefine as well, but the requirement is
+ * that all members in the family have the same BareActor type which is RestrictActor in
+ * this case. */
+trait RestrictDefine extends ShareDefine :
   /** If this trait is used in combination with a family definition, FamilyAccept is called ChildAccept */
   type FamilyAccept = ChildAccept
   /** If this trait is used in combination with a family definition, this type is fixed */
@@ -118,13 +122,7 @@ trait RestrictDefine :
   type ChildAccept <: Actor
   /** If this trait is used in combination with a family definition, define this ChildLetter. */
   type ChildLetter[Sender <: ChildAccept] <: Actor.Letter[Sender]
-  /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
-  type State <: Actor.State
   /** Your class should contain a union of types you will accept as valid Senders. */
   type Accept <: Actor
   /** Your class should contain a sealed trait Letter[Sender <: Accept] derived from Actor.Letter[Sender]. */
   type Letter[Sender <: Accept] <: Actor.Letter[Sender]
-  /** Use this inside the actor to allow the anonymous sender in Accept */
-  type Anonymous = Actor.Anonymous.type
-  /** Define the initial value of the state. */
-  def initial: State

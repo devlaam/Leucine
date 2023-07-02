@@ -108,8 +108,12 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
   def ! (letter: Letter)(using sender: Sender = Actor.Anonymous): Unit = sendEnvelope(pack(letter,sender))
 
 
-/** Derive your companion object from this trait, so you can define your own typed letters. */
-trait AcceptDefine :
+/**
+ * Derive your companion object from this trait, so you can define your own typed letters.
+ * You may use this define to implement the FamilyDefine as well, but the requirement is
+ * that all members in the family have the same BareActor type which is AcceptActor in
+ * this case. */
+trait AcceptDefine extends ShareDefine :
   /** If this trait is used in combination with a family definition, this type is fixed */
   type FamilyAccept = Actor
   /** If this trait is used in combination with a family definition, this type is fixed */
@@ -118,9 +122,5 @@ trait AcceptDefine :
   type FamilyLetter[Sender >: Actor <: Actor] = ChildLetter
   /** If this trait is used in combination with a family definition, define this ChildLetter. */
   type ChildLetter <: Actor.Letter[Actor]
-  /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
-  type State <: Actor.State
   /** Your class should contain a sealed trait Letter derived from Actor.Letter[Actor]. */
   type Letter <: Actor.Letter[Actor]
-  /** Define the initial value of the state. */
-  def initial: State

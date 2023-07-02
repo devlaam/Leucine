@@ -81,3 +81,13 @@ transparent private trait ActorShare(prename: String) extends BareActor :
 
   /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
   final val name = register(prename)
+
+
+/** Shared definitions for all Defines */
+transparent private trait ShareDefine :
+  /** Use this inside the actor to allow the anonymous sender in Accept for example. */
+  type Anonymous = Actor.Anonymous.type
+  /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
+  type State <: Actor.State
+  /** Define the initial value of the state. */
+  def initial: State
