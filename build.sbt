@@ -12,7 +12,7 @@ val stable  = "3.2.1"
 /* Set to 1 for publishing to exclude the demo/test files. */
 val publishMe: Int = 0
 
-ThisBuild / version       :=  "0.5.2"
+ThisBuild / version       :=  "0.5.3"
 ThisBuild / scalaVersion  :=  stable
 
 val sharedSettings = Seq(
