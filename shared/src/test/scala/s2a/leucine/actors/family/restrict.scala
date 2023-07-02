@@ -11,35 +11,6 @@ import s2a.leucine.actors.Actor.Anonymous
 import s2a.control.Helpers.*
 
 
-/* Actor Structure:
- *  Grandma (one instance)
- *  - Mama (3 instances)
- *    - Child (optional)
- *      Son <: Child  (3 instances)
- *      Daughter <: Child (3 instances)
- */
-
-trait SiblingCommon :
-  given ac: ActorContext = ActorContext.system
-
-  def start(): Unit
-  var writeln: String => Unit  = (s: String) => ()
-  var done: Option[() => Unit] = None
-
-  val result = Set("s3-SH-m1","s2-SH-m1","s1-SH-m2","s1-SH-m1","s2-SH-m3","s2-SH-m2","s3-SH-m2","d1-DH-m1","d2-DH-m1","d3-DH-m1","d3-DH-m2","d1-DH-m2",
-                   "s3-SH-m3","s1-SH-m3","d2-DH-m2","s2-MF-m1","d2-MF-m1","d1-DH-m3","d1-MF-m1","s3-MF-m1","d3-DH-m3","s1-MF-m1","d2-DH-m3","d3-MF-m1",
-                   "s1-MF-m2","d3-MF-m2","d1-MF-m2","d2-MF-m2","d1-MF-m3","d3-MF-m3","s3-MF-m2","s2-MF-m2","d2-MF-m3","s2-MF-m3","s3-MF-m3","s1-MF-m3")
-
-  val tests = Tests {
-    val buffer = Buffer[String]
-    val deferred = Deferred(buffer.readlns)
-    writeln = buffer.writeln
-    done = Some(deferred.done)
-    start()
-    deferred.await()
-    test("ContainsAllElements")  - { deferred.compare(list => list.toSet ==> result) } }
-
-
 object SiblingRestrictSupply extends TestSuite, SiblingCommon :
   import TestMethods.*
 
@@ -56,9 +27,9 @@ object SiblingRestrictSupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = Mama
-    type FamilyAccept = Anonymous
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Letter[Sender], Mama.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[Accept]
+    type ChildAccept = Anonymous
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Letter[Sender], Mama.Letter[Sender]
+    case object FamilyHello extends ChildLetter[Accept]
 
   class Mama(name: String, val parent: Grandma) extends RestrictActor(Mama,name), FamilyBranch[Grandma,Mama.type](Mama) :
     new Son("s1",this); new Daughter("d1",this)
@@ -76,15 +47,15 @@ object SiblingRestrictSupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = Son | Daughter
-    type FamilyAccept = Mama
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[FamilyAccept]
+    type ChildAccept = Mama
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
+    case object FamilyHello extends ChildLetter[ChildAccept]
 
   trait Child extends BareActor, FamilyLeaf[Mama] :
-    def send[Sender <: Mama.FamilyAccept](letter: Mama.FamilyLetter[Sender], sender: Sender): Boolean
+    def send[Sender <: Mama.ChildAccept](letter: Mama.ChildLetter[Sender], sender: Sender): Boolean
 
   class Son(name: String, val parent: Mama) extends RestrictActor(Son,name), Child :
-    def send[Sender <: Mama.FamilyAccept](letter: Mama.FamilyLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
+    def send[Sender <: Mama.ChildAccept](letter: Mama.ChildLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
@@ -95,7 +66,7 @@ object SiblingRestrictSupply extends TestSuite, SiblingCommon :
     case object Hello extends Letter[Accept]
 
   class Daughter(name: String, val parent: Mama) extends RestrictActor(Daughter,name), Child :
-    def send[Sender <: Mama.FamilyAccept](letter: Mama.FamilyLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
+    def send[Sender <: Mama.ChildAccept](letter: Mama.ChildLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
@@ -128,9 +99,9 @@ object SiblingRestrictRelaySupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = Mama
-    type FamilyAccept = Anonymous
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Letter[Sender], Mama.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[Accept]
+    type ChildAccept = Anonymous
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Letter[Sender], Mama.Letter[Sender]
+    case object FamilyHello extends ChildLetter[Accept]
 
   class Mama(name: String, val parent: Grandma) extends RestrictActor(Mama,name), FamilyBranchRelay[Grandma,Mama.type](Mama) :
     new Son("s1",this); new Daughter("d1",this)
@@ -148,9 +119,9 @@ object SiblingRestrictRelaySupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = BareActor
-    type FamilyAccept = Mama
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[FamilyAccept]
+    type ChildAccept = Mama
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
+    case object FamilyHello extends ChildLetter[ChildAccept]
 
   class Son(name: String, val parent: Mama) extends RestrictActor(Son,name), FamilyLeafRelayed[Mama] :
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
@@ -196,9 +167,9 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = Mama
-    type FamilyAccept = Anonymous
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Letter[Sender], Mama.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[Accept]
+    type ChildAccept = Anonymous
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Letter[Sender], Mama.Letter[Sender]
+    case object FamilyHello extends ChildLetter[Accept]
 
   class Mama(name: String, val parent: Grandma) extends RestrictActor(Mama,name), FamilyBranchRelayed[Grandma,Mama.type](Mama) :
     new Son("s1",this); new Daughter("d1",this)
@@ -216,15 +187,15 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = Son | Daughter
-    type FamilyAccept = Mama
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[FamilyAccept]
+    type ChildAccept = Mama
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
+    case object FamilyHello extends ChildLetter[ChildAccept]
 
   trait Child extends BareActor, FamilyLeaf[Mama] :
-    def send[Sender <: Mama.FamilyAccept](letter: Mama.FamilyLetter[Sender], sender: Sender): Boolean
+    def send[Sender <: Mama.ChildAccept](letter: Mama.ChildLetter[Sender], sender: Sender): Boolean
 
   class Son(name: String, val parent: Mama) extends RestrictActor(Son,name), Child :
-    def send[Sender <: Mama.FamilyAccept](letter: Mama.FamilyLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
+    def send[Sender <: Mama.ChildAccept](letter: Mama.ChildLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
@@ -235,7 +206,7 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
     case object Hello extends Letter[Accept]
 
   class Daughter(name: String, val parent: Mama) extends RestrictActor(Daughter,name), Child :
-    def send[Sender <: Mama.FamilyAccept](letter: Mama.FamilyLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
+    def send[Sender <: Mama.ChildAccept](letter: Mama.ChildLetter[Sender], sender: Sender): Boolean = super[RestrictActor].send(letter,sender)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
@@ -269,9 +240,9 @@ object SiblingRestrictRelayRelayedSupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = Mama
-    type FamilyAccept = Anonymous
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Letter[Sender], Mama.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[Accept]
+    type ChildAccept = Anonymous
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Letter[Sender], Mama.Letter[Sender]
+    case object FamilyHello extends ChildLetter[Accept]
 
   class Mama(name: String, val parent: Grandma) extends RestrictActor(Mama,name), FamilyBranchRelayRelayed[Grandma,Mama.type](Mama) :
     new Son("s1",this); new Daughter("d1",this)
@@ -289,9 +260,9 @@ object SiblingRestrictRelayRelayedSupply extends TestSuite, SiblingCommon :
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Hello extends Letter[Accept]
     type ChildActor = BareActor
-    type FamilyAccept = Mama
-    sealed trait FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
-    case object FamilyHello extends FamilyLetter[FamilyAccept]
+    type ChildAccept = Mama
+    sealed trait ChildLetter[Sender <: ChildAccept] extends Son.Letter[Sender], Daughter.Letter[Sender]
+    case object FamilyHello extends ChildLetter[ChildAccept]
 
   class Son(name: String, val parent: Mama) extends RestrictActor(Son,name), FamilyLeafRelayed[Mama] :
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
