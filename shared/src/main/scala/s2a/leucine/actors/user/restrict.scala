@@ -57,31 +57,6 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
   /* Defines the initialState to be the Default state, the user does not need to implement this. */
   private[actors] final def initialState: State = actorDefine.initial
 
-  /* Use to distinguish between basic and other actors. AcceptActors does not have sender as parameter. */
-  extension (fc: FamilyRelay)
-    /**
-     * Forward a message to all children with indexed name, workers and auto named.
-     * Returns the number of children that accepted the letter. Does not include
-     * auto named children (children that were not given an explicit name) or workers. */
-    protected def relayAll[Sender >: fc.FamilyCommon <: fc.FamilyAccept](letter: fc.MyFamilyLetter[Sender], sender: Sender): Int =
-      fc.relayEnvGrouped(letter,sender,true,true,true)
-     /**
-     * Forward a message to children of which the name passes the test 'include'.
-     * Returns the number of children that accepted the letter. Does not include
-     * auto named children (children that were not given an explicit name) or workers. */
-    protected def relayFilter[Sender >: fc.FamilyCommon <: fc.FamilyAccept](letter: fc.MyFamilyLetter[Sender], sender: Sender, include: String => Boolean): Int =
-      fc.relayEnvFilter(letter,sender,include)
-    /**
-     * Forward a message to children per group: indexed and/or workers and/or children that were given
-     * an automatic name, i.e. children that were not given an explicit name.
-     * Returns the number of children that accepted the letter.  */
-    protected def relayGrouped[Sender >: fc.FamilyCommon <: fc.FamilyAccept](letter: fc.MyFamilyLetter[Sender], sender: Sender, toIndexed: Boolean, toWorkers: Boolean, toAutoNamed: Boolean): Int =
-      fc.relayEnvGrouped(letter,sender,toIndexed,toWorkers,toAutoNamed)
-    /**
-     * Forward a message to one specific child on the basis of its name. Returns true if successful and
-     * false if that child is not present or does not accept the letter. */
-    protected def pass[Sender >: fc.FamilyCommon <: fc.FamilyAccept](letter: fc.MyFamilyLetter[Sender], sender: Sender, name: String): Boolean = fc.passEnv(letter,sender,name)
-
   extension (stash: StashOps)
     /**
      * Store a letter and sender manually on the stash. With this method, you may replace one
@@ -133,8 +108,16 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
 
 /** Derive your companion object from this trait, so you can define your own typed letters. */
 trait RestrictDefine :
+  /** If this trait is used in combination with a family definition, FamilyAccept is called ChildAccept */
+  type FamilyAccept = ChildAccept
   /** If this trait is used in combination with a family definition, this type is fixed */
   type FamilyCommon = Nothing
+  /** If this trait is used in combination with a family definition, FamilyLetter is called ChildLetter */
+  type FamilyLetter[Sender >: FamilyCommon <: FamilyAccept] = ChildLetter[Sender]
+  /** If this trait is used in combination with a family definition, define this ChildAccept */
+  type ChildAccept <: Actor
+  /** If this trait is used in combination with a family definition, define this ChildLetter. */
+  type ChildLetter[Sender <: ChildAccept] <: Actor.Letter[Sender]
   /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
   type State <: Actor.State
   /** Your class should contain a union of types you will accept as valid Senders. */
