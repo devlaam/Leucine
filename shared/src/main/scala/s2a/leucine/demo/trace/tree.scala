@@ -73,13 +73,13 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
       (1 to width).foreach(newChild)
       /* In case we are not yet on the last level, relay this creation order
        * to the next level. */
-      if (level > 1) then relayAll(Tree.Create(width,level - 1))
+      if (level > 1) then relayAll(Tree.Create(width,level - 1),this)
     /* This message will travel forward through the tree structure. */
     case Tree.Forward =>
       /* Report that we are in the forward traversal. */
       write("=>>")
       /* Relay the message to all children, and see if we succeeded. */
-      val relayed = relayAll(Tree.Forward)
+      val relayed = relayAll(Tree.Forward,this)
       /* In case there were no children to accept the message, we are at the
        * end of the structure and start the traversal backwards. */
       if relayed == 0 then parent.map(_ ! Tree.Backward)
