@@ -71,7 +71,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
    * Tries to process the contents of one envelope. If there is an exception, this is delivered to
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
-  private[actors] def processEnvelope(envelope: Env[?]): Unit =
+  private[actors] def processEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     context.traceln(s"TRACE $path/$phase: processEnvelope(letter=${envelope.letter}, sender=${envelope.sender})")
     /* Start measuring the time passed in the user environment, and trace when requested */
     monitorEnter(envelope)
@@ -99,7 +99,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
      * de-stashed envelopes if any and possibly one event. Since the eventsDequeue and the
      * mailbox.dequeue both need synchronization we do that on once. */
-    var envs: List[Env[?]] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
+    var envs: List[Env[? >: Common <: Accept]] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
     /* Test if must report an empty mailbox */
     if envs.isEmpty then protectReset()
     /* Loop through all envelopes. We try to process as many as we can within this time slice. */
