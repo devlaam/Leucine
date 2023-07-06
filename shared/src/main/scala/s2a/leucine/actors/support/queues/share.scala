@@ -25,7 +25,9 @@ package s2a.leucine.actors
  **/
 
 
-/** Shared base for BurstQueue and DropQueue */
+/**
+ * Shared base for BurstQueue and DropQueue. Note that the implementation
+ * is NOT thread save. This is intentional.  */
 class ShareQueue[M] :
 
   /** The queue that holds all incoming messages */

@@ -166,3 +166,50 @@ object DropQueueTest extends TestSuite :
             queue.dequeue ==> List(4)
             queue.dequeue ==> List(6)
             queue.dequeue ==> Nil } } } } }
+
+
+object StackQueueTest extends TestSuite :
+
+  val tests = Tests {
+    val queue = StackQueue[Int](9)
+    def check(size: Int, sum: Int, max: Int): Unit =
+      queue.size ==> size
+      queue.max  ==> max
+      queue.sum  ==> sum
+      queue.isEmpty ==> (size==0)
+    test("Empty StackQueue "){
+      check(0,0,0)
+      queue.head ==> 9 }
+    test("StackQueue with 6 elements"){
+      queue.enqueue(1)
+      queue.enqueue(2)
+      queue.enqueue(3)
+      queue.enqueue(4)
+      queue.enqueue(5)
+      check(5,5,5)
+      test("all popped "){
+        queue.head ==> 5
+        queue.pop(1)
+        queue.head ==> 4
+        queue.pop(2)
+        queue.head ==> 2
+        queue.pop(4)
+        queue.head ==> 9
+        check(0,5,5) }
+      // test("all dequeued with tail"){
+      //   queue.dequeue(List(4,5,6)) ==> List(1,2,3,4,5,6)
+      //   check(0,3,3) }
+      // test("elements cleared"){
+      //   queue.clear()
+      //   check(0,3,3)
+      //   test("and refilled"){
+      //     queue.enqueue(4)
+      //     queue.enqueue(5)
+      //     check(2,5,3)
+      //     test("and reset"){
+      //       queue.reset()
+      //       check(2,0,2) }
+      //     test("all dequeued again"){
+      //       queue.dequeue() ==> List(4,5)
+      //       check(0,5,3) } } }
+} }

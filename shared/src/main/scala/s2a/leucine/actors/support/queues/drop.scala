@@ -38,7 +38,7 @@ class DropQueue[M] extends ShareQueue[M] :
    * (because we only dequeue when we know that the queue is not empty and
    *  we test very often. The queue is more often emptied than filled.
    * The result will be an empty list or one element in a list.  */
-  /** Remove one element from the queue (in any) and put that in a list. */
+  /** Remove one element from the queue (if any) and put that in a list. */
   def dequeue: List[M] =
     var result: List[M] = Nil
     /* So we handle the most occurring situation first */

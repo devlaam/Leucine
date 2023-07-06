@@ -32,7 +32,7 @@ package s2a.leucine.actors
  * structure we use, there will at least be once an O(n) operation involved. In case there
  * are not a lot of messages List wins from the other collections because of the low
  * overhead setup.*/
-class BurstQueue[M] extends ShareQueue[M]:
+class BurstQueue[M] extends ShareQueue[M] :
 
   /**
    * Get all the messages in posted order, clear queue. Since the list must be reversed
