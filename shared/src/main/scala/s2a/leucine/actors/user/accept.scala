@@ -83,11 +83,7 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomAid mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  protected def except(letter: Letter, sender: Sender, cause: Exception, size: Int): Unit =
-    /* This counts as a failed message, if this exception is not handled. */
-    synchronized { failed += 1 }
-    /* If this exception is not handled, the letter is registered as unreadable. */
-    ActorGuard.fail(Actor.Post(Actor.Mail.Unreadable,path,letter,sender))
+  protected def except(letter: Letter, sender: Sender, cause: Exception, size: Int): Unit = defaultExcept(letter,sender)
 
   /**
    * The user may, as a precaution, end each match statement of the letter/sender type with an

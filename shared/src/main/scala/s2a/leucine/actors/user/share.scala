@@ -32,6 +32,15 @@ transparent private trait ActorShare(prename: String) extends BareActor :
   /* Delivers the stopped() callback to the user. */
   private[actors] def deliverStopped(cause: Actor.Stop, complete: Boolean): Unit = stopped(cause,complete)
 
+
+  /* Provides the default implementation for handling an exception. */
+  private[actors] def defaultExcept[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Unit =
+    /* This counts as a failed message, if this exception is not handled. */
+    synchronized { failed += 1 }
+    /* If this exception is not handled, the letter is registered as unreadable. */
+    ActorGuard.fail(Actor.Post(Actor.Mail.Unreadable,path,letter,sender))
+
+
   /**
    * Called after actor construction and guaranteed before the first message is processed. Use this to
    * perform work to initialize the actor. Apart from a few instructions, work should not be done in
