@@ -41,6 +41,6 @@ trait ProtectAidTest(using ac: ActorContext) :
       test("accepted >= 4")             - { deferred.compare(_.find(_.contains("accepted")).map(s => Auxiliary.splitAt(s,'=')._2).getOrElse("").toInt >= 4 ==> true) } } }
 
 
-object ProtectAidTestSystem extends TestSuite, ProtectAidTest(using ActorContext.system), Stateless
+object ProtectAidTestSystem extends TestSuite, ProtectAidTest(using ActorContext.system)
 
-object ProtectAidTestEmulationNJS extends TestSuite, ProtectAidTest(using Helpers.emulatedContext), Stateless
+object ProtectAidTestEmulationNJS extends TestSuite, ProtectAidTest(using Helpers.emulatedContext)
