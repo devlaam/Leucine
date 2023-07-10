@@ -23,7 +23,7 @@ trait ProcessAidTest(using ac: ActorContext) :
     protected def tick[Sender <: Accept]: PartialFunction[(Letter[Sender],Sender),Receive] =
       case (Ticker.Count(n),_) =>
         writeln(s"$n")
-          this ! Ticker.Count(n+1)
+        this ! Ticker.Count(n+1)
         if      n<4  then switch(new Process.Push    { def apply[Sender <: Accept] = tock })
         else if n==4 then switch(new Process.Replace { def apply[Sender <: Accept] = tock })
         else              switch(new Process.Pop() )
