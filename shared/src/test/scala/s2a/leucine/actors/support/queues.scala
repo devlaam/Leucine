@@ -180,14 +180,14 @@ object StackQueueTest extends TestSuite :
     test("Empty StackQueue "){
       check(0,0,0)
       queue.head ==> 9 }
-    test("StackQueue with 6 elements"){
-      queue.enqueue(1)
-      queue.enqueue(2)
-      queue.enqueue(3)
-      queue.enqueue(4)
-      queue.enqueue(5)
+    test("StackQueue with 6 elements pushed"){
+      queue.push(1)
+      queue.push(2)
+      queue.push(3)
+      queue.push(4)
+      queue.push(5)
       check(5,5,5)
-      test("all popped "){
+      test("pop"){
         queue.head ==> 5
         queue.pop(1)
         queue.head ==> 4
@@ -196,20 +196,21 @@ object StackQueueTest extends TestSuite :
         queue.pop(4)
         queue.head ==> 9
         check(0,5,5) }
-      // test("all dequeued with tail"){
-      //   queue.dequeue(List(4,5,6)) ==> List(1,2,3,4,5,6)
-      //   check(0,3,3) }
-      // test("elements cleared"){
-      //   queue.clear()
-      //   check(0,3,3)
-      //   test("and refilled"){
-      //     queue.enqueue(4)
-      //     queue.enqueue(5)
-      //     check(2,5,3)
-      //     test("and reset"){
-      //       queue.reset()
-      //       check(2,0,2) }
-      //     test("all dequeued again"){
-      //       queue.dequeue() ==> List(4,5)
-      //       check(0,5,3) } } }
-} }
+      test("patch"){
+        queue.head ==> 5
+        queue.patch(6)
+        queue.head ==> 6
+        queue.patch(7)
+        queue.head ==> 7
+        queue.pop(1)
+        queue.head ==> 4
+        check(4,5,5) }
+      test("preserve"){
+        queue.head ==> 5
+        queue.preserve(5)
+        queue.head ==> 5
+        queue.preserve(2)
+        queue.head ==> 2
+        queue.preserve(0)
+        queue.head ==> 9
+        check(0,5,5) } } }

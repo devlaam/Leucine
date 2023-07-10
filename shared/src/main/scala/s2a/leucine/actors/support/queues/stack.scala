@@ -39,7 +39,7 @@ class StackQueue[M](init: M) extends ShareQueue[M] :
   def head: M = if isEmpty then init else queueIn.head
 
   /** Put one element on top. */
-  // TODO: rename enqueue as push, dequeue as pull ?
+  // TODO: rename enqueue as push, dequeue as pull (and clear as purge)?
   def push(element: M) = enqueue(element)
 
   /**
