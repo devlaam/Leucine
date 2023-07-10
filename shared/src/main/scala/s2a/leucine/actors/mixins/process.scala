@@ -41,9 +41,8 @@ trait ProcessAid extends ActorInit, ActorDefs :
     val init = new Process { def apply[Sender >: Common <: Accept] = process }
     StackQueue(init)
 
-
+  /** Captures the viable unmatched handler and uses it in case a letter is not read. */
   protected def unmatched[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Receive
-
 
   /* The receive method is overridden here and may not be implemented by the user any more. */
   final protected def receive[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Receive =
@@ -79,14 +78,14 @@ trait ProcessAid extends ActorInit, ActorDefs :
      * Action to replace the current process by a new one. If this is the first 'new' process
      * calling this is equivalent to a Process.Push, if not, the last process is remove.
      * Define the new process as an apply method (precise signature depends on actor type):
-     *   switch(new Process.Replace { def apply[Sender >: Common <: Accept] = myProcess1 } )
+     *   switch(new Process.Replace { def apply[Sender <: Accept] = myProcess1 } )
      * where myProcess1 is the partial function containing an alternative treatment of all
      * letters. */
     abstract class Replace extends Process, Action
     /**
      * Action to add a new process on top of the current process. Define the new process
      * as an apply method (precise signature depends on actor type):
-     *   switch(new Process.Push { def apply[Sender >: Common <: Accept] = myProcess2 } )
+     *   switch(new Process.Push { def apply[Sender <: Accept] = myProcess2 } )
      * where myProcess2 is the partial function containing an alternative treatment of all
      * letters. */
     abstract class Push extends Process, Action
