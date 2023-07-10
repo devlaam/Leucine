@@ -26,19 +26,32 @@ package s2a.leucine.actors
 
 transparent private trait ActorShare(prename: String) extends BareActor :
 
-  /* Delivers the started() callback to the user. */
+  /** Delivers the started() callback to the user. */
   private[actors] final def deliverStarted(): Unit = started()
 
   /* Delivers the stopped() callback to the user. */
   private[actors] def deliverStopped(cause: Actor.Stop, complete: Boolean): Unit = stopped(cause,complete)
 
 
-  /* Provides the default implementation for handling an exception. */
+  /** Provides the default implementation for handling an exception. */
   private[actors] def defaultExcept[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Unit =
     /* This counts as a failed message, if this exception is not handled. */
     synchronized { failed += 1 }
     /* If this exception is not handled, the letter is registered as unreadable. */
     ActorGuard.fail(Actor.Post(Actor.Mail.Unreadable,path,letter,sender))
+
+
+  /** Provides the default implementation for handling an unmatched letter. */
+  private[actors] def defaultUnmatched[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Receive =
+    /* This counts as a failed message */
+    synchronized { failed += 1 }
+    /* Report the message as failed */
+    ActorGuard.fail(Actor.Post(Actor.Mail.Unmatched,path,letter,sender))
+    /* Depending on the Stateless/Stateful we must return an other type. Per default the state is left as is.
+     * TODO: Can this also be solved compile time? In an elegant manner? */
+    initialState match
+      case x: Actor.State.Default.type => ().asInstanceOf[Receive]
+      case x: Actor.State              => ((s: State) => s).asInstanceOf[Receive]
 
 
   /**
