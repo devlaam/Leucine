@@ -86,8 +86,9 @@ The functionality of actors can be extended with mixins. There are:
 * `Family` mixins, so you can set up a tree of actors that are accessible through their parents. There can be multiple family root's. An actor family has a
 deterministic buildup and tear down sequence.
 * `Stash` mixin, so you can put away a letter for handling later.
-* `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place
+* `Timing` mixin, needed to send letters with a delay, and the possibility to asynchronously wait for an event to take place.
 * `Protect` mixin, to create back pressure when the mailbox reaches some threshold.
+* `Process` mixin, to process the letter/sender combination in stackable partial functions.
 * `Monitor` mixin and related class, which probes your actor at intervals, and generates an overview of the workings of the whole system. It enables you to see: the time spend in each actor, number of children or worker actors, the messages being send around etc.
 
 ## Status
