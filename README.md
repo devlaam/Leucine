@@ -181,7 +181,10 @@ whereas the java version needed around 48ms!
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment. But Leucine will not try to
 copy all of Akka or follow its conventions. Changes in the design may still happen, at least until release 1.0 is reached.
-The features I need myself are incorporated by now, so the coming months are devoted to testing and minor syntax changes.
-Feature requests are welcome if motivated, and of course, bug reports. Please do not send a PR without consultation.
+The features I need myself are incorporated by now and i successfully migrated a proprietary project of ~8600 lines of
+code from AkkaJS to Leucine. So this project might actually be of some use. From now on, i will focus on bug squashing
+(if needed), code improvement and incidental adding of features. So activity on this project may decrease because i
+do not want to fix what is not broken. Feature requests are welcome if motivated, and of course, bug reports. Please
+do not send a PR without consultation.
 
 

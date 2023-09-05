@@ -108,7 +108,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
       Logger.info("Listener Termination Request")
       /* Cancel the expectation for a new connection.
        * BTW, this is automatic in stopDirect, for illustration only. */
-      dump(expectationAnchor)
+      clearTiming(expectationAnchor)
       /* Stop the actor. */
       stop(Actor.Stop.Direct)
 

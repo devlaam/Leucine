@@ -111,7 +111,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * Returns if the post was accepted. */
   protected def post[Sender >: This <: Accept](letter: MyLetter[Sender], delay: FiniteDuration, anchor: Object = this): Boolean = synchronized {
     /* First remove a post that may be out there. */
-    dump(anchor)
+    clearTiming(anchor)
     /* If we are not active, we may not accept this post. Otherwise ... */
     if !activity.active then false else
       /* ... schedule a new timer and add it to the anchors map. */
@@ -119,9 +119,9 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
       true }
 
   /**
-   * Stop a scheduled letter, after dump() it is guaranteed that no letters will arrive on this
+   * Stop a scheduled letter, after clearTiming() it is guaranteed that no letters will arrive on this
    * anchor, even if the timer has already expired during execution of this letter. */
-  protected def dump(anchor: Object = this): Unit = synchronized {
+  protected def clearTiming(anchor: Object = this): Unit = synchronized {
     /* We are going to cancel the timer and remove the event. This must be synchronized
      * with the execution of the callable when the timer expires. So that we are sure that the timer
      * is or cancelled of has expired and put its event on the events queue. Thus, call
@@ -130,7 +130,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
     anchors.remove(anchor).map(_.cancel()).getOrElse(events.remove(_.anchor == anchor)) }
 
   /** Stop all timers and make sure no delayed letters arrive any more */
-  protected def dumpAll(): Unit = eventsCancel()
+  protected def clearAllTiming(): Unit = eventsCancel()
 
   /**
    * Send a letter to yourself the moment an event takes place. When this happens the function
@@ -143,7 +143,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * this anchor is cleared as well, if present. Returns if the expectation was accepted. */
   protected def expect[Sender >: This <: Accept](fulfill: => Option[MyLetter[Sender]], anchor: Object = this): Boolean = synchronized {
     /* First remove prior anchor use. */
-    dump(anchor)
+    clearTiming(anchor)
     /* If we are not active, we may not accept this expectation. Otherwise ... */
     if !activity.active then false else
     /* ... schedule a new expectation and add it to the anchors map. */

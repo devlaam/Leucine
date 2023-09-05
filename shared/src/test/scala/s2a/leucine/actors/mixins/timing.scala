@@ -25,10 +25,10 @@ trait TimingAidTest(using ac: ActorContext) :
       case  Clock.Done               => stop(Actor.Stop.Finish)
       case  Clock.Stop =>
         writeln(s"stop")
-        dumpAll()
+        clearAllTiming()
         post(Clock.Done,30.millis)
       case  Clock.Twice(value) =>
-        if withDump then dump(anchor)
+        if withDump then clearTiming(anchor)
         anchor = new Object
         post(Clock.Result(value),9.millis, new Object)
         post(Clock.Twice(value + 2),13.millis, new Object)
