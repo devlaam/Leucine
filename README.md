@@ -106,7 +106,7 @@ libraryDependencies += "com.sense2act" %% "leucine" % "<latest-version>"
 The directory [s2a/leucine/demo](https://github.com/devlaam/Leucine/tree/develop/shared/src/main/scala/s2a/leucine/demo) contains some examples how to use the actors.
 There are four demo's:
 * Ticker: Runs a stateful actor through some ticks, and at the same time uses Logger actor as an example as well
-* Server: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
+* Clock: Opens the raw TCP `localhost:8180` port for parallel connections and serves the time for 60 seconds.
 * Crawler: Spawns some actors in a hierarchical fashion and sends messages up and down the pyramid.
 * ChatGRT: Runs a chat bot that produces random output after you have signed up for an account.
 
