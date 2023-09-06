@@ -40,7 +40,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid :
    * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
    * so it also blocks the actor. On JS it works with a callback. Normally you should not program it this way,
    * but since we are here at the start of the demo, it does not hurt. */
-  CLI.talk("Please state the demo you want to run (ticker, server, crawler or chatgrt): ", selfie(Console.Demo(_)))
+  CLI.talk("Please state the demo you want to run (ticker, clock, crawler or chatgrt): ", selfie(Console.Demo(_)))
 
   override protected def stopped(cause: Actor.Stop, complete: Boolean) =
     /* CIS must be closed, otherwise the application cannot terminate. */
