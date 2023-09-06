@@ -40,7 +40,7 @@ private trait MonitorDefs  extends BareDefs:
   private[actors] def monitorLoad(): Double = 0
 
 /** Extend your actor with this mixin to put it under monitoring */
-trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor)(using context: ActorContext) extends ProbableActor, ActorInit, ActorDefs :
+trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends ProbableActor, ActorInit, ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Tracing}
 

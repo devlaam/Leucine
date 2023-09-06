@@ -34,7 +34,7 @@ private trait ProtectDefs :
 
 
 /** Mixin which guards the level of the mailbox and generates events when it gets to full. */
-trait ProtectAid(using context: ActorContext) extends ActorInit, ActorDefs :
+trait ProtectAid extends ActorInit, ActorDefs :
   import ProtectAid.Alarm
 
   /* This variable makes sure the alarm calls are never repeated.
