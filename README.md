@@ -120,12 +120,12 @@ Therefore these are best tested from the command line. We discuss the three diff
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJVM/assembly
-[info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
+[info] welcome to sbt 1.9.4 (AdoptOpenJDK Java 11.0.10)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Java to run):
 ```
-leucine $ java -jar jvm/target/scala-3.2.1/main.jar
+leucine $ java -jar jvm/target/scala-3.3.0/main.jar
 Started Actor examples on the JVM platform.
 Please state the demo you want to run (ticker, clock, crawler or chatgrt):
 ```
@@ -137,12 +137,12 @@ you can also `ticker debug` or `crawler debug`. The other demo's do not allow fo
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJS/fullLinkJS
-[info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
+[info] welcome to sbt 1.9.4 (AdoptOpenJDK Java 11.0.10)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Node JS to run):
 ```
-leucine $ node js/target/scala-3.2.1/leucine-opt/main.js
+leucine $ node js/target/scala-3.3.0/leucine-opt/main.js
 Started Actor examples on the JS platform.
 Please state the demo you want to run (ticker, clock, crawler or chatgrt):
 ```
@@ -156,12 +156,12 @@ working in parallel.
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineNative/nativeLink
-[info] welcome to sbt 1.8.2 (AdoptOpenJDK Java 11.0.10)
+[info] welcome to sbt 1.9.4 (AdoptOpenJDK Java 11.0.10)
 [info] ...
 ```
 Now you should be able to run the demo's (runs directly):
 ```
-leucine $ native/target/scala-3.2.1/leucine-out
+leucine $ native/target/scala-3.3.0/leucine-out
 Started Actor examples on the Native platform.
 Please state the demo you want to run (ticker, clock, crawler or chatgrt):
 ```
