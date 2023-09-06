@@ -29,7 +29,6 @@ import java.util.concurrent.Callable
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
 
 
 /**

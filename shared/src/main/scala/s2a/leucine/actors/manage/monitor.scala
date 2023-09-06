@@ -26,8 +26,7 @@ package s2a.leucine.actors
 
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import scala.collection.immutable.{Map, SortedMap, SortedSet}
+import scala.collection.immutable.{SortedMap, SortedSet}
 
 
 /** Basic interface for each ActorMonitor. */

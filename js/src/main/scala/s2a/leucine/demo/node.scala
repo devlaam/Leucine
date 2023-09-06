@@ -25,8 +25,6 @@ package s2a.leucine.demo
  **/
 
 
-import scala.concurrent.{Future, Promise}
-import scala.util.Try
 import scala.scalajs.js
 
 

@@ -25,7 +25,6 @@ package s2a.leucine.demo
  **/
 
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 

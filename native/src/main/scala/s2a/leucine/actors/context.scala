@@ -24,10 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import java.util.concurrent.Callable
 import scala.concurrent.duration.{Duration, FiniteDuration}
-import scala.collection.immutable.{Queue,SortedMap}
-
 
 /* Unfortunately the current native implementation does not have threadpools or timers. We only have a
  * global execution context and a Thread.Sleep. So we have to implement a loop ourselves for the moment.

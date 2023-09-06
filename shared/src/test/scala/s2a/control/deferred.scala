@@ -1,6 +1,6 @@
 package s2a.control
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import scala.util.Try

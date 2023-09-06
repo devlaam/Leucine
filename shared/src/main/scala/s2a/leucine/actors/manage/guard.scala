@@ -24,7 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
@@ -70,7 +69,7 @@ object ActorGuard :
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
   private def allTerminated: Boolean =
-    import Actor.Activity.*, Actor.Stop.*
+    import Actor.Activity.*
     /* Use a var to collect all actors that are running that may be stopped. */
     var haltables: List[Actor] = Nil
     /* Test this actor on its activity, return true when is has already stopped or may be stopped. */

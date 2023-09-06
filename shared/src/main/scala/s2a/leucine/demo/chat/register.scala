@@ -24,11 +24,6 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.util.Date
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import scala.util.Random
-import scala.io.StdIn
 import s2a.leucine.actors.*
 
 

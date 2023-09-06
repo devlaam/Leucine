@@ -12,14 +12,14 @@ val stable  = "3.3.0"
 /* Set to 1 for publishing to exclude the demo/test files. */
 val publishMe: Int = 0
 
-ThisBuild / version       :=  "0.6.0"
+ThisBuild / version       :=  "0.6.1"
 ThisBuild / scalaVersion  :=  stable
 
 val sharedSettings = Seq(
   name                    :=  "leucine",
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
-  scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain"),
+  scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all"),
   libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.8.1" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
   Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },

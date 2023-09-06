@@ -27,7 +27,7 @@ package s2a.leucine.actors
 
 import scala.annotation.targetName
 import scala.concurrent.duration.FiniteDuration
-import scala.collection.immutable.{Map, SortedMap, SortedSet}
+import scala.collection.immutable.{SortedMap, SortedSet}
 
 
 /**

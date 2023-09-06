@@ -1,9 +1,7 @@
 package s2a.leucine.actors
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.Try
+import scala.concurrent.{ExecutionContext, Future}
 import utest.*
 
 import s2a.control.Deferred
@@ -11,7 +9,6 @@ import s2a.control.Deferred
 /* SBT does not seems able to catch futures on my execution context, which is kind of reasonable.
  * So these tests are only performed on JVM and JS. (NN = Non Native) */
 object ActorContextTestNN extends TestSuite :
-  import PlatformContext.Platform
 
   implicit val ac: ActorContext = ActorContext.system
   val stdEx = ExecutionContext.Implicits.global

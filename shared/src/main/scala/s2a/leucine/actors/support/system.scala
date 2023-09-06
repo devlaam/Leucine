@@ -24,9 +24,9 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
+
 
 /** Constant value you can use as actor name to define the actor a worker. */
 final val !# = DefaultSystem.workerPrefix * 3

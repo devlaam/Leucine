@@ -1,16 +1,12 @@
 package s2a.leucine.actors
 
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
 import utest.*
 
-import s2a.control.{Buffer, Deferred, Helpers}
-import s2a.leucine.actors.PlatformContext.Platform
+import s2a.control.{Buffer, Deferred}
 
 trait ProcessAidRestrictTest(using ac: ActorContext) :
 
   class Ticker(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Ticker), RestrictProcess :
-    import Actor.Post
 
     protected def process[Sender <: Accept]: Process[Sender] =
       case (Ticker.Start,_)    =>
@@ -56,7 +52,6 @@ trait ProcessAidRestrictTest(using ac: ActorContext) :
 trait ProcessAidSelectTest(using ac: ActorContext) :
 
   class Ticker(val writeln: String => Unit, val done: () => Unit) extends SelectActor(Ticker), SelectProcess :
-    import Actor.Post
 
     protected def process: Process =
       case (Ticker.Start,_)    =>
@@ -102,7 +97,6 @@ trait ProcessAidSelectTest(using ac: ActorContext) :
 trait ProcessAidAcceptTest(using ac: ActorContext) :
 
   class Ticker(val writeln: String => Unit, val done: () => Unit) extends AcceptActor(Ticker), AcceptProcess :
-    import Actor.Post
 
     protected def process: Process =
       case (Ticker.Start,_)    =>
@@ -148,7 +142,6 @@ trait ProcessAidAcceptTest(using ac: ActorContext) :
 trait ProcessAidWideTest(using ac: ActorContext) :
 
   class Ticker(val writeln: String => Unit, val done: () => Unit) extends WideActor(Ticker), WideProcess :
-    import Actor.Post
 
     protected def process: Process =
       case (Ticker.Start,_)    =>

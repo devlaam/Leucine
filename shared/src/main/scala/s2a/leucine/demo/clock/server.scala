@@ -25,11 +25,6 @@ package s2a.leucine.demo
  **/
 
 
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import s2a.leucine.actors.*
-
-
 /* Sockets are not identical over all platforms. Therefore we make a minimal abstraction for a
  * local server and client socket connection. For illustration purposes only. This is NOT the
  * best way to do it, but it is short and clear. */

@@ -24,10 +24,8 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
-import s2a.leucine.actors.Actor.Anonymous
 
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.

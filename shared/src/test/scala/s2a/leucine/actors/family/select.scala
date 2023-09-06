@@ -1,14 +1,9 @@
 package s2a.leucine.actors
 
 
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import scala.annotation.nowarn
 import utest.*
 
-import s2a.control.{Buffer, Deferred}
 import s2a.leucine.actors.Actor.Anonymous
-import s2a.control.Helpers.*
 
 
 object SiblingSelectSupply extends TestSuite, SiblingCommon :

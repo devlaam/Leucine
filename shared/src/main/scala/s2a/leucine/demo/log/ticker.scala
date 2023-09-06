@@ -24,7 +24,6 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{SortedMap, SortedSet}
 import s2a.leucine.actors.*
@@ -35,7 +34,7 @@ import s2a.leucine.actors.*
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
 class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)) :
   import Actor.Post
-  import MonitorAid.{Action, Sample, Trace, Tracing}
+  import MonitorAid.{Sample, Trace, Tracing}
 
   /* We allow full tracing for this actor. */
   final override def tracing = Tracing.Enabled

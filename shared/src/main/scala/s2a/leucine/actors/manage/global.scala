@@ -24,10 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import java.util.concurrent.Callable
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
-import scala.collection.immutable.{Map, SortedMap, SortedSet}
+import scala.collection.immutable.{SortedMap, SortedSet}
 
 
 /** Extend and Instantiate this class to get a custom made monitor */

@@ -24,7 +24,6 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 
@@ -36,7 +35,6 @@ import s2a.leucine.actors.*
 given actorContext: ActorContext = ActorContext.system
 
 object Init extends LogInfo:
-  import PlatformContext.Platform
 
   /* When you arrive here, you can be certain all actors are done */
   def complete(): Unit = println("Demo complete")

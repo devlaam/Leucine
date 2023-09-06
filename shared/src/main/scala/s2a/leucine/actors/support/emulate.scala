@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 import java.util.concurrent.Callable
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.collection.immutable.{Queue,SortedMap}
 
 

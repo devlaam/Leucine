@@ -1,7 +1,6 @@
 package s2a.leucine.actors
 
-import scala.concurrent.{Future, Promise}
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.Promise
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 import utest.*

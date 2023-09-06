@@ -1,12 +1,9 @@
 package s2a.leucine.actors
 
 
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.DurationInt
 import utest.*
 
 import s2a.control.{Buffer, Deferred, Helpers}
-import s2a.leucine.actors.PlatformContext.Platform
 
 trait StashAidTest(using ac: ActorContext) :
 
