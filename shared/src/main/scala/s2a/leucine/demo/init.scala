@@ -46,7 +46,7 @@ object Init extends LogInfo:
     /* Define a handler for unhandled messages */
     ActorGuard.failed(post => println(s"FAILED MESSAGE: ${post.full}"))
     /* Open the console as an actor to get commands from the user. */
-    val console = new Console
+    new Console
     /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
      * but not on JS. There blocking is not possible and this call returns immediately. Normally
      * you do not call watch on JS, for this does have not much added value. Except if you use

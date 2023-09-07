@@ -99,7 +99,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
     case Listener.Connect(socket) =>
       Logger.info("Accepted a connection.")
       /* We see the providers as workers and generate automatic names for them. */
-      val provider = new Provider(socket,this)
+      new Provider(socket,this)
       /* Be ready for a new connection. */
       if !useCallback then expect(connect,expectationAnchor)
     /* The request has come to close stop this server. */

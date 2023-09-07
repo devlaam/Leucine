@@ -72,9 +72,6 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
   /** Integrate the traces gathered from the specific actor. */
   private[actors] def setTraces(gathered: List[Trace]): Unit = traces = gathered.foldLeft(traces)(traceAdd)
 
-  /** Variable holding the cancel object for probing the actor. */
-  private var cancelProbe = Cancellable.empty
-
   /** Clear pieces of the collected data based on the given purge flags. */
   private def clearData(purges: Set[Purge]): Unit =
     /* Removal of Traces and Posts are orthogonal, so remove them independently */
