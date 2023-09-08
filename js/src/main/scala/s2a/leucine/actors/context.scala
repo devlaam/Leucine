@@ -65,10 +65,10 @@ abstract class ContextImplementation extends PlatformContext :
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
-  * digestible process. As longs as there is no result yet, the attempt should produce None */
+   * digestible process. As long as there is no result yet, the attempt should produce None */
   def await[M](digestible: Digestible[M], attempt: => Option[M]): Cancellable =
     if active
-    then new ContextImplementation.Awaitable(attempt.map(digestible.digest).isDefined,idleThreadPause)
+    then ContextImplementation.Awaitable(attempt.map(digestible.digest).isDefined,idleThreadPause)
     else Cancellable.empty
 
   /**
@@ -104,7 +104,7 @@ object ContextImplementation :
    * each attempt should be in ms. The attempt itself should not block. */
   private class Awaitable(doAttempt: => Boolean, delay: FiniteDuration) extends Cancellable :
     private var continue = true
-    private def schedule(c: Callable[Unit]): SetTimeoutHandle = timers.setTimeout(delay)(callable.call())
+    private def schedule(callable: Callable[Unit]): SetTimeoutHandle = timers.setTimeout(delay)(callable.call())
     private var th: SetTimeoutHandle = schedule(callable)
     private def callable: Callable[Unit] = new Callable[Unit] :
       def call() = if continue && !doAttempt then th = schedule(this)
