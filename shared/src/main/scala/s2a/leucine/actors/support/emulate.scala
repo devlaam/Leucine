@@ -146,10 +146,12 @@ abstract class ContextEmulation extends PlatformContext :
     loop()
 
   /** Wait loop which waits until the main loop is finished. */
-  private def waitLoop(interval: Long): Unit =
+  private def waitLoop(interval: FiniteDuration): Unit =
+    /* We should often probe if the main loop has finished but not to often. */
+    val pause = (interval / 10) max idleThreadPause
     /* Inner wait loop */
     def loop(): Unit =
-      while synchronized(continue) do ContextImplementation.sleep(loop(),idleThreadPause)
+      while synchronized(continue) do ContextImplementation.sleep(loop(),pause)
     /* Now start the wait */
     loop()
 
@@ -232,5 +234,5 @@ abstract class ContextEmulation extends PlatformContext :
     /* Method to periodically call to see if we may continue, and how. */
     def hook(): Unit = { if shutdownRequest then shutdown(force) }
     /* Start the main loop for execution. If we come here first, we may enter the mainLoop, if the main loop was
-     * already initiated we must wait. */
-    if initiated then waitLoop(time.toNanos) else mainLoop(hook,complete,time.toNanos)
+     * already initiated we must wait, and periodically test if the mainLoop is complete */
+    if initiated then waitLoop(time) else mainLoop(hook,complete,time.toNanos)
