@@ -18,7 +18,7 @@ trait SiblingCommon :
   given ac: ActorContext = ActorContext.system
 
   def start(): Unit
-  var writeln: String => Unit  = (s: String) => ()
+  var writeln: String => Unit  = (_: String) => ()
   var done: Option[() => Unit] = None
 
   val result = Set("s3-SH-m1","s2-SH-m1","s1-SH-m2","s1-SH-m1","s2-SH-m3","s2-SH-m2","s3-SH-m2","d1-DH-m1","d2-DH-m1","d3-DH-m1","d3-DH-m2","d1-DH-m2",
