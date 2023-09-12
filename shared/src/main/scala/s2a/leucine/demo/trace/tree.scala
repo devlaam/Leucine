@@ -80,7 +80,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
       val relayed = relayAll(Tree.Forward,this)
       /* In case there were no children to accept the message, we are at the
        * end of the structure and start the traversal backwards. */
-      if relayed == 0 then parent.map(_ ! Tree.Backward)
+      if relayed == 0 then parent.foreach(_ ! Tree.Backward)
     /* This message will travel backward through the tree structure. */
     case Tree.Backward =>
       /* Report that we are in the backward traversal. */

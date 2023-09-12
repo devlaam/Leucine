@@ -6,20 +6,20 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  */
 
 val nightly = "3.4.0-RC1-bin-20230901-89e8dba-NIGHTLY"
-val latest  = "3.3.1-RC7"
+val latest  = "3.3.1"
 val stable  = "3.3.0"
 
 /* Set to 1 for publishing to exclude the demo/test files. */
 val publishMe: Int = 0
 
 ThisBuild / version       :=  "0.6.1"
-ThisBuild / scalaVersion  :=  stable
+ThisBuild / scalaVersion  :=  latest
 
 val sharedSettings = Seq(
   name                    :=  "leucine",
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
-  scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all"),
+  scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all","-Wnonunit-statement","-Wvalue-discard"),
   libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.8.1" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
   Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },

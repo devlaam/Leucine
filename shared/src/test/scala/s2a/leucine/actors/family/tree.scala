@@ -34,7 +34,7 @@ trait ActorTreeSupply :
       case Tree.Forward(bounce) =>
         write("=>>")
         val relayed = relayAll(Tree.Forward(bounce),this)
-        if bounce && (relayed == 0) then parent.map(_ ! Tree.Backward)
+        if bounce && (relayed == 0) then parent.foreach(_ ! Tree.Backward)
       case Tree.Backward =>
         write("<<=")
         parent match

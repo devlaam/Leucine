@@ -52,7 +52,7 @@ class ServerSocketImplementation extends ServerSocket:
       /* Create a JS Server Socket with a callback function for the connection */
       jsServer = Some(Node.Net.createServer(connect))
       /* Make sure it listens on the specified port on the localhost. */
-      jsServer.map(_.listen(port,"127.0.0.1"))
+      jsServer.foreach(_.listen(port,"127.0.0.1"))
     catch
       case e: Exception => _error = e.getMessage
 
@@ -77,7 +77,7 @@ class ServerSocketImplementation extends ServerSocket:
     result
 
   /** Close the this socket and, if present, the last client connection. */
-  def close(): Unit = jsServer.map(_.close())
+  def close(): Unit = jsServer.foreach(_.close())
 
   /**
    * Contains the last error (usually due to an exception) of the last action. Should

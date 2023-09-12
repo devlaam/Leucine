@@ -49,7 +49,7 @@ class ServerSocketImplementation extends ServerSocket:
       javaServerSocket = Some(new JavaServerSocket(port,10,InetAddress.getLoopbackAddress()))
       /* The Java ServerSocket is blocking, but we do not want that.
        * So we set a timeout to prevent endless waiting. */
-      javaServerSocket.map(_.setSoTimeout(2))
+      javaServerSocket.foreach(_.setSoTimeout(2))
     catch
       case e: Exception => _error = e.getMessage
 
@@ -82,8 +82,8 @@ class ServerSocketImplementation extends ServerSocket:
 
   /** Close the this socket and, if present, the last client connection. */
   def close(): Unit =
-    javaServerSocket.map(_.close())
-    _client.map(_.close())
+    javaServerSocket.foreach(_.close())
+    _client.foreach(_.close())
 
   /**
    * Contains the last error (usually due to an exception) of the last action. Should
