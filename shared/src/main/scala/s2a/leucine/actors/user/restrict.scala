@@ -33,6 +33,7 @@ package s2a.leucine.actors
  * on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */
 abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor, ActorShare(prename) :
+  import Auxiliary.toUnit
 
   type Accept = actorDefine.Accept
   type Common = Nothing
@@ -95,7 +96,7 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
   def send[Sender <: Accept](letter: Letter[Sender], sender: Sender): Boolean = sendEnvelope(pack(letter,sender))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
-  def ![Sender <: Accept](letter: Letter[Sender])(using sender: Sender): Unit = sendEnvelope(pack(letter,sender))
+  def ![Sender <: Accept](letter: Letter[Sender])(using sender: Sender): Unit = sendEnvelope(pack(letter,sender)).toUnit
 
 
 /**

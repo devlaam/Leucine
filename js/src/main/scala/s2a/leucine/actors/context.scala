@@ -87,7 +87,7 @@ abstract class ContextImplementation extends PlatformContext :
   def waitForExit(force: Boolean, time: FiniteDuration)(shutdownRequest: => Boolean, complete: () => Unit): Unit =
     def delay: Callable[Unit] = new Callable[Unit] { def call(): Unit = tryExit(true) }
     def tryExit(check: Boolean) = if !active then complete() else
-      schedule(delay,time)
+      val _ = schedule(delay,time)
       if check && shutdownRequest then shutdown(force)
     tryExit(false)
 
@@ -112,6 +112,6 @@ object ContextImplementation :
 
   /** Real sleeps are not possible on JS, so we cheat with a timer. */
   private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
-    timers.setTimeout(delay)(loop)
+    val _ = timers.setTimeout(delay)(loop)
     false
 

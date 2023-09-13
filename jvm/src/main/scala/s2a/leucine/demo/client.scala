@@ -26,10 +26,12 @@ package s2a.leucine.demo
 
 import java.nio.channels.SocketChannel
 import java.nio.ByteBuffer
+import s2a.leucine.actors.Auxiliary
 
 
 /** JVM platform specific implementation of the ClientSocket */
 class ClientSocketImplementation(socketChannel: SocketChannel) extends ClientSocket :
+  import Auxiliary.toUnit
 
   /** Obtain the port number of the connection on this side. */
   def localPort: Int  = socketChannel.socket().getLocalPort()
@@ -38,7 +40,7 @@ class ClientSocketImplementation(socketChannel: SocketChannel) extends ClientSoc
   def remotePort: Int = socketChannel.socket().getPort()
 
   /** Write (and flush) some text to the socket. */
-  def writeln(text: String): Unit = socketChannel.write(ByteBuffer.wrap(s"$text\n".getBytes()))
+  def writeln(text: String): Unit = socketChannel.write(ByteBuffer.wrap(s"$text\n".getBytes())).toUnit
 
   /**
    * Read some text from the socket (up to the newline).

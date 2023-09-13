@@ -32,8 +32,8 @@ object SiblingRestrictSupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
@@ -104,10 +104,10 @@ object SiblingRestrictRelaySupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
-        relayAll(Mama.FamilyHello,this)
+        val _ = relayAll(Mama.FamilyHello,this)
 
   object Mama extends RestrictDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous | Grandma
@@ -147,6 +147,7 @@ object SiblingRestrictRelaySupply extends TestSuite, SiblingCommon :
 
 object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
   import TestMethods.*
+  import Auxiliary.toUnit
 
   class Grandma(name: String) extends RestrictActor(Grandma,name), FamilyRootRelay(Grandma) :
     new Mama("m1",this)
@@ -154,7 +155,7 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
     new Mama("m3",this)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
-      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender)
+      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
 
   object Grandma extends RestrictDefine, FamilyDefine, Stateless  :
@@ -172,8 +173,8 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
@@ -221,6 +222,7 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
 
 object SiblingRestrictRelayRelayedSupply extends TestSuite, SiblingCommon :
   import TestMethods.*
+  import Auxiliary.toUnit
 
   class Grandma(name: String) extends RestrictActor(Grandma,name), FamilyRootRelay(Grandma) :
     new Mama("m1",this)
@@ -228,7 +230,7 @@ object SiblingRestrictRelayRelayedSupply extends TestSuite, SiblingCommon :
     new Mama("m3",this)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
-      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender)
+      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
   object Grandma extends RestrictDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous
@@ -245,10 +247,10 @@ object SiblingRestrictRelayRelayedSupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
-        relayAll(Mama.FamilyHello,this)
+        val _ = relayAll(Mama.FamilyHello,this)
 
   object Mama extends RestrictDefine, FamilyDefine, Stateless  :
     type Accept = Anonymous | Grandma

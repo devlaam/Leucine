@@ -17,7 +17,7 @@ trait TimingAidTest(using ac: ActorContext) :
 
     var anchor: Object = new Object
 
-    post(Clock.Stop,120.millis,new Object)
+    val _ = post(Clock.Stop,120.millis,new Object)
 
     def receive(letter: Clock.Letter, sender: Sender): Unit = letter match
       case  Clock.Result(value: Int) => writeln(s"$value")
@@ -25,13 +25,13 @@ trait TimingAidTest(using ac: ActorContext) :
       case  Clock.Stop =>
         writeln(s"stop")
         clearAllTiming()
-        post(Clock.Done,30.millis)
+        val _ = post(Clock.Done,30.millis)
       case  Clock.Twice(value) =>
         if withDump then clearTiming(anchor)
         anchor = new Object
-        post(Clock.Result(value),9.millis, new Object)
-        post(Clock.Twice(value + 2),13.millis, new Object)
-        post(Clock.Twice(value + 1),19.millis, anchor)
+        val _ = post(Clock.Result(value),9.millis, new Object)
+        val _ = post(Clock.Twice(value + 2),13.millis, new Object)
+        val _ = post(Clock.Twice(value + 1),19.millis, anchor)
 
   object Clock extends AcceptDefine, Stateless :
     sealed trait Letter extends Actor.Letter[Actor]
@@ -48,7 +48,7 @@ trait TimingAidTest(using ac: ActorContext) :
       done()
 
     def fullfil(msg: String): Option[Expect.Release] = if event then Some(Expect.Release(msg)) else { writeln("x"); None }
-    expect(fullfil("tada!"))
+    val _ = expect(fullfil("tada!"))
 
     def receive(letter: Expect.Letter, sender: Sender): Unit = letter match
       case Expect.Release(msg) =>
@@ -61,6 +61,7 @@ trait TimingAidTest(using ac: ActorContext) :
 
 
   val tests = Tests {
+    import Auxiliary.toUnit
     val buffer = Buffer[String]
     test("clock with multiple timers for dump()"){
       val deferred = Deferred(buffer.readlns)
@@ -82,7 +83,7 @@ trait TimingAidTest(using ac: ActorContext) :
     test("Timing with expectation"){
       val deferred = Deferred(buffer.readlns)
       val promise = Promise[Unit]()
-      ac.delayed(promise.tryComplete(Try(())), 67.millis)
+      val _ = ac.delayed(promise.tryComplete(Try(())).toUnit, 67.millis)
       new Expect(promise.isCompleted,buffer.writeln,deferred.done)
       deferred.await()
       deferred.compare(list =>

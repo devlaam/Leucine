@@ -27,10 +27,12 @@ package s2a.leucine.demo
 import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 
+
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
 private class Console extends AcceptActor(Console,!#), TimingAid :
+  import Auxiliary.toUnit
 
   /* Send a letter to yourself */
   def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message.trim)
@@ -63,10 +65,10 @@ private class Console extends AcceptActor(Console,!#), TimingAid :
     case Console.Demo("clock")         =>  once(new Listener)
     case Console.Demo("crawler")       =>  once(new Tree("F0",false,None))
     case Console.Demo("crawler debug") =>  once(new Tree("F0",true,None))
-    case Console.Demo("chatgrt")       =>  post(Console.Cli,100.millis)
+    case Console.Demo("chatgrt")       =>  post(Console.Cli,100.millis).toUnit
     case Console.Demo(unknown)         =>  stop(s"Unknown demo '$unknown', closing ...")
     case Console.Cmd("exit")           =>  Chatgrt.stop(); stop();
-    case Console.Cmd(command)          =>  Chatgrt.process(command); post(Console.Cli,100.millis)
+    case Console.Cmd(command)          =>  Chatgrt.process(command); post(Console.Cli,100.millis).toUnit
     case Console.Cli                   =>  Chatgrt.request(selfie(Console.Cmd(_)))
 
 

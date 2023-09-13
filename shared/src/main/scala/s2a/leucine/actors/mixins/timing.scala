@@ -67,7 +67,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
      * So we may only proceed if the anchor is still present. */
     def handle() = synchronized { if anchors.contains(event.anchor) then
       events.enqueue(event)
-      anchors.remove(event.anchor)
+      val _ = anchors.remove(event.anchor)
       /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true) }
     new Callable[Unit] { def call(): Unit = handle() }
@@ -79,7 +79,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   private def digestible[Sender >: This <: Accept](anchor: Object): Digestible[MyLetter[Sender]] =
     def handle(letter: MyLetter[Sender]) = synchronized {
       events.enqueue(TimingAid.Event[Accept,This,Sender,MyLetter](anchor,letter))
-      anchors.remove(anchor)
+      val _ = anchors.remove(anchor)
       /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true) }
     new Digestible[MyLetter[Sender]] { def digest(letter: MyLetter[Sender]): Unit = handle(letter) }

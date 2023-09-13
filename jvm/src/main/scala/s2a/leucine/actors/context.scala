@@ -31,6 +31,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 
 /** Context implementation for the JVM */
 abstract class ContextImplementation extends PlatformContext :
+  import Auxiliary.toUnit
 
   /** Contains the threadPool we will be utilizing */
   private lazy val threadPool = ContextImplementation.threadPool(true,threadsPerCore)
@@ -57,7 +58,7 @@ abstract class ContextImplementation extends PlatformContext :
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable =
     if active then
       val scheduledFuture: ScheduledFuture[Unit] = scheduler.schedule[Unit](callable,delay.toMillis,TimeUnit.MILLISECONDS)
-      new Cancellable { def cancel() = scheduledFuture.cancel(false)  }
+      new Cancellable { def cancel() = scheduledFuture.cancel(false).toUnit  }
     else Cancellable.empty
 
   /**
@@ -71,9 +72,9 @@ abstract class ContextImplementation extends PlatformContext :
 
   /**
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
-   * there current thasks. With force=true the current execution is interrupted. In any case, no new tasks
+   * there current tasks. With force=true the current execution is interrupted. In any case, no new tasks
    * will be accepted. */
-  def shutdown(force: Boolean): Unit = if force then executionContext.shutdownNow() else executionContext.shutdown()
+  def shutdown(force: Boolean): Unit = if force then executionContext.shutdownNow().toUnit else executionContext.shutdown()
 
   /** This method makes the thread loop ready for reuse after termination. Not required for this platform. */
   private[s2a] def revive(): Unit =  ()
@@ -92,6 +93,7 @@ abstract class ContextImplementation extends PlatformContext :
 
 
 object ContextImplementation :
+  import Auxiliary.toUnit
 
   /** Returns the platform that is currently running, here the JVM. */
   def platform = PlatformContext.Platform.JVM
@@ -105,7 +107,7 @@ object ContextImplementation :
     private var sf: ScheduledFuture[Unit] = schedule(callable)
     private def callable: Callable[Unit] = new Callable[Unit] :
       def call() = if continue && !doAttempt then sf = schedule(this)
-    def cancel() = { continue = false; sf.cancel(false) }
+    def cancel() = { continue = false; sf.cancel(false).toUnit }
 
   /** Number of processors on this platform . */
   val processorCount = Runtime.getRuntime().availableProcessors()

@@ -29,8 +29,8 @@ object SiblingWideSupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive(letter: Letter, sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
@@ -88,10 +88,10 @@ object SiblingWideRelaySupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive(letter: Letter, sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
-        relayAll(Mama.FamilyHello,this)
+        val _ = relayAll(Mama.FamilyHello,this)
 
   object Mama extends WideDefine, FamilyDefine, Stateless  :
     case object Hello extends Actor.Letter[Actor]
@@ -124,6 +124,7 @@ object SiblingWideRelaySupply extends TestSuite, SiblingCommon :
 
 object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
   import TestMethods.*
+  import Auxiliary.toUnit
 
   class Grandma(name: String) extends WideActor(Grandma,name), FamilyRootRelay(Grandma) :
     new Mama("m1",this)
@@ -131,7 +132,7 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
     new Mama("m3",this)
     def receive(letter: Letter, sender: Sender): Unit = letter match
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
-      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender)
+      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
 
   object Grandma extends WideDefine, FamilyDefine, Stateless  :
@@ -146,8 +147,8 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive(letter: Letter, sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
@@ -185,6 +186,7 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
 
 object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
   import TestMethods.*
+  import Auxiliary.toUnit
 
   class Grandma(name: String) extends WideActor(Grandma,name), FamilyRootRelay(Grandma) :
     new Mama("m1",this)
@@ -192,7 +194,7 @@ object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
     new Mama("m3",this)
     def receive(letter: Letter, sender: Sender): Unit = letter match
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
-      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender)
+      case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
   object Grandma extends WideDefine, FamilyDefine, Stateless  :
     case object Hello extends Actor.Letter[Actor]
@@ -206,10 +208,10 @@ object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
     new Son("s3",this); new Daughter("d3",this)
     def receive(letter: Letter, sender: Sender): Unit = letter match
       case Mama.Hello =>
-        children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
-        children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
+        val _ = children.collect{ case (son : Son)           => son.send(Son.Hello,this) }
+        val _ = children.collect{ case (daughter : Daughter) => daughter.send(Daughter.Hello,this) }
       case Grandma.FamilyHello =>
-        relayAll(Mama.FamilyHello,this)
+        val _ = relayAll(Mama.FamilyHello,this)
 
   object Mama extends WideDefine, FamilyDefine, Stateless  :
     case object Hello extends Actor.Letter[Actor]

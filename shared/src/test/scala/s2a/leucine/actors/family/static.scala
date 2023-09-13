@@ -61,7 +61,7 @@ object ActorFamilySupply extends TestSuite :
     case class Text(msg: String) extends Letter[Accept]
 
   class Outside extends RestrictActor(Outside_,"boo"), TimingAid, Stateless  :
-    post(Outside_.Bell,1.seconds)
+    val _ = post(Outside_.Bell,1.seconds)
     def receive[Sender <: Accept](letter: Outside_.Letter[Sender], sender: Sender) = (letter,sender) match
       case(Outside_.Text(msg), s: Anonymous) => ()
       case(Outside_.Text(msg), s: Outside) => ()
@@ -74,12 +74,12 @@ object ActorFamilySupply extends TestSuite :
     val level1A = Level1A(this)
     val level1B = Level1B(this)
     val level1C = Level1C(this)
-    level1A.send(Level1A_.Test1A,Actor.Anonymous)
-    level1A.send(Level1A_.Test1A,outside)
-    level1A.send(Level1A_.Test1A,this)
-    level1B.send(Level1B_.Test1B,Actor.Anonymous)
-    level1B.send(Level1B_.Test1B,outside)
-    level1C.send(Level1C_.Text("ba"),level1A)
+    val _ = level1A.send(Level1A_.Test1A,Actor.Anonymous)
+    val _ = level1A.send(Level1A_.Test1A,outside)
+    val _ = level1A.send(Level1A_.Test1A,this)
+    val _ = level1B.send(Level1B_.Test1B,Actor.Anonymous)
+    val _ = level1B.send(Level1B_.Test1B,outside)
+    val _ = level1C.send(Level1C_.Text("ba"),level1A)
 
 
     def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = (letter,sender) match
@@ -93,8 +93,8 @@ object ActorFamilySupply extends TestSuite :
 
   class Level1A(protected val parent: Level0) extends RestrictActor(Level1A_,"1a"), FamilyBranchRelayRelayed[Level0,Level1A_.type](Level1A_) :
     val level2A = Level2A(this)
-    level2A.send(Level2A_.Text("hi"),this)
-    level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
+    val _ = level2A.send(Level2A_.Text("hi"),this)
+    val _ = level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
     /* For the moment we just test if an error occurs, but we do not check the content for the error message is not stable. */
     compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.clean(5) ==> "Found"
 
@@ -134,6 +134,6 @@ object ActorFamilySupply extends TestSuite :
 
     val level0 = Level0Ext(outside)
 
-    level0.send(Level0_.Test0,Actor.Anonymous)
-    level0.send(Level0_.Test0,outside)
+    val _ = level0.send(Level0_.Test0,Actor.Anonymous)
+    val _ = level0.send(Level0_.Test0,outside)
  }

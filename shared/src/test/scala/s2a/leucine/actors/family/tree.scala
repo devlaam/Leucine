@@ -10,6 +10,7 @@ import s2a.control.Helpers.*
 
 /* Homogeneous hierarchy */
 trait ActorTreeSupply :
+  import Auxiliary.toUnit
   implicit val ac: ActorContext = ActorContext.system
 
   class Tree(name: String, val parent: Option[Tree], val writeln: String => Unit, val done: Option[() => Unit]) extends RestrictActor(Tree,name), FamilyTree[Tree] :
@@ -30,7 +31,7 @@ trait ActorTreeSupply :
       case Tree.Create(width,level) =>
         if parent.isEmpty then returns = -(width**level)
         (1 to width).foreach(newChild)
-        if (level > 1) then relayAll(Tree.Create(width,level - 1),this)
+        if (level > 1) then relayAll(Tree.Create(width,level - 1),this).toUnit
       case Tree.Forward(bounce) =>
         write("=>>")
         val relayed = relayAll(Tree.Forward(bounce),this)

@@ -37,6 +37,7 @@ import s2a.leucine.actors.*
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
 class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), LogInfo :
+  import Auxiliary.toUnit
 
   /* Time this demo will last. */
   private val runtime = 60.seconds
@@ -48,7 +49,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
   private val expectationAnchor = new Object
 
   /* Make sure this server ends after 60 seconds. It is just for testing. */
-  post(Listener.Terminated,runtime,terminationAnchor)
+  val _ = post(Listener.Terminated,runtime,terminationAnchor)
 
   /* First create the generalized serverSocket. This should not fail. */
   private val serverSocket: ServerSocket = new ServerSocketImplementation
@@ -58,7 +59,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
    * arrives we send a letter to ourselves with the connection enclosed. */
   private val useCallback = serverSocket.onConnect(socket =>
     Logger.debug("Callback called.")
-    send(Listener.Connect(socket),Actor.Anonymous))
+    send(Listener.Connect(socket),Actor.Anonymous).toUnit )
 
   /* See if there anyone knocking on the door. We need this if there is no callback
    * function on the platform available. */
@@ -85,7 +86,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
     /* ... if so report this */
     println("ServerSocket Open on port 8180, try to make a connection.")
     /* ... and wait for the first connection, if needed */
-    if !useCallback then expect(connect,expectationAnchor)
+    if !useCallback then expect(connect,expectationAnchor).toUnit
   else
     /* ... if not report this */
     Logger.warn(s"ServerSocket cannot be opened: ${serverSocket.error}")
@@ -101,7 +102,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
       /* We see the providers as workers and generate automatic names for them. */
       new Provider(socket,this)
       /* Be ready for a new connection. */
-      if !useCallback then expect(connect,expectationAnchor)
+      if !useCallback then expect(connect,expectationAnchor).toUnit
     /* The request has come to close stop this server. */
     case Listener.Terminated =>
       Logger.info("Listener Termination Request")

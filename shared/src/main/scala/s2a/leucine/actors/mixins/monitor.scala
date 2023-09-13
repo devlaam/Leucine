@@ -43,6 +43,7 @@ private trait MonitorDefs  extends BareDefs:
 trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends ProbableActor, ActorInit, ActorDefs :
   this: NameActor =>
   import MonitorAid.{Action, Trace, Tracing}
+  import Auxiliary.toUnit
 
   /* Holds the last value on the call to System.nanoTime */
   private var lastClockTime: Long = 0
@@ -214,7 +215,7 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
     /* Synchronized copying of the accumulator fields, to be sure they are correct and this is quick. */
     val (threadPlayTime,threadPauseTime) = timingGuard.synchronized {
       /* Correct the accumulator fields up to now, but only is the actor has not been stopped yet. */
-      if actorStopMoment == 0 then threadTimeIncrement(false)
+      if actorStopMoment == 0 then threadTimeIncrement(false).toUnit
        /* Make a thread save copy of the two accumulator fields for further calculations. */
       (this.threadPlayTime,this.threadPauseTime) }
     /* Calculate the increase since last time or take the whole value in case we want the all time value. */

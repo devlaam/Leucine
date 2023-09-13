@@ -56,7 +56,7 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
     /* Let the letter be processed */
     val processed = process(loops)
     /* Post a work message for the next process run. */
-    sendEnvelope(work)
+    val _ = sendEnvelope(work)
     /* Increase the loop counter */
     loops = loops + 1
     /* The state remains unchanged, if we work stateless, otherwise compute the new state.
@@ -96,7 +96,7 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
   protected def except(cause: Exception, size: Int): Unit = ()
 
   /* Start the work in this actor. */
-  sendEnvelope(work)
+  val _ = sendEnvelope(work)
 
 
 

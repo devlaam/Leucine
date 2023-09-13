@@ -47,7 +47,7 @@ object Node :
     def question(query: String, callback: js.Function1[String, Unit]): Unit = js.native
     def close(): Unit = js.native
 
-  global.process.stdin.on("close", () => println("stdin closed"))
+  val _ = global.process.stdin.on("close", () => println("stdin closed"))
   private val dynIO    = literal(input = global.process.stdin, output = global.process.stdout, terminal = true, prompt = ">>")
   private val readline = Global.require("readline").asInstanceOf[Readline]
   def createCLI(): Interface = readline.createInterface(dynIO)

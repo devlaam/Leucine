@@ -33,6 +33,8 @@ package s2a.leucine.actors
  * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */
 abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefine: Define, prename: String = "")(using val context: ActorContext) extends BareActor, ActorShare(prename):
+  import Auxiliary.toUnit
+
   /* Very peculiar that you cannot make 'define' fully private, but can make it private[actors]. Does not feel consistent with the
    * accessibility of the type aliases below. */
   type Accept = Actor | this.type
@@ -97,7 +99,7 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
   def send(letter: Letter, sender: Sender = Actor.Anonymous): Boolean = sendEnvelope(pack(letter,sender))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */
-  def ! (letter: Letter)(using sender: Sender = Actor.Anonymous): Unit = sendEnvelope(pack(letter,sender))
+  def ! (letter: Letter)(using sender: Sender = Actor.Anonymous): Unit = sendEnvelope(pack(letter,sender)).toUnit
 
 
 /**

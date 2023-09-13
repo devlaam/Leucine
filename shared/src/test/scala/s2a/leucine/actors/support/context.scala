@@ -21,9 +21,9 @@ object ActorContextTestNN extends TestSuite :
         test("AC Failure Future") - ac.future(throw new Exception("crash")).recover(_.getMessage ==> "crash") }
       test("delays") {
       var d1,d2 = false
-      ac.delayed({d1 = true}, 80.millis)
+      val _ = ac.delayed({d1 = true}, 80.millis)
       val delay = ac.delayed({d2 = true}, 60.millis)
-      ac.delayed({delay.cancel()}, 30.millis)
+      val _ = ac.delayed({delay.cancel()}, 30.millis)
       val deferred = Deferred((d1,d2),0,100.millis)
       test("continued delay") - deferred.compare((x,_) => x ==> true)
       test("cancelled delay") - deferred.compare((_,x) => x ==> false) } }

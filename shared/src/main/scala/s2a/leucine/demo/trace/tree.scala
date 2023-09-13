@@ -31,6 +31,7 @@ import s2a.leucine.actors.*
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
 class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(globalMonitor) :
+  import Auxiliary.toUnit
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) = println(s"$kind $path")
@@ -54,7 +55,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
     this ! Tree.Create(2,3)
     this ! Tree.Forward
     /* Show the internals of the actor after some time */
-    post(Tree.Report,6.seconds)
+    val _ = post(Tree.Report,6.seconds)
     /* Stop this actor tree when nothing is happening any more. */
     stop(Actor.Stop.Silent)
 
@@ -71,7 +72,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
       (1 to width).foreach(newChild)
       /* In case we are not yet on the last level, relay this creation order
        * to the next level. */
-      if (level > 1) then relayAll(Tree.Create(width,level - 1),this)
+      if (level > 1) then relayAll(Tree.Create(width,level - 1),this).toUnit
     /* This message will travel forward through the tree structure. */
     case Tree.Forward =>
       /* Report that we are in the forward traversal. */

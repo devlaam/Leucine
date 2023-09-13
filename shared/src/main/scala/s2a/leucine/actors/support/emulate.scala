@@ -37,6 +37,7 @@ import scala.collection.immutable.{Queue,SortedMap}
 
 /** Context implementation with manual single thread scheduling. */
 abstract class ContextEmulation extends PlatformContext :
+  import Auxiliary.toUnit
 
   /** Variable that determines the continuation of the main loop. */
   private var continue: Boolean = false
@@ -151,7 +152,7 @@ abstract class ContextEmulation extends PlatformContext :
     val pause = (interval / 10) max idleThreadPause
     /* Inner wait loop */
     def loop(): Unit =
-      while synchronized(continue) do ContextImplementation.sleep(loop(),pause)
+      while synchronized(continue) do ContextImplementation.sleep(loop(),pause).toUnit
     /* Now start the wait */
     loop()
 

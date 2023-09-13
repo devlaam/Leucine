@@ -79,6 +79,7 @@ private class Logger extends AcceptActor(Logger,"logger") :
 
 object Logger extends AcceptDefine, Stateless:
   import PlatformContext.Platform
+  import Auxiliary.toUnit
 
   /* This are the levels the logger is able to handle. */
   enum Level extends EnumOrder[Level] :
@@ -127,25 +128,25 @@ object Logger extends AcceptDefine, Stateless:
 
   /** Level to report severe problems. */
   def error(text: => String)(using data: LogData = LogData.empty): Unit =
-    if Level.Error <= level then logger.send(Message(Level.Error,data,text))
+    if Level.Error <= level then logger.send(Message(Level.Error,data,text)).toUnit
 
   /** Level to report problems that require attention. */
   def warn(text: => String)(using data: LogData = LogData.empty): Unit =
-    if  Level.Warning <= level then logger.send(Message(Level.Warning,data,text))
+    if  Level.Warning <= level then logger.send(Message(Level.Warning,data,text)).toUnit
 
   /** Level to just inform want is going down. */
   def info(text: => String)(using data: LogData = LogData.empty): Unit =
-    if Level.Info <= level then logger.send(Message(Level.Info,data,text))
+    if Level.Info <= level then logger.send(Message(Level.Info,data,text)).toUnit
 
   /** Level to report inside information to correct and improve your code. */
   def debug(text: => String)(using data: LogData = LogData.empty): Unit =
-    if Level.Debug <= level then logger.send(Message(Level.Debug,data,text))
+    if Level.Debug <= level then logger.send(Message(Level.Debug,data,text)).toUnit
 
   /** Change the log level */
-  def switch(level: Level): Unit = logger.send(Switch(level))
+  def switch(level: Level): Unit = logger.send(Switch(level)).toUnit
 
   /** Stop the logger */
-  def stop(): Unit = logger.send(Stop)
+  def stop(): Unit = logger.send(Stop).toUnit
 
 
 

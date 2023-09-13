@@ -35,6 +35,10 @@ object Auxiliary :
   object Rename :
     val empty = Rename("",false)
 
+  /** Use this to silence any warnings of discarded values. */
+  extension (any: Any)
+    inline def toUnit = ()
+
   /**
    * Splits the string in two parts at the separator. If the separator is not
    * present the whole string is at the first element of the tuple. The second will
