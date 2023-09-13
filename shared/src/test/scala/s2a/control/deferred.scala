@@ -18,14 +18,13 @@ class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration 
   import PlatformContext.Platform
   ac.revive()
   private val promise = Promise[Result]()
-  private var count = 0
+  private val delay   = ac.delayed(tryCall(), timeout)
+  private var count   = 0
   private var result: Option[Result] = None
   private def tryCall(): Unit =
     val called = Try(call)
     result = called.toOption
     val _ = promise.tryComplete(called)
-  // TODO: Compilerbug: https://github.com/lampepfl/dotty/issues/18548
-  @scala.annotation.nowarn private var delay = ac.delayed(tryCall(), timeout)
   def done(): Unit =
     val copy = synchronized { count = count + 1; count }
     if copy == limit then
