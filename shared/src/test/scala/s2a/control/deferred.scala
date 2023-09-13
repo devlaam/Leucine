@@ -9,6 +9,7 @@ import utest.*
 
 import s2a.leucine.actors.{ActorContext, PlatformContext }
 
+
 /* It is not possible to use eventually to test, for they are not supported on JS/Native.
  * So we must construct something by hand. (This also works for the JVM) */
 
@@ -22,8 +23,9 @@ class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration 
   private def tryCall(): Unit =
     val called = Try(call)
     result = called.toOption
-    promise.tryComplete(called)
-  private var delay = ac.delayed(tryCall(), timeout)
+    val _ = promise.tryComplete(called)
+  // TODO: Compilerbug: https://github.com/lampepfl/dotty/issues/18548
+  @scala.annotation.nowarn private var delay = ac.delayed(tryCall(), timeout)
   def done(): Unit =
     val copy = synchronized { count = count + 1; count }
     if copy == limit then
@@ -33,11 +35,11 @@ class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration 
    * execution context in emulated mode. So we treat them separately with a manual await. */
   def await(poll: FiniteDuration = 50.millis) = if ac.emulated then
     ac.waitForExit(false,poll)(result.nonEmpty, () => ())
-  def compare(expected: Result => Unit) =
+  def compare(expected: Result => Unit): Unit =
     if ac.emulated
     then result.map(expected).getOrElse(assert(false))
     else ac.platform match
-      case Platform.JVM    => promise.future.map(expected)
-      case Platform.JS     => promise.future.map(expected)
+      case Platform.JVM    => promise.future.foreach(expected)
+      case Platform.JS     => promise.future.foreach(expected)
       case Platform.Native => result.map(expected).getOrElse(assert(false))
 
