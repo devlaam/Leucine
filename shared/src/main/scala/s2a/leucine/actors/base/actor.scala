@@ -111,7 +111,7 @@ trait Actor :
 
 object Actor :
   /** Having children defines the parent */
-  type Parent = Actor with FamilyParent
+  type Parent = Actor & FamilyParent
 
   /** This is the base type for all your mail. */
   trait Letter[Sender <: Actor] :
@@ -206,7 +206,7 @@ object Actor :
 
   object Post :
     def apply(receiver: String) = new Post(Mail.Empty,receiver,"","")
-    def apply(mail: Mail, receiver: String, letter: Actor.Letter[_], sender: Actor) = new Post(mail,receiver,letter.toString,sender.path)
+    def apply(mail: Mail, receiver: String, letter: Actor.Letter[?], sender: Actor) = new Post(mail,receiver,letter.toString,sender.path)
 
   /**
    * Use the Anonymous Actor as a sender if you do not have a context or do want to reveal yourself.
