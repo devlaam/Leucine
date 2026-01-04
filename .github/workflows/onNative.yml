@@ -18,5 +18,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install sbt
+      uses: sbt/setup-sbt@v1
     - name: Run tests
       run: sbt leucineNative/test
