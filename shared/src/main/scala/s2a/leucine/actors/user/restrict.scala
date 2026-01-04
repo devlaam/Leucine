@@ -91,8 +91,8 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
 
   /**
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context
-   * of an actor and to self inside an actor. Returns if the letter was accepted for delivery. Note, this
-   * does not mean it also processed. In the mean time the actor may stop. */
+   * of an actor and to self inside an actor. Returns if the letter was accepted for delivery. Note,
+   * this does not mean it also processed. In the mean time the actor may stop. */
   def send[Sender <: Accept](letter: Letter[Sender], sender: Sender): Boolean = sendEnvelope(pack(letter,sender))
 
   /** Send a letter with the 'tell' operator. For compatibility with Akka. */

@@ -38,9 +38,9 @@ trait ProtectAid extends ActorInit, ActorDefs :
   import ProtectAid.Alarm
 
   /* This variable makes sure the alarm calls are never repeated.
-   * Once an alarm is issued (sizeAlarm(true) called) it will not
+   * Once an alarm is issued (protectAlarm(true) called) it will not
    * happen again, unless the mailbox was completely empty at least
-   * once before, which will trigger the call sizeAlarm(false) */
+   * once before, which will trigger the call protectAlarm(false) */
   private var alarm: Alarm = Alarm.Idle
 
   /* Variable counts the total number of alarms issued. */
@@ -89,10 +89,10 @@ trait ProtectAid extends ActorInit, ActorDefs :
   /**
    * Implement an event handler for the situation the mailbox exceeds the limit set in protectLevel,
    * (full = true) and for when mailbox, stash and event queues are all depleted (full = false).
-   * Each call happens only once, and you always receive an call signalling empty queues after a
+   * Each call happens only once, and you always receive a call signalling empty queues after a
    * a call with full=true was made and before the next call with full=true is made. When stop(Finish)
-   * is called the call sizeAlarm(false) will come after the last letter is processed and but before
-   * stopped() is called. When stop(Direct) is called, the sizeAlarm(true/false) may not come at all.
+   * is called the call protectAlarm(false) will come after the last letter is processed and but before
+   * stopped() is called. When stop(Direct) is called, the protectAlarm(true/false) may not come at all.
    * The size parameter reflects the total number of size alarms during the lifetime of the actor
    * up to now, this one included. */
   protected def protectAlarm(full: Boolean, size: Int): Unit

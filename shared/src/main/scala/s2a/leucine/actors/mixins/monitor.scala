@@ -205,12 +205,13 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
         if enable then monitor.probeStart(true) else monitor.probeStop(false)
 
   /**
-   * Calculate the relative time this actor spend performing processing letters. Returns a value between
-   * zero and one. Zero means no time was spend at processing messages and one means 100% of the time was
-   * spend therein. With alltime being true this value reflects the overall performance of the actor, and
-   * with false, the value since the last call to processLoad(false). If this actor is part of a system
-   * ActorMonitor, do not use the latter call, for it may interfere with similar calls from the ActorMonitor
-   * which utilizes the same call to determine the actor process load. */
+   * Calculate the relative time this actor spend performing processing letters. Returns a value
+   * between zero and one. Zero means no time was spend at processing messages and one means 100%
+   * of the time was spend therein. With alltime being true this value reflects the overall
+   * performance of the actor, and with false, the value since the last call to processLoad(false).
+   * If this actor is part of a system ActorMonitor, do not use the latter call, for it may interfere
+   * with similar calls from the ActorMonitor which utilizes the same call to determine the actor
+   * process load. */
   protected def processLoad(alltime: Boolean): Double =
     /* Synchronized copying of the accumulator fields, to be sure they are correct and this is quick. */
     val (threadPlayTime,threadPauseTime) = timingGuard.synchronized {
@@ -322,6 +323,6 @@ object MonitorAid :
   case class Family(namedChildrenNow: Int, allChildrenNow: Int, workersSum: Long) extends Sample :
     def show = s"namedChildrenNow=$namedChildrenNow, allChildrenNow=$allChildrenNow, workersSum=$workersSum"
 
-  /** Class to marshal all the KPI's of the Timing mixin. */
+  /** Class to marshal all the KPI's of the Protect mixin. */
   case class Protect(alarmsSum: Int) extends Sample :
     def show = s"alarmsSum=$alarmsSum"

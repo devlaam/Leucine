@@ -108,7 +108,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * anchor, it will replace that letter. The original is guaranteed not to arrive, even if the
    * timer has already expired during execution of this letter. If the actor was asked to finish,
    * the letter will NOT be posted AND the original letter is removed as well, if present.
-   * Returns if the post was accepted. */
+   * Returns true if the post was accepted, false otherwise. */
   protected def post[Sender >: This <: Accept](letter: MyLetter[Sender], delay: FiniteDuration, anchor: Object = this): Boolean = synchronized {
     /* First remove a post that may be out there. */
     clearTiming(anchor)

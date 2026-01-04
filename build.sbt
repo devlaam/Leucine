@@ -5,15 +5,16 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-val nightly = "3.4.0-RC1-bin-20230901-89e8dba-NIGHTLY"
-val latest  = "3.4.0"
-val stable  = "3.3.3"
+val nightly = "3.8.1-RC1-bin-20260104-f08de70-NIGHTLY"
+val latest  = "3.7.4"  // from 3.4.3 () (ok, 2 warns), 3.5.2 (ok), 3.6.4 (ok), 3.7.4 (ok, 19 warns)
+val stable  = "3.3.7"  // from 3.3.3 ... 3.3.7 (ok, 21 warns)
 
 /* Set to 1 for publishing to exclude the demo/test files. */
 val publishMe: Int = 0
 
 ThisBuild / version       :=  "0.6.2"
 ThisBuild / scalaVersion  :=  stable
+ThisBuild / usePipelining :=  false
 
 val sharedSettings = Seq(
   name                    :=  "leucine",

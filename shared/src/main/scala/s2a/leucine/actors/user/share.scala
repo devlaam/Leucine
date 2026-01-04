@@ -55,23 +55,25 @@ transparent private trait ActorShare(prename: String) extends BareActor :
 
 
   /**
-   * Called after actor construction and guaranteed before the first message is processed. Use this to
-   * perform work to initialize the actor. Apart from a few instructions, work should not be done in
-   * the constructor itself since this effectively runs in the thread of the actor that constructed this
-   * actor. The method started() runs in its own thread. Override this with your own implementation. */
+   * Called after actor construction and guaranteed before the first message is processed. Use this
+   * to perform work to initialize the actor. Apart from a few instructions, work should not be done
+   * in the constructor itself since this effectively runs in the thread of the actor that
+   * constructed this actor. The method started() runs in its own thread. Override this with your
+   * own implementation. */
   protected def started(): Unit = ()
 
   /**
-   * Called before actor deactivation and guaranteed after the last message is processed. If there were
-   * any unprocessed messages in this actor at tear down, complete is false. These could be in the normal
-   * mailbox or on the stash, if present. Cause returns the last stop mode, so the cause of stopping
-   * this actor is known. In case of a actorContext shutdown this is NOT called, for this disruptively
-   * terminates all processing loops. It is however called when stop(...) is used, or when the actor
-   * is shutdown by a parent. The actor may still be around after this method is called, but will never
-   * accept new messages. The parent is still defined, when stopped() is executed (but may already
-   * stopped processing messages) but all the children will already be removed from the list, and their
-   * stopped() methods have already been called. Apart from the situation described above, you can rely
-   * on started() and stopped() to always come in pairs, even when no messages are processed at all. */
+   * Called before actor deactivation and guaranteed after the last message is processed. If there
+   * were any unprocessed messages in this actor at tear down, complete is false. These could be in
+   * the normal mailbox or on the stash, if present. It returns the last stop mode, so the cause of
+   * stopping this actor is known. In case of a actorContext shutdown this is NOT called, for this
+   * disruptively terminates all processing loops. It is however called when stop(...) is used, or
+   * when the actor is shutdown by a parent. The actor may still be around after this method is
+   * called, but will never accept new messages. The parent is still defined, when stopped() is
+   * executed (but may already stopped processing messages) but all the children will already be
+   * removed from the list, and their stopped() methods have already been called. Apart from the
+   * situation described above, you can rely on started() and stopped() to always come in pairs,
+   * even when no messages are processed at all. */
   protected def stopped(cause: Actor.Stop, complete: Boolean): Unit = ()
 
   /* Use to distinguish between basic and other actors. AcceptActors does not have sender as parameter. */

@@ -28,7 +28,7 @@ Leucine is typed actor system, with the following properties:
 * Actors can be told to stop directly, after the current mailbox is depleted or based on some other condition like inactivity.
 * Exceptions, initialization and termination generate callbacks which you can handle separately from the main line of code, or ignore.
 * There is a monitor class which enables you to get insight in the inner working of your code for debugging or system supervision.
-* It runs on JVM, JS and Native, and isolates you from their differences in treading implementation.
+* It runs on JVM, JS and Native, and isolates you from their differences in threading implementation.
 
 ### Getting started
 The five actor base types you can choose from are:
