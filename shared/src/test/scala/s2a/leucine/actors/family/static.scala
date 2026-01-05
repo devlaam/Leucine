@@ -96,7 +96,7 @@ object ActorFamilySupply extends TestSuite :
     val _ = level2A.send(Level2A_.Text("hi"),this)
     val _ = level2A.send(Level2A_.Text("hi"),Actor.Anonymous)
     /* For the moment we just test if an error occurs, but we do not check the content for the error message is not stable. */
-    compileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.clean(5) ==> "Found"
+    assertCompileError("level2A.send(Level1A_.Test1A,Actor.Anonymous)").msg.clean(5) ==> "Found"
 
     def receive[Sender <: Accept](letter: Level1A_.Letter[Sender], sender: Sender): Unit = ()
 
@@ -119,16 +119,16 @@ object ActorFamilySupply extends TestSuite :
       get("1a")    ==> Some(level1A)
       get("1b.2a") ==> None
       /* For the moment we just test if an error occurs, but we do not check the content for the error message is not stable. */
-      compileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.clean(5) ==> "Found"
-      compileError("level1B.send(Level1B_.Test1B,this)").msg.clean(5) ==> "Found"
-      compileError("relayAll(Level1A_.Test1A,outside)").msg.clean(5) ==> "Found"
-      compileError("relayAll(Level1B_.Test1B,outside)").msg.clean(5) ==> "Found"
+      assertCompileError("level1C.send(Level1C_.Text(\"ba\"),level1B)").msg.clean(5) ==> "Found"
+      assertCompileError("level1B.send(Level1B_.Test1B,this)").msg.clean(5) ==> "Found"
+      assertCompileError("relayAll(Level1A_.Test1A,outside)").msg.clean(5) ==> "Found"
+      assertCompileError("relayAll(Level1B_.Test1B,outside)").msg.clean(5) ==> "Found"
       override def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = super.receive(letter,sender)
         /* Testing these hit a compiler bug. */
         //(letter,sender) match
-        //  compileError("case (Level0_.Test0, s: Level0) => ()").msg.clean() ==> "Dit kan niet en dat klopt."
-        //  compileError("case (Level1A_.Test1A, rs: ChildAccept) => relay(cl,rs,_ => true)").msg.clean() ==> "Dit kan niet en dat klopt."
-        //  compileError("case (Level1B_.Test1B, rs: ChildAccept) => relay(cl,rs,_ => true) ").msg.clean() ==> "Dit kan niet en dat klopt."
+        //  assertCompileError("case (Level0_.Test0, s: Level0) => ()").msg.clean() ==> "Dit kan niet en dat klopt."
+        //  assertCompileError("case (Level1A_.Test1A, rs: ChildAccept) => relay(cl,rs,_ => true)").msg.clean() ==> "Dit kan niet en dat klopt."
+        //  assertCompileError("case (Level1B_.Test1B, rs: ChildAccept) => relay(cl,rs,_ => true) ").msg.clean() ==> "Dit kan niet en dat klopt."
 
     val outside = new Outside
 

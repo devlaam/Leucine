@@ -21,7 +21,7 @@ val sharedSettings = Seq(
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all","-Wnonunit-statement","-Wvalue-discard"),
-  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.8.1" % Test).drop(publishMe),
+  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.9.2" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
   Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
   )
@@ -41,7 +41,7 @@ val nativeSettings = Seq(
   /* The default mode is 'debug', to get smaller/faster code use: */
   //nativeMode      := "release-full"
   /* This setting is a requirement for uTest on Native */
-  nativeLinkStubs := true,
+  //nativeLinkStubs := true,
   /* Remove test which cannot run on the Native platform.*/
   Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN")))
   )
