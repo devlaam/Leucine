@@ -4,7 +4,6 @@ package s2a.leucine.actors
 import utest.*
 
 import s2a.control.{Buffer, Deferred}
-import s2a.leucine.actors.Actor.Anonymous
 import s2a.control.Helpers.*
 
 

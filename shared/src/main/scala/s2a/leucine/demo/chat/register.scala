@@ -37,9 +37,9 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     /* In case new passwords arrive, store them in the supply */
-    case (Register.Passwords(values),source: Noise) => supply = values
+    case (Register.Passwords(values),_: Noise) => supply = values
     /* A request for new passwords is made. */
-    case (Register.Request(name),source: Anonymous) =>
+    case (Register.Request(name),_: Anonymous) =>
       /* It may be that we have no passwords left, test this first. */
       if supply.isEmpty
       then

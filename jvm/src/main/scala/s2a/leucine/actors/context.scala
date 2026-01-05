@@ -34,7 +34,7 @@ abstract class ContextImplementation extends PlatformContext :
   import Auxiliary.toUnit
 
   /** Contains the threadPool we will be utilizing */
-  private lazy val threadPool = ContextImplementation.threadPool(true,threadsPerCore)
+  private lazy val threadPool = ContextImplementation.threadPool(threadsPerCore)
 
   /** Contains the execution context on which all tasks will be executed. */
   private lazy val executionContext = ExecutionContext.fromExecutorService(threadPool)
@@ -135,7 +135,7 @@ object ContextImplementation :
    * kept busy (or if you have many, you can leave a few for other tasks). Blocking threads do
    * not keep the core busy, so add these to the requested number. Then round to the nearest multiple
    * of cores to keep it easy. This multiple can be specified, by the threadsPerCore. */
-  def threadPool(daemon: Boolean, threadsPerCore: Int) =
+  def threadPool(threadsPerCore: Int) =
     /* Calculate the maximum number of threads allocated */
     val threadsSize = threadsPerCore * processorCount
     /* Create the thread pool with max fixed thread size. */

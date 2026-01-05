@@ -53,18 +53,13 @@ private class Console extends AcceptActor(Console,!#), TimingAid :
     /* If the user made a choice, this actor is no longer required. */
     stop(Actor.Stop.Direct)
 
-  /* Method to start the demo of choice for one time */
-  def once(actor: Actor): Unit =
-    /* stop the console, this is okay, cause the demo is already running. */
-    stop()
-
   /* Start the demo of choice but staring its corresponding actor. */
   def receive(letter: Letter, sender: Sender): Unit = letter match
-    case Console.Demo("ticker")        =>  once(new Ticker(false))
-    case Console.Demo("ticker debug")  =>  once(new Ticker(true))
-    case Console.Demo("clock")         =>  once(new Listener)
-    case Console.Demo("crawler")       =>  once(new Tree("F0",false,None))
-    case Console.Demo("crawler debug") =>  once(new Tree("F0",true,None))
+    case Console.Demo("ticker")        =>  new Ticker(false); stop();
+    case Console.Demo("ticker debug")  =>  new Ticker(true); stop();
+    case Console.Demo("clock")         =>  new Listener; stop();
+    case Console.Demo("crawler")       =>  new Tree("F0",false,None); stop();
+    case Console.Demo("crawler debug") =>  new Tree("F0",true,None); stop();
     case Console.Demo("chatgrt")       =>  post(Console.Cli,100.millis).toUnit
     case Console.Demo(unknown)         =>  stop(s"Unknown demo '$unknown', closing ...")
     case Console.Cmd("exit")           =>  Chatgrt.stop(); stop();

@@ -55,7 +55,7 @@ object Chatgrt :
   def request(action: String => Unit): Unit = CLI.talk("ChatGRT ready, your command: ", action)
 
   /* Analyze the user input (from Console) to see what must be done. */
-  def process(cmd: String)(using Actor): Unit = cmd.split(" ") match
+  def process(cmd: String): Unit = cmd.split(" ") match
     /* The user request for a new account */
     case Array("signup",name)    => register ! Register.Request(name)
     /* The user requires some text */

@@ -50,8 +50,8 @@ transparent private trait ActorShare(prename: String) extends BareActor :
     /* Depending on the Stateless/Stateful we must return an other type. Per default the state is left as is.
      * TODO: Can this also be solved compile time? In an elegant manner? */
     initialState match
-      case x: Actor.State.Default.type => ().asInstanceOf[Receive]
-      case x: Actor.State              => ((s: State) => s).asInstanceOf[Receive]
+      case _: Actor.State.Default.type => ().asInstanceOf[Receive]
+      case _: Actor.State              => ((s: State) => s).asInstanceOf[Receive]
 
 
   /**

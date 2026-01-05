@@ -24,7 +24,7 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.net.{Socket => JavaSocket}
+import java.net.{Socket as JavaSocket}
 import java.io.{PrintWriter, InputStreamReader, BufferedReader}
 
 

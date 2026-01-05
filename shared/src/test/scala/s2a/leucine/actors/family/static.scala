@@ -4,13 +4,11 @@ package s2a.leucine.actors
 import scala.concurrent.duration.DurationInt
 import utest.*
 
-import s2a.leucine.actors.Actor.Anonymous
 import s2a.control.Helpers.*
 
 
 /* Heterogeneous hierarchy */
 object ActorFamilySupply extends TestSuite :
-  import TestMethods.*
   implicit val ac: ActorContext = ActorContext.system
 
   /* Due to a bug in uTest we must define all nested objects out of the Tests macro.
@@ -63,8 +61,8 @@ object ActorFamilySupply extends TestSuite :
   class Outside extends RestrictActor(Outside_,"boo"), TimingAid, Stateless  :
     val _ = post(Outside_.Bell,1.seconds)
     def receive[Sender <: Accept](letter: Outside_.Letter[Sender], sender: Sender) = (letter,sender) match
-      case(Outside_.Text(msg), s: Anonymous) => ()
-      case(Outside_.Text(msg), s: Outside) => ()
+      case(Outside_.Text(msg), _: Anonymous) => ()
+      case(Outside_.Text(msg), _: Outside) => ()
       case(Outside_.Bell,_) => ()
       /* Unfortunately the compiler does not understand the case below cannot occur */
       case(Outside_.Text(msg),_) => ()
@@ -83,9 +81,9 @@ object ActorFamilySupply extends TestSuite :
 
 
     def receive[Sender <: Accept](letter: MyLetter[Sender], sender: Sender): Unit = (letter,sender) match
-      case (Level0_.Test0, s: Anonymous) => ()
-      case (Level0_.Test0, s: Outside)   => ()
-      case (Level0_.Test0, s: Level0)    => ()
+      case (Level0_.Test0, _: Anonymous) => ()
+      case (Level0_.Test0, _: Outside)   => ()
+      case (Level0_.Test0, _: Level0)    => ()
       case (Level0_.Common, _)           => ()
       /* Unfortunately the compiler does not understand the case below cannot occur */
       case(Level0_.Test0,_) => ()

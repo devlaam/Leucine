@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import annotation.nowarn as nw
 
 /**
  * The WideActor accepts messages from any other actor, and any message that is derived from Actor.Letter, also when they
@@ -82,7 +83,7 @@ abstract class WideActor[Define <: WideDefine](private[actors] val actorDefine: 
    * This can all be defined in this handler, so there is no need to configure some general actor behavior. If actors
    * can be grouped with respect to the way exceptions are handled, you may define this in your CustomAid mixin, for
    * example, just log the exception. Runtime errors cannot be caught and bubble up. */
-  protected def except(letter: Letter, sender: Sender, cause: Exception, size: Int): Unit = defaultExcept(letter,sender)
+  protected def except(letter: Letter, sender: Sender, @nw cause: Exception, @nw size: Int): Unit = defaultExcept(letter,sender)
 
   /**
    * The user may, as a precaution, end each match statement of the letter/sender type with an

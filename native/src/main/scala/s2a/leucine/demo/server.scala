@@ -24,7 +24,7 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import java.net.{ServerSocket => JavaServerSocket, InetAddress, SocketTimeoutException }
+import java.net.{ServerSocket as JavaServerSocket, InetAddress, SocketTimeoutException }
 
 
 /** Native platform specific implementation of the ServerSocket */
@@ -64,7 +64,7 @@ class ServerSocketImplementation extends ServerSocket:
       _client = javaServerSocket.map(_.accept()).map(ClientSocketImplementation(_))
     catch
       /* If we reach a timeout exception there was no one knocking on the door, we may retry */
-      case e: SocketTimeoutException => _client = None
+      case _: SocketTimeoutException => _client = None
       /* Any other exception we cannot handle, so this connection is over. */
       case e: Exception => _error = e.getMessage; _client = None
 

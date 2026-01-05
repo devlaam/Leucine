@@ -40,7 +40,7 @@ class Access extends RestrictActor(Access,"Access") :
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
     /* If the pair message comes from the Register actor, we store it as a new/updated user */
-    case (Access.Pair(name,password),source: Register) => store += name -> password
+    case (Access.Pair(name,password),_: Register) => store += name -> password
     /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
     case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
     /* This cannot be reached, but the compiler is not able to verify. */

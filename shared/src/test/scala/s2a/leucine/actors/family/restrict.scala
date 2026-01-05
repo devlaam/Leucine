@@ -3,11 +3,8 @@ package s2a.leucine.actors
 
 import utest.*
 
-import s2a.leucine.actors.Actor.Anonymous
-
 
 object SiblingRestrictSupply extends TestSuite, SiblingCommon :
-  import TestMethods.*
 
   class Grandma(name: String) extends RestrictActor(Grandma,name), FamilyRoot(Grandma) :
     new Mama("m1",this)
@@ -79,7 +76,6 @@ object SiblingRestrictSupply extends TestSuite, SiblingCommon :
 
 
 object SiblingRestrictRelaySupply extends TestSuite, SiblingCommon :
-  import TestMethods.*
 
   class Grandma(name: String) extends RestrictActor(Grandma,name), FamilyRoot(Grandma) :
     new Mama("m1",this)
@@ -146,7 +142,6 @@ object SiblingRestrictRelaySupply extends TestSuite, SiblingCommon :
 
 
 object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
-  import TestMethods.*
   import Auxiliary.toUnit
 
   class Grandma(name: String) extends RestrictActor(Grandma,name), FamilyRootRelay(Grandma) :
@@ -221,7 +216,6 @@ object SiblingRestrictRelayedSupply extends TestSuite, SiblingCommon :
 
 
 object SiblingRestrictRelayRelayedSupply extends TestSuite, SiblingCommon :
-  import TestMethods.*
   import Auxiliary.toUnit
 
   class Grandma(name: String) extends RestrictActor(Grandma,name), FamilyRootRelay(Grandma) :
