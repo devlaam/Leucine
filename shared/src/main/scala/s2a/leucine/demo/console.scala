@@ -31,8 +31,10 @@ import s2a.leucine.actors.*
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends AcceptActor(Console,!#), TimingAid :
+private class Console extends AcceptActor(Console,!#), TimingAid, LogAid :
   import Auxiliary.toUnit
+
+  DefaultActorLogger.info("===> Console started.")
 
   /* Send a letter to yourself */
   def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message.trim)

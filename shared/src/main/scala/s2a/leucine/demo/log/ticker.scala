@@ -29,18 +29,31 @@ import scala.collection.immutable.{SortedMap, SortedSet}
 import s2a.leucine.actors.*
 
 
+//class TestHandler extends LogClass:
+class TestHandler :
+  // def handleTick(value: Int)(using Log: Log) : Unit =
+  //   Logger.debug(s"tick = $value")
+  //   Log.info(s"===> tick = $value")
+
+  def handleTick(value: Int) : Unit =
+    Logger.debug(s"tick = $value")
+    DefaultActorLogger.info(s"===> tick = $value")
+
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)) :
+class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)), LogAid :
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
 
+  private val testHandler = new TestHandler
   /* We allow full tracing for this actor. */
   final override def tracing = Tracing.Enabled
 
   /* We just log the fact that this actor stops. */
-  final protected override def stopped(cause: Actor.Stop, complete: Boolean) = Logger.error(s"stopped ticker, complete=$complete")
+  final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
+    Logger.error(s"stopped ticker, complete=$complete")
+    DefaultActorLogger.error(s"===> stopped ticker, complete=$complete")
 
   /* Define report functions for each capability */
   private def sampled(samples: List[Sample]): Unit      = samples.foreach(sample => println(s"== SAMPLE ==> ${sample.show}"))
@@ -60,6 +73,7 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
 
   /* Log that the ticker has commenced its operations. */
   Logger.warn("Ticker Actor created")
+  DefaultActorLogger.warn("===> Ticker Actor created")
 
   /* In receive we handle the incoming letters. */
   final protected def receive(letter: Letter, sender: Sender): (State => State) = (state: State) => {
@@ -68,7 +82,9 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
     state match
       case Ticker.Tick(value: Int) =>
         /* Report that we are in the 'tick' state*/
-        Logger.debug(s"tick = $value")
+        testHandler.handleTick(value)
+        //Logger.debug(s"tick = $value")
+        //Log.debug(s"===> tick = $value")
         /* Send a new letter to myself to continue the work */
         this ! Ticker.Work
         /* Change the state to a new one. This is obligatory. */
@@ -76,6 +92,7 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
       case Ticker.Tock(value: Int) =>
         /* Report that we are in the 'tock' state*/
         Logger.info(s"tock = $value")
+        Logger.info(s"===> tock = $value")
         /* As long as we are below 10 we continue the work, otherwise we send ourselves
          * the 'last letter'. Note that in this case this is not really needed, nobody
          * else sends messages to Ticker, so the letter queue empties itself anyway, but
@@ -89,6 +106,7 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
         Ticker.Tick(value+1) }
 
 object Ticker extends AcceptDefine :
+
   type Accept = Actor
   /* The ticker only excepts one letter */
   sealed trait Letter extends Actor.Letter[Actor]

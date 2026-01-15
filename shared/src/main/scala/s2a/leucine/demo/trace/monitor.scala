@@ -30,7 +30,7 @@ import s2a.leucine.actors.*
 
 
 /* If you want to use the monitor, you must implement some callback methods. Here we keep
- * that simple and only report the after the application has completed. In bigger applications
+ * that simple and only report after the application has completed. In bigger applications
  * you might need to export the situation from time to time and purge the monitor to prevent
  * data structures from getting to large. */
 class Monitor extends GlobalMonitor :

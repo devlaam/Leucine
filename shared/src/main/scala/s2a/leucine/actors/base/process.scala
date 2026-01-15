@@ -102,6 +102,8 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     var envs: List[Env[? >: Common <: Accept]] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
     /* Test if must report an empty mailbox */
     if envs.isEmpty then protectReset()
+    /* Prepare the logHolder for new logEntries */
+    logInit()
     /* Loop through all envelopes. We try to process as many as we can within this time slice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
@@ -117,6 +119,8 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
      * report outside the inner loop. These callbacks are not that important that we want to test for them every processed
      * letter. When the callback comes eventually, that is sufficient. */
     familyReport()
+    /** If there is any logging, we spool them to the central collection point */
+    logExit()
     /* The loop is done, we must exit, pass the unprocessed letters along */
     processExit(envs)
 

@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
@@ -54,6 +55,20 @@ object ActorGuard :
   /** Keep the handler for unhandled messages */
   private var posted: Option[Actor.Post => Unit] = None
 
+  /** Keeps a timestamp of the last allTerminated poll in milliseconds */
+  private val lastSpool: AtomicLong = AtomicLong(System.currentTimeMillis())
+
+  /** Instantiates a default logger you may replace */
+  private var actorLogger: ActorLogger = DefaultActorLogger
+
+  /**
+   * Load a custom logger. This is only possible when actors are not active (yet).
+   * So do this at the very start of your application. */
+  def logger_=(logger: ActorLogger): Unit = synchronized {
+    if (actors.isEmpty) then actorLogger = logger }
+
+  /** See which actorLogger is active. */
+  def logger: ActorLogger = actorLogger
 
   /** Add or remove an actor to the needle dropping for silence detection. */
   private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
@@ -70,6 +85,11 @@ object ActorGuard :
    * these have not terminated when they themselves created new actors.  */
   private def allTerminated: Boolean =
     import Actor.Activity.*
+    println("*** allTerminated ***")
+    /* Renew the value of lastPoll */
+    lastSpool.set(System.currentTimeMillis())
+    /* Spool the collected logs so far. */
+    actorLogger.spool()
     /* Use a var to collect all actors that are running that may be stopped. */
     var haltables: List[Actor] = Nil
     /* Test this actor on its activity, return true when is has already stopped or may be stopped. */
@@ -118,6 +138,9 @@ object ActorGuard :
 
   /** Call fail on every letter that could not be processed somehow. */
   private[actors] def fail(post: Actor.Post): Unit = posted.foreach(_(post))
+
+  /** Get the last moment a poll was performed */
+  private[actors] def getLastSpool = lastSpool.get()
 
   /**
    * Here you register a handler for failed messages. This includes all messages that

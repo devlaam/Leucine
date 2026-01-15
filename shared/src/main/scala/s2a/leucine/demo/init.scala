@@ -41,6 +41,7 @@ object Init extends LogInfo:
 
   @main
   def main(): Unit =
+    DefaultActorLogger.info("===> Main called")
     /* Welcome message */
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
     /* Define a handler for unhandled messages */
@@ -50,6 +51,6 @@ object Init extends LogInfo:
     /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
      * but not on JS. There blocking is not possible and this call returns immediately. Normally
      * you do not call watch on JS, for this does have not much added value. Except if you use
-     * stop(Silent) somewhere.*/
+     * stop(Silent) somewhere. */
     ActorGuard.watch(false,3.seconds,complete)
     /* The application should exit when all work is done. */
