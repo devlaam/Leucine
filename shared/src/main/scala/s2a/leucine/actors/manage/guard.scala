@@ -83,13 +83,8 @@ object ActorGuard :
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
-  private def allTerminated: Boolean =
+  private def allTerminated(): Boolean =
     import Actor.Activity.*
-    println("*** allTerminated ***")
-    /* Renew the value of lastPoll */
-    lastSpool.set(System.currentTimeMillis())
-    /* Spool the collected logs so far. */
-    actorLogger.spool()
     /* Use a var to collect all actors that are running that may be stopped. */
     var haltables: List[Actor] = Nil
     /* Test this actor on its activity, return true when is has already stopped or may be stopped. */
@@ -113,7 +108,14 @@ object ActorGuard :
     /* if not, we must probe all actors that requested it to see if they are silent (doing nothing). */
     else silent.foreach(_.dropNeedle(true))
     /* Finally we are really terminated if we were allowed to terminate and there were no haltables left. */
-    mayTerminate && haltables.isEmpty
+    val result = mayTerminate && haltables.isEmpty
+    /* Spool the collected logs so far. This routine may want to know if we are done*/
+    actorLogger.spool(result)
+    /* Renew the value of lastPoll */
+    lastSpool.set(System.currentTimeMillis())
+    /* Return the result of allTerminated */
+    result
+
 
 
   /** Put an actor under guard. If requested add it to the index as well. */
@@ -175,4 +177,4 @@ object ActorGuard :
     /* Make sure we wait at least one second. */
     val pollLimited = pollInterval max 1.second
     /* Now, wait for the system to complete by polling allTerminated. At completion call the complete handler. */
-    context.waitForExit(force,pollLimited)(allTerminated,complete)
+    context.waitForExit(force,pollLimited)(allTerminated(),complete)

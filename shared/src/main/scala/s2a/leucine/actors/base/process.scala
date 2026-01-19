@@ -119,7 +119,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
      * report outside the inner loop. These callbacks are not that important that we want to test for them every processed
      * letter. When the callback comes eventually, that is sufficient. */
     familyReport()
-    /** If there is any logging, we spool them to the central collection point */
+    /* If there is any logging, we spool them to the central collection point */
     logExit()
     /* The loop is done, we must exit, pass the unprocessed letters along */
     processExit(envs)

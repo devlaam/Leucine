@@ -31,12 +31,12 @@ Leucine is typed actor system, with the following properties:
 * It runs on JVM, JS and Native, and isolates you from their differences in threading implementation.
 
 ### Getting started
-The five actor base types you can choose from are:
-* `WideActor`: Accepts all letters from all other actors in the system
-* `AcceptActor`: Accepts your letters from all other actors in the system
-* `SelectActor`: Accepts your letters from a selected list of actors only
-* `RestrictActor`: Accepts your letters from a list of actors where per letter the sender actor is restricted
-* `RefuseActor`: Accepts no letters
+The five actor base types you can choose from. They accept:
+* `WideActor`: all letters from all other actors in the system,
+* `AcceptActor`: your letters from all other actors in the system,
+* `SelectActor`: your letters from a selected list of actors only,
+* `RestrictActor`: your letters from a selected actors with sender restriction,
+* `RefuseActor`: no letters.
 
 All restrictions are enforced at compile time. The `WideActor` is comparable to an untyped actor and
 is mainly for making the transition from an other actor framework to Leucine easier. Should preferably
@@ -120,12 +120,12 @@ Therefore these are best tested from the command line. We discuss the three diff
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJVM/assembly
-[info] welcome to sbt 1.9.4 (AdoptOpenJDK Java 11.0.10)
+[info] welcome to sbt 1.11.7 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Java to run):
 ```
-leucine $ java -jar jvm/target/scala-3.3.3/main.jar
+leucine $ java -jar jvm/target/scala-3.3.7/main.jar
 Started Actor examples on the JVM platform.
 Please state the demo you want to run (ticker, clock, crawler or chatgrt):
 ```
@@ -137,12 +137,12 @@ you can also `ticker debug` or `crawler debug`. The other demo's do not allow fo
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJS/fullLinkJS
-[info] welcome to sbt 1.9.4 (AdoptOpenJDK Java 11.0.10)
+[info] welcome to sbt 1.11.7 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Node JS to run):
 ```
-leucine $ node js/target/scala-3.3.3/leucine-opt/main.js
+leucine $ node js/target/scala-3.3.7/leucine-opt/main.js
 Started Actor examples on the JS platform.
 Please state the demo you want to run (ticker, clock, crawler or chatgrt):
 ```
@@ -156,21 +156,20 @@ working in parallel.
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineNative/nativeLink
-[info] welcome to sbt 1.9.4 (AdoptOpenJDK Java 11.0.10)
+[info] welcome to sbt 1.11.7 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (runs directly):
 ```
-leucine $ native/target/scala-3.3.3/leucine-out
+leucine $ native/target/scala-3.3.7/leucine-out
 Started Actor examples on the Native platform.
 Please state the demo you want to run (ticker, clock, crawler or chatgrt):
 ```
 and then choose one of them.  The `ticker`,`crawler` and `chatgrt` are stand alone demo's,  the `clock` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180. To get an impression of the debug capabilities
 you can also `ticker debug` or `crawler debug`. The other demo's do not allow for this extra parameter.
-And although projectNative (currently 0.4.17) is still single threaded, the Actor implementation runs as if it is
-working in parallel. When 0.5.0 comes out (SNAPSHOT is out!), we should have multi threading, but from the user of the actors point
-of view, you will not notice the difference, except a higher execution speed.
+We are currently busy updating from 0.4.x to 0.5.9 with multi threading features, But from the user or the actors point
+of view, you will (should) not notice the difference.
 
 
 Although compilation takes a lot longer on Native the run times are amazing.
@@ -180,7 +179,7 @@ whereas the java version needed around 48ms!
 
 ## Future
 This library will be a replacement for my other projects that use Akka at the moment. But Leucine will not try to
-copy all of Akka or follow its conventions. Changes in the design may still happen, at least until release 1.0 is reached.
+copy Akka or follow its conventions. Changes in the design may still happen, at least until release 1.0 is reached.
 The features I need myself are incorporated by now and i successfully migrated a proprietary project of ~8600 lines of
 code from AkkaJS to Leucine. So this project might actually be of some use. From now on, i will focus on bug squashing
 (if needed), code improvement and incidental adding of features. So activity on this project may decrease because i
