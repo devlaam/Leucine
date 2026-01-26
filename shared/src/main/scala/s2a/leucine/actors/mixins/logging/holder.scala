@@ -24,7 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Class that collects and temporary holds the log entries. Entries are collected in a list,
@@ -37,9 +36,15 @@ import java.util.concurrent.atomic.AtomicLong
  * natural when used as a thread local variable. */
 private class LogHolder(val path: String, val level: ActorLogger.Level, val timing: ActorLogger.Timing) :
   import ActorLogger.{Level, Entry}
-  import LogHolder.{getIndex, getTimeStamp}
+  import LogHolder.{Hold, minStart, maxStart}
+
+  private var min: Long = minStart
+  private var max: Long = maxStart
 
   /** Managed container for all log entries. */
+  // We kunnen dit refactoren naar een Hold en daar het werk doen.
+  // geeft wel steeds een nieuw extra object wat aangemaakt moet worden
+  // bij elke log.
   private var entries: List[Entry] = Nil
 
   /** Check if the holder contains any entries */
@@ -49,22 +54,25 @@ private class LogHolder(val path: String, val level: ActorLogger.Level, val timi
    * Construct an log entry based on the given data and add a timestamp, an index,  a thread
    * name, timing and actor path name (if available) */
   private[actors] def make(level: Level, className: String, message: String): Entry =
-    val timeStamp = getTimeStamp(timing)
-    val index     = getIndex()
-    val thread    = Thread.currentThread().getName()
-    Entry(index,level,timing,timeStamp,thread,path,className,message)
+    Entry(path,level,timing,className,message)
 
   /** Test if an log entry with the given level would pass for the current settings. */
   private[actors] def pass(level: Level): Boolean = level <= this.level
 
   /** Add a log entry to the list. */
-  private[actors] def add(entry: Entry): Unit = entries ::= entry
+  private[actors] def add(entry: Entry): Unit =
+    if min > entry.index then min = entry.index
+    if max < entry.index then max = entry.index
+    entries ::= entry
 
   /** Get a copy of the current log list. */
-  private[actors] def get: List[Entry] = entries
+  private[actors] def get: Hold[Entry] = Hold(min,entries,max)
 
   /** Clear the current log list. */
-  private[actors] def clear(): Unit = entries = Nil
+  private[actors] def clear(): Unit =
+    min = minStart
+    max = maxStart
+    entries = Nil
 
 
 
@@ -72,40 +80,61 @@ private class LogHolder(val path: String, val level: ActorLogger.Level, val timi
  * Object that contains the public methods to add a log to the relevant log list.
  * For internal use only */
 private object LogHolder :
-  import ActorLogger.{Level, Timing, Entry}
+  import ActorLogger.{Level, Entry}
 
-  /* Fixed conversion factor to go from milliseconds to nanoseconds. */
-  inline val millisToNanos = 1000000
-
-  /* If we make use of logging we want to know the moment the application started. This
-   * does not need to be at the nanosecond exact, but it must be some stable point around the start.
-   * The start is obtained in both nanosecond and millisecond accuracy, so we can combine both timers
-   * into one.  */
-  private val startNanos: Long  = System.nanoTime
-  private val startMillis: Long = System.currentTimeMillis() * millisToNanos
-
-  /* Logs are indexed with strict order. This counter is used to t*/
-  private val logCounter: AtomicLong = AtomicLong(1)
-
-  /** Thread save manner to obtain a new index for a log entry */
-  private[actors] def getIndex(): Long = logCounter.getAndIncrement()
+  /* Universal start values to determine the highest and lowest index values */
+  private inline val minStart = Long.MaxValue
+  private inline val maxStart = 0
 
   /**
-   * Get a timestamp for the current time in nano seconds from the application start.
-   * Note, since the application start cannot be determined with nano second accuracy, it
-   * is build upon a time mark at global logger construction obtained with millisecond
-   * accuracy. From there a reconstruction is made with the passed time in nano seconds. */
-  private[actors] def getTimeStamp(timing: Timing): Long = timing match
-    case Timing.Recent  => ActorGuard.getLastSpool * millisToNanos
-    case Timing.Millis  => System.currentTimeMillis() * millisToNanos
-    case Timing.Nanos   => startMillis + (System.nanoTime - startNanos)
+   * Holder class for multiple log entries. The values min and max indicate the lowest and highest
+   * index values present within the entries in the container. The entries themselves may or may not
+   * be ordered. Values of min and max are 0 (and thus invalid) if there are no entries. */
+  case class Hold[E](val min: Long, val entries: List[E], val max: Long) :
+    /**
+     * Determine how many slots must be reserved if we want to store all entries in an array.
+     * Note that there may be less entries present in the container. */
+    def width: Int = if entries.isEmpty then 0 else (max - min).toInt + 1
+    /**
+     * Merge this container with a container of containers. If this entries list is empty, no empty
+     * list will be added. */
+    def + (hold: Hold[List[E]]): Hold[List[E]] = if entries.isEmpty then hold else
+      val min = if (this.min < hold.min) then this.min else hold.min
+      val max = if (this.max > hold.max) then this.max else hold.max
+      Hold(min,this.entries :: hold.entries,max)
+
+  object Hold :
+    /* The empty holder with no contents. */
+    def empty[E] = Hold[E](minStart,Nil,maxStart)
+
+  case class Store(val start: Long, val entries: IArray[Entry | Null])
+
+  object Store :
+    /* The empty holder with no contents. */
+    def empty = Store(0,IArray.empty)
 
   /**
-   * Add a new log entry to the log of the current thread, if that thread has an active local container. If not,
-   * the entry is directed to the global container. Returns the constructed entry for further processing.  */
-  private[actors] def feed(level: Level, className: String, message: => String): Unit =
-    if !LogLocal.tryFeed(level,className,message) then LogGlobal.feed(level,className,message)
+   * Make a new log entry of the current thread, if that thread has an active local container. If not,
+   * the entry is created by the global container. Returns the constructed entry for further processing.
+   * If feed is true, the entry will be directly stored on the log queue. */
+  private[actors] def entry(feed: Boolean, level: Level, className: String, message: => String): Option[Entry] =
+    /* Try to construct the entry on the thread local container */
+    LogLocal.entry(feed,level,className,message) match
+      /* This was a success, return the entry */
+      case Right(entry) => Some(entry)
+      /* The container was there but the entry could not be made due to insufficient log level. */
+      case Left(true)   => None
+      /* The container was not there, we must try the global container. */
+      case Left(false)  => LogGlobal.entry(feed,level,className,message) match
+        /* This was a success, return the entry */
+        case Right(entry) => Some(entry)
+        /* The entry could not be made due to insufficient log level or absent global logger. */
+        case Left(_)      => None
+
 
   /** Collect all the logs that are present and empty the containers */
-  private[actors] def retrieve(): List[List[Entry]] = LogGlobal.retrieve() :: LogLocal.retrieve()
+  private[actors] def retrieve(): Hold[List[Entry]] = synchronized :
+    /* Although each separate call of retrieve is already synchronized on their owning objects,
+     * we must also synchronized the sum calculation, otherwise this can lead to mixed results. */
+    LogGlobal.retrieve() + LogLocal.retrieve()
 

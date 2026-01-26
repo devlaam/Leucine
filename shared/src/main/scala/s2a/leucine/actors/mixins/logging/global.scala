@@ -32,23 +32,36 @@ package s2a.leucine.actors
  * enabled. All actions are thread save, but of course require synchronization. */
 private object LogGlobal :
   import ActorLogger.{Level, Entry}
+  import LogHolder.Hold
 
   /**
    * Temporary contains all log entries that could not be logged via a threadLocal collection. Usually
    * these are logs in the main thread. Logs from other threads are allowed, but delay execution due
    * to the necessary synchronization. */
-  private def holder: LogHolder = ActorGuard.logger.logHolder
+  private def holderOpt: Option[LogHolder] = ActorGuard.logger.map(_.logHolder)
 
   /** Get a thread save copy of the global logs and clear the container. */
-  private[actors] def retrieve(): List[Entry] = synchronized :
-    val copy = holder.get
-    holder.clear()
-    copy
+  private[actors] def retrieve(): Hold[Entry] = synchronized :
+    holderOpt.map(holder =>
+      val hold = holder.get
+      holder.clear()
+      hold ).getOrElse(Hold.empty)
 
-  /** Construct a new log entry based on the given information. */
-  private[actors] def feed(level: Level, className: String, message: => String): Unit =
-    if holder.pass(level) then
-      /* Construct the entry on the holder. */
+  /**
+   * Construct a new log entry based on the given information. If there is no active logger defined the
+   * holder is absent (but we should not arrive here as well), return Left(false) to report that we could
+   * not handle this. If the holder is present, the level may not be sufficient for action, then return
+   * Left(true) to indicate the situation has been dealt with. If feed is true, the entry will be directly
+   * stored on the log queue. Return the required entry instance packed in right. */
+  private[actors] def entry(feed: Boolean, level: Level, className: String, message: => String): Either[Boolean,Entry] =
+    holderOpt match
+    case None => Left(false)
+    case Some(holder) if !holder.pass(level) => Left(true)
+    case Some(holder) =>
+      /* Construct the entry on the holder. Note that, due to the fact that this instruction is outside
+       * the synchronization protection below, entries can be places in any order in the holder. */
       val entry = holder.make(level,className,message)
-      /* Add the entry to the log queue. Synchronize this call if needed */
-      synchronized { holder.add(entry) }
+      /* Add the entry to the log queue if requested to do so. */
+      if feed then synchronized { holder.add(entry) }
+      /* Construct the entry on the holder. */
+      Right(entry)

@@ -24,7 +24,6 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
@@ -55,20 +54,20 @@ object ActorGuard :
   /** Keep the handler for unhandled messages */
   private var posted: Option[Actor.Post => Unit] = None
 
-  /** Keeps a timestamp of the last allTerminated poll in milliseconds */
-  private val lastSpool: AtomicLong = AtomicLong(System.currentTimeMillis())
-
-  /** Instantiates a default logger you may replace */
-  private var actorLogger: ActorLogger = DefaultActorLogger
+  /** Holds your logger. Can be set only once. */
+  private var actorLogger: Option[ActorLogger] = None
 
   /**
-   * Load a custom logger. This is only possible when actors are not active (yet).
-   * So do this at the very start of your application. */
-  def logger_=(logger: ActorLogger): Unit = synchronized {
-    if (actors.isEmpty) then actorLogger = logger }
+   * Load a custom logger. This is only possible when actors are not active and no
+   * logger was loaded yet. This can only be done once, so do this at the very start
+   * of your application. */
+  private[actors] def logger_=(logger: ActorLogger): Unit = synchronized {
+    if actorLogger.isEmpty && actors.isEmpty then
+      println("*** ActorLogger Defined")
+      actorLogger = Some(logger) }
 
   /** See which actorLogger is active. */
-  def logger: ActorLogger = actorLogger
+  private[actors] def logger: Option[ActorLogger] = actorLogger
 
   /** Add or remove an actor to the needle dropping for silence detection. */
   private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
@@ -109,13 +108,10 @@ object ActorGuard :
     else silent.foreach(_.dropNeedle(true))
     /* Finally we are really terminated if we were allowed to terminate and there were no haltables left. */
     val result = mayTerminate && haltables.isEmpty
-    /* Spool the collected logs so far. This routine may want to know if we are done*/
-    actorLogger.spool(result)
-    /* Renew the value of lastPoll */
-    lastSpool.set(System.currentTimeMillis())
+    /* Spool the collected logs so far. This routine may want to know if we are done */
+    actorLogger.foreach(x => { println(s"*** from guard => spool($result)"); x.spool(result) })
     /* Return the result of allTerminated */
     result
-
 
 
   /** Put an actor under guard. If requested add it to the index as well. */
@@ -140,9 +136,6 @@ object ActorGuard :
 
   /** Call fail on every letter that could not be processed somehow. */
   private[actors] def fail(post: Actor.Post): Unit = posted.foreach(_(post))
-
-  /** Get the last moment a poll was performed */
-  private[actors] def getLastSpool = lastSpool.get()
 
   /**
    * Here you register a handler for failed messages. This includes all messages that

@@ -50,6 +50,10 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
   /* We allow full tracing for this actor. */
   final override def tracing = Tracing.Enabled
 
+  val lefje = ActorLogger.Level.Info
+  DefaultActorLogger.direct(lefje,"===> Test de direct logger")
+
+
   /* We just log the fact that this actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
     Logger.error(s"stopped ticker, complete=$complete")

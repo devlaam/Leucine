@@ -34,6 +34,8 @@ import s2a.leucine.actors.*
 /* The default actor context for these examples */
 given actorContext: ActorContext = ActorContext.system
 
+object DefaultActorLogger extends ActorLogger, DefaultLoggerSettings
+
 object Init extends LogInfo:
 
   /* When you arrive here, you can be certain all actors are done */

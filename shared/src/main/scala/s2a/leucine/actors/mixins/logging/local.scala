@@ -29,17 +29,31 @@ import java.lang.ThreadLocal
 
 private object LogLocal :
   import ActorLogger.{Level, Entry}
+  import LogHolder.Hold
 
+  private inline val minStart = Long.MaxValue
+  private inline val maxStart = 0
+
+  private var min: Long = minStart
+  private var max: Long = maxStart
+
+  // Maak hiervan een ArrayBuffer (of direct een Array als je de grote weet?)
+  // Dan kan je direct op index opslaan index = Entry.index - first.
   /** Contains all of the logs collected from within actors (via ThreadLocal LogHolders) */
   private var accuEntries: List[List[Entry]] = Nil
+
+  println(s"*** accuEntries = ${accuEntries}")
 
   /** Add some entries to the full collection. */
   private def addToAccu(entries: List[Entry]): Unit = synchronized { accuEntries ::= entries }
 
   /** Get a thread save copy of all local logs and clear the container */
-  private[actors] def retrieve(): List[List[Entry]] = synchronized :
-    val copy = accuEntries
+  private[actors] def retrieve(): Hold[List[Entry]] = synchronized :
+    val copy = Hold[List[Entry]](min,accuEntries,max)
+    min = minStart
+    max = maxStart
     accuEntries = Nil
+    println(s"*** accuEntries = ${accuEntries}")
     copy
 
   /** A per thread logHolder for logs that are produced by the actors. */
@@ -59,25 +73,33 @@ private object LogLocal :
       /* ... and it has some content then ... */
       if !holder.isEmpty then
         /* ... copy the entries to mainEntries if any ... */
-        addToAccu(holder.get)
+        val holds = holder.get
+        if min > holds.min then min = holds.min
+        if max < holds.max then max = holds.max
+        // Deze entries (van holder.get) zijn wel geordend, maar niet dicht.
+        println(s"*** adding to accu ${holds}")
+        addToAccu(holds.entries)
         /* .. remove the content from the holder for reuse. */
         holder.clear()
       /* and remove the holder to ensure it is not re- or misused by an other actor on the thread. */
       threadedHolder.remove()
 
-  /* Try to store the log data onto the holder of the current thread. This may fail, then return false. */
-  private[actors] def tryFeed(level: Level, className: String, message: => String): Boolean =
+  /**
+   * Try to make an entry of the log data of the current thread. If the holder is not present, we return
+   * Left(false) to indicate we could not handle this call. If the holder is present, but the level is
+   * not sufficient for action return Left(true) to indicate the situation has been dealt with. When feed
+   ( is true, the entry will be directly stored on the log queue. Return the required entry instance. */
+  private[actors] def entry(feed: Boolean, level: Level, className: String, message: => String): Either[Boolean,Entry] =
     /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
-    val holder: LogHolder = threadedHolder.get()
+    val holder = threadedHolder.get()
     /* If so, we do not have a container and we must try the globalHolder as fallback (thus we return false.
      * Otherwise we use the obtained holder for thread local handling. Since we
      * are in this thread, no synchronize needed. */
-    if holder == null then false else
-      if holder.pass(level) then
+    if holder == null then Left(false) else
+      if !holder.pass(level) then Left(true) else
         /* Construct the entry on the holder. */
         val entry = holder.make(level,className,message)
-        /* Add the entry to the log queue. Synchronize this call if needed */
-        holder.add(entry)
-      /* Return that localHolder did exist.  */
-      true
-
+        /* Add the entry to the log queue.  */
+        if feed then holder.add(entry)
+        /* Construct the entry on the holder. */
+        Right(entry)

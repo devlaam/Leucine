@@ -40,11 +40,15 @@ trait LogAid extends ActorInit, ActorDefs :
   this: BareActor =>
   import ActorLogger.{Level, Timing}
 
+  /** Get the current active logger if defined. */
+  private def activeLogger: Option[ActorLogger] = ActorGuard.logger
+
   /* Here we get a copy of the level and timing as there are set in the current active logHolder.
    * These are extracted from the general logger and are not (should not) be changed over time.
-   * We do not use val's here to keep the number of extra objects per actor small. */
-  private def fixedLevel  = ActorGuard.logger.logHolder.level
-  private def fixedTiming = ActorGuard.logger.logHolder.timing
+   * We do not use val's here to keep the number of extra objects per actor small. The fall backs
+   * are irrelevant since they will never be used if there is no logger active. */
+  private def fixedLevel: Level  = activeLogger.map(_.logHolder.level).getOrElse(Level.System)
+  private def fixedTiming: Timing = activeLogger.map(_.logHolder.timing).getOrElse(Timing.Recent)
 
   /* The fixed holder is what we should regularly use for collecting log statements in this actor.
    * Since this object is reused every time the actor is rescheduled on the thread, we keep it in
@@ -57,8 +61,8 @@ trait LogAid extends ActorInit, ActorDefs :
    * logging will construct a new logHolder on every instant the actor is rescheduled for execution. */
   private def logHolder: LogHolder =
     /* See if we allow for local setting of the log level of timing ... */
-    if ActorGuard.logger.localSettings
-    /* ... if so, construct a new logHOlder with the currently active settings */
+    if activeLogger.map(_.localSettings).getOrElse(false)
+    /* ... if so, construct a new logHolder with the currently active settings */
     then LogHolder(path,logLevel,logTiming)
     /* ... if not, we simply reuse the available one. */
     else fixedHolder
@@ -75,11 +79,11 @@ trait LogAid extends ActorInit, ActorDefs :
 
   /* Method to be called just before are the actor is scheduled on a new thread for execution, but
    * before its message queue is processed. It installs a new logHolder that collects all log entries. */
-  private[actors] override def logInit(): Unit = LogLocal.fill(logHolder)
+  private[actors] override def logInit(): Unit = if activeLogger.isDefined then LogLocal.fill(logHolder)
 
   /* Method to be called directly after the message queue is emptied. All acquired log entries will be
    * moved to a central location and the logHolder is emptied and removed from the thread. */
-  private[actors] override def logExit(): Unit = LogLocal.empty()
+  private[actors] override def logExit(): Unit = if activeLogger.isDefined then LogLocal.empty()
 
   /* Called to count this trait */
   private[actors] override def initCount: Int = super.initCount + 1
