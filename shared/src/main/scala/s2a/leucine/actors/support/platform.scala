@@ -52,7 +52,7 @@ trait PlatformContext:
    * all have been completed.  */
   def terminated: Boolean
 
-  /** Execute a new task on the current Execution Context directly */
+  /** Execute a new task on the current Execution Context in the future */
   def execute(runnable: Runnable): Unit
 
   /**

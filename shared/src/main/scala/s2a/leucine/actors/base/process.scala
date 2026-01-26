@@ -29,11 +29,6 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
   import BareActor.Phase
   import Actor.{Mail,Post}
 
-  /** Execute an action later on the context. */
-  private[actors] def deferred(action: => Unit): Unit =
-    val runnable = new Runnable { def run(): Unit = action }
-    context.execute(runnable)
-
   /** Triggers the processLoop into execution, depending on the phase. */
   private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
     context.traceln(s"TRACE $path/$phase: processTrigger(coreTask=$coreTask)")
@@ -56,7 +51,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     context.traceln(s"TRACE $path/$phase: processInit()")
     /* Process startup code in an other thread. This must be done from the processLoop for
      * otherwise the started() call may be superseded by the first letter. */
-    deferred(processLoop(true))
+    context.deferred(processLoop(true))
 
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
@@ -65,7 +60,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
      * requested, otherwise make sure it does not exceed the silentStop value. */
     if reset then needles = 0 else needles = needles min context.silentStop
     /* Put the processLoop() on the context. */
-    deferred(processLoop(false))
+    context.deferred(processLoop(false))
 
   /**
    * Tries to process the contents of one envelope. If there is an exception, this is delivered to
@@ -145,7 +140,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* If we have no family or no children any more we may directly terminate, otherwise
      * we must wait until the last child has terminated. Pass the information about remaining
      * messages. */
-    if familySize == 0 then deferred(processTerminate(remain.isEmpty)) else familyTerminate(remain.isEmpty) }
+    if familySize == 0 then context.deferred(processTerminate(remain.isEmpty)) else familyTerminate(remain.isEmpty) }
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =

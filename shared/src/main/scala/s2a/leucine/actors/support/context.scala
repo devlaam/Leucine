@@ -59,6 +59,11 @@ trait ActorContext extends PlatformContext with ExecutionContext :
     execute(runnable)
     promise.future
 
+  /** Execute an action later on the ActorContext. */
+  private[actors] def deferred(action: => Unit): Unit =
+    val runnable = new Runnable { def run(): Unit = action }
+    execute(runnable)
+
   /** Delayed task to be executed on the ActorContext. */
   def delayed(task: => Unit, time: FiniteDuration): Cancellable =
     val callable = new Callable[Unit] { def call() = task }

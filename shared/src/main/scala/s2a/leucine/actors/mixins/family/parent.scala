@@ -138,7 +138,7 @@ transparent private trait FamilyParent extends  ActorDefs :
       /* Now see which action has to be taken. */
       termination match
         /* If we are terminating, and this is the last child, call the deferred termination steps. */
-        case Some(complete) => if _children.isEmpty then deferred(processTerminate(complete))
+        case Some(complete) => if _children.isEmpty then context.deferred(processTerminate(complete))
         /* If we are in normal operation (most likely the child is terminating) */
         case None =>
           if keep then ActorGuard.add(child)

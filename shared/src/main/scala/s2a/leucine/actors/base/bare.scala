@@ -49,7 +49,7 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
     /* Activates the real time monitoring, if present. */
     monitorStart()
     /* Initiate the execution of this actor in a new thread. */
-    deferred(processTrigger(true))
+    context.deferred(processTrigger(true))
 
   /* Signal that this class is instantiated. */
   initReady()

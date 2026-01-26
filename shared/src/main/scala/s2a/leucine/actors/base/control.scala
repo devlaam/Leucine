@@ -105,12 +105,12 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
     context.traceln(s"TRACE $path/$phase: stopWith(finish=$finish)")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
-      case Phase.Start  => deferred(processStop(Nil,finish)); Phase.Stop
+      case Phase.Start  => context.deferred(processStop(Nil,finish)); Phase.Stop
       /* If we are already looping, proceed to stop, which will halt the looping after the
        * letter is done or finish and let the mailbox complete. */
       case Phase.Play   => if finish then Phase.Finish else Phase.Stop
       /* If we we were just taking a break, we can stop immediately. */
-      case Phase.Pause  => deferred(processStop(Nil,finish)); Phase.Stop
+      case Phase.Pause  => context.deferred(processStop(Nil,finish)); Phase.Stop
       /* The finish command was already given but we may want to stop even quicker */
       case Phase.Finish => if finish then Phase.Finish else Phase.Stop
       /* Repeated call to stop has no effect. */
