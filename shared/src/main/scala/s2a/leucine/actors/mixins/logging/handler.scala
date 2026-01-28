@@ -42,6 +42,10 @@ private trait LogHandler :
   /* With Develop you can incorporate the develop logger statements. */
   type Develop <: Boolean
 
+  /* Select if you want full class paths in your logs or just class names. */
+  type FullPath <: Boolean
+
+
   // TODO: why can't i refactor this using inline val fixLevel = constValue[Ordinal[FixLevel]]
   // here with fixLevel as substitute for the expression on the method feed?? This leads to an
   // inlining error
@@ -77,38 +81,51 @@ private trait LogHandler :
   /**
    * Make lazy (delayed) log entry with level Fatal (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when FixLevel is set to Ignore. */
-  inline def fatal(message: => String): Unit = feed(Level.Fatal,CallingClass.fullName,constValue[Direct],message)
+  inline def fatal(message: => String): Unit = feed(Level.Fatal,StaticInfo.pathInfo(constValue[FullPath]),constValue[Direct],message)
 
   /**
    * Make lazy (delayed) log entry with level Error (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when FixLevel is set to Ignore or Fatal. */
-  inline def error(message: => String): Unit = feed(Level.Error,CallingClass.fullName,constValue[Direct],message)
+  inline def error(message: => String): Unit = feed(Level.Error,StaticInfo.pathInfo(constValue[FullPath]),constValue[Direct],message)
 
   /**
    * Make lazy (delayed) log entry with level Warn (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when FixLevel is set to Ignore, Fatal or Error */
-  inline def warn(message: => String): Unit  = feed(Level.Warn,CallingClass.fullName,constValue[Direct],message)
+  inline def warn(message: => String): Unit  = feed(Level.Warn,StaticInfo.pathInfo(constValue[FullPath]),constValue[Direct],message)
 
   /**
    * Make lazy (delayed) log entry with level Info (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when FixLevel is set to Ignore, Fatal, Error or Warn */
-  inline def info(message: => String): Unit  = feed(Level.Info,CallingClass.fullName,constValue[Direct],message)
+  inline def info(message: => String): Unit  = feed(Level.Info,StaticInfo.pathInfo(constValue[FullPath]),constValue[Direct],message)
 
   /**
    * Make lazy (delayed) log entry with level Debug (see ActorLogger.Level for documentation on the level.
    * This call is eliminated from the code when FixLevel is set to Ignore, Fatal, Error, Warn or Info. */
-  inline def debug(message: => String): Unit = feed(Level.Debug,CallingClass.fullName,constValue[Direct],message)
+  // Opletten, we geven de Method niet door als we debuggen. Hmm, missschien toch maar wel?
+  inline def debug(message: => String): Unit = feed(Level.Debug,StaticInfo.pathInfo(constValue[FullPath]),constValue[Direct],message)
+
+  // Voor debug en trace twee pathFilters inbouwen, een voor de het sourcePath (object/class/method) en
+  // een voor het actorPath. Het zijn string filters. Het sourcePath zou compiletime kunnen (mits inlined)
+  // het actorPath niet, want die komt uit de logholder.
+  // pathFilter: String => Boolean Deze filters worden in de actorLogger eenmaal ingesteld en elke debug/ trace
+  // wordt er doorheen gehaald. Default is: alles doorlaten.
+  //  voor trace ook een groepfilter inbouwen, het trace command krijgt een groepName parameter (optional).
+  // Als die er is, wordt er voor getest.
+  // WBT short/full classNames. dit gaat met een default instelling die je kan aanpassen, en per debug/trace
+  // kan overridden (alleen voor debug/trace)
+  inline def trace(): Unit = println("### "+StaticInfo.callInfo(constValue[FullPath],true))
 
   /**
    * Make a log entry with variable level which is directly spooled. This call is eliminated from the code
    * when FixLevel is set to a higher level than level in the call, on a best effort basis (for example when
    * called with a constant level value). This call is always eliminated when Develop is set to false. */
-  inline def direct(level: Level, message: => String): Unit =
-    inline if constValue[Develop] then feed(level,CallingClass.fullName,true,message)
+//  inline def direct(level: Level, message: => String): Unit =
+//    inline if constValue[Develop] then feed(level,StaticInfo.className,true,message)
+
 
   /**
    * Make a lazy log entry with variable level (this is spooled later). This call is eliminated from the code
    * when FixLevel is set to a higher level than level in the call, on a best effort basis (for example when
    * called with a constant level value). This call is always eliminated when Develop is set to false. */
-  inline def delayed(level: Level, message: => String): Unit =
-    inline if constValue[Develop] then feed(level,CallingClass.fullName,false,message)
+//  inline def delayed(level: Level, message: => String): Unit =
+//    inline if constValue[Develop] then feed(level,StaticInfo.className,false,message)

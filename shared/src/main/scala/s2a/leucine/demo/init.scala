@@ -36,15 +36,31 @@ given actorContext: ActorContext = ActorContext.system
 
 object DefaultActorLogger extends ActorLogger, DefaultLoggerSettings
 
-object Init extends LogInfo:
+// This version causes a compiler error:
+class MyTestClass(x: Int) :
+  def this(x: Int, z: String) =
+    this(x)
+    DefaultActorLogger.trace()
 
+// This version compiles:
+// class MyTestClass(x: Int, z: String = "") :
+//   DefaultActorLogger.trace()
+
+  val y: String = {  DefaultActorLogger.trace(); "TEST"}
+
+object Init extends LogInfo:
+  DefaultActorLogger.trace()
   /* When you arrive here, you can be certain all actors are done */
   def complete(): Unit = println("Demo complete")
 
+  val _ = new MyTestClass(1)
+
   @main
   def main(): Unit =
+    DefaultActorLogger.trace()
     DefaultActorLogger.info("===> Main called")
     /* Welcome message */
+    val _ = new MyTestClass(2,"JA")
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
     /* Define a handler for unhandled messages */
     ActorGuard.failed(post => println(s"FAILED MESSAGE: ${post.full}"))

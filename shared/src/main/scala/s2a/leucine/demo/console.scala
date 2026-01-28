@@ -33,8 +33,12 @@ import s2a.leucine.actors.*
  * we define it to be a worker */
 private class Console extends AcceptActor(Console,!#), TimingAid, LogAid :
   import Auxiliary.toUnit
-
+  DefaultActorLogger.trace()
   DefaultActorLogger.info("===> Console started.")
+
+  object MyTestObject :
+    DefaultActorLogger.trace()
+
 
   /* Send a letter to yourself */
   def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message.trim)
@@ -70,6 +74,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid :
 
 
 object Console extends AcceptDefine, Stateless :
+  DefaultActorLogger.trace()
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
   sealed trait Letter extends Actor.Letter[Actor]
   case class Demo(text: String) extends Letter

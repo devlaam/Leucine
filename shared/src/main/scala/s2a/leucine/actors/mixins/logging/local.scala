@@ -60,7 +60,9 @@ private object LogLocal :
   private val threadedHolder: ThreadLocal[LogHolder] = ThreadLocal[LogHolder]()
 
   /** Places a new container (LogHolder) for logs on this thread. */
-  private[actors] def fill(logHolder: LogHolder): Unit = threadedHolder.set(logHolder)
+  private[actors] def fill(logHolder: LogHolder): Unit =
+    assert(threadedHolder.get == null,"No holder should be present when a new one is loaded.")
+    threadedHolder.set(logHolder)
 
   /**
    * Try to empty and remove the threadLocal logHolder. Afterwards, the holder is removed from the thread for it

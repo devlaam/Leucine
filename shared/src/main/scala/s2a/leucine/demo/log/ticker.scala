@@ -30,13 +30,15 @@ import s2a.leucine.actors.*
 
 
 //class TestHandler extends LogClass:
-class TestHandler :
+class TestHandler(s: String) :
   // def handleTick(value: Int)(using Log: Log) : Unit =
   //   Logger.debug(s"tick = $value")
   //   Log.info(s"===> tick = $value")
+  DefaultActorLogger.trace()
 
   def handleTick(value: Int) : Unit =
-    Logger.debug(s"tick = $value")
+    DefaultActorLogger.trace()
+    Logger.debug(s"tick = $value, s=$s")
     DefaultActorLogger.info(s"===> tick = $value")
 
 /* We of course also need some code to let the logger do its job. At the same time this serves as
@@ -46,12 +48,15 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
 
-  private val testHandler = new TestHandler
+  DefaultActorLogger.trace()
+
+  private val testHandler = new TestHandler("Hallo")
   /* We allow full tracing for this actor. */
   final override def tracing = Tracing.Enabled
 
-  val lefje = ActorLogger.Level.Info
-  DefaultActorLogger.direct(lefje,"===> Test de direct logger")
+  // TODO: Later beslissen hoe we dit uitvoeren.
+  //val lefje = ActorLogger.Level.Info
+  //DefaultActorLogger.direct(lefje,"===> Test de direct logger")
 
 
   /* We just log the fact that this actor stops. */

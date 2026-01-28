@@ -62,6 +62,11 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
    * the level on best effort basis. */
   type Develop <: Boolean
 
+  /**
+   * Select if you want full class paths in your logs or just class names.
+   */
+  type FullPath <: Boolean
+
   /* Keep an lower bound of the index since the last retrieve. Note that we must synchronize
    * since longs are not atomic with respect to read/write in Java (others are, except doubles) */
   private var lastIndex: Long = 0
@@ -326,6 +331,10 @@ trait DefaultLoggerSettings :
   /** Set Develop to false to ensure development log calls are incorporated */
   type Develop = false
 
+  /** Select if you want full class paths in your logs or just class names. */
+  type FullPath = false
+
+
   /* Log entries that could not yet be processed. */
   private var store: Store = Store.empty
 
@@ -411,6 +420,7 @@ object ActorLogger  :
     case Level.Warn   => 3
     case Level.Info   => 4
     case Level.Debug  => 5
+    case Level.Trace  => 6
 
   /**
    * The different levels that are available for logging. Note that the level System is only there
@@ -430,6 +440,7 @@ object ActorLogger  :
     type Warn   = Warn.type
     type Info   = Info.type
     type Debug  = Debug.type
+    type Trace  = Trace.type
 
     /**
      * Meaning: level to disable all logging (including fatal!).
@@ -467,7 +478,7 @@ object ActorLogger  :
      * Meaning: to keep the developer/user informed about the systems whereabouts
      * Usage:   to enable a high level reconstruction of the systems actions
      * Action:  none
-     * Example: new user, written data, new network connection, etc. */
+     * Example: see new users, written data, new network connection, etc. */
     case object Info extends Level :
       inline def ordinal: Int = constValue[Ordinal[Level.Info]]
 
@@ -478,6 +489,14 @@ object ActorLogger  :
      * Example: any detail you need to know to understand possible problems */
     case object Debug extends Level :
       inline def ordinal: Int = constValue[Ordinal[Level.Debug]]
+
+    /**
+     * Meaning: to follow the flow of the code for diagnostic purposes.
+     * Usage:   supply each class and method definition with a trace
+     * Action:  debug, refactor, code, drink coffee.
+     * Example: any detail you need to know to understand possible problems */
+    case object Trace extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
 
   /**
    * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,
@@ -544,7 +563,7 @@ object ActorLogger  :
       new Entry(index,level,timing,timeStamp,threadName,path,className,message)
 
     inline def system(message: String): Entry =
-      val className  = CallingClass.fullName
+      val className  = StaticInfo.pathInfo(true)
       val timeStamp  = getTimeStamp(Timing.Millis)
       val threadName = Thread.currentThread().getName()
       new Entry(0,Level.System,Timing.Millis,timeStamp,threadName,"",className,message)
