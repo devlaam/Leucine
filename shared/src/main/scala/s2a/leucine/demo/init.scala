@@ -34,22 +34,31 @@ import s2a.leucine.actors.*
 /* The default actor context for these examples */
 given actorContext: ActorContext = ActorContext.system
 
-object DefaultActorLogger extends ActorLogger, DefaultLoggerSettings
+object DefaultActorLogger extends ActorLogger, DefaultLoggerSettings :
+  import ActorLogger.{ShowGroups, GroupBase}
 
-// This version causes a compiler error:
-class MyTestClass(x: Int) :
-  def this(x: Int, z: String) =
-    this(x)
-    DefaultActorLogger.trace()
+  object GroupA extends GroupBase
+  object GroupB extends GroupBase
+  object GroupC extends GroupBase
 
-// This version compiles:
-// class MyTestClass(x: Int, z: String = "") :
-//   DefaultActorLogger.trace()
+  transparent inline def showGroups = ShowGroups((GroupA))
 
-  val y: String = {  DefaultActorLogger.trace(); "TEST"}
+
+
+// TODO: This version causes a compiler error:
+// class MyTestClass(x: Int) :
+//   def this(x: Int, z: String) =
+//     this(x)
+//     DefaultActorLogger.trace()
+
+// TODO: This version compiles:
+class MyTestClass(x: Int, z: String = "") :
+  DefaultActorLogger.trace(DefaultActorLogger.GroupA)
+
+  val y: String = {  DefaultActorLogger.trace(DefaultActorLogger.GroupC); "TEST"}
 
 object Init extends LogInfo:
-  DefaultActorLogger.trace()
+  DefaultActorLogger.trace(DefaultActorLogger.GroupB)
   /* When you arrive here, you can be certain all actors are done */
   def complete(): Unit = println("Demo complete")
 
@@ -57,7 +66,7 @@ object Init extends LogInfo:
 
   @main
   def main(): Unit =
-    DefaultActorLogger.trace()
+    DefaultActorLogger.trace(DefaultActorLogger.AllGroups)
     DefaultActorLogger.info("===> Main called")
     /* Welcome message */
     val _ = new MyTestClass(2,"JA")

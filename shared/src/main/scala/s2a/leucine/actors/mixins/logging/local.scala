@@ -29,7 +29,8 @@ import java.lang.ThreadLocal
 
 private object LogLocal :
   import ActorLogger.{Level, Entry}
-  import LogHolder.Hold
+  import Static.Kind
+  import LogHolder.{Hold, ActorFilter}
 
   private inline val minStart = Long.MaxValue
   private inline val maxStart = 0
@@ -37,8 +38,6 @@ private object LogLocal :
   private var min: Long = minStart
   private var max: Long = maxStart
 
-  // Maak hiervan een ArrayBuffer (of direct een Array als je de grote weet?)
-  // Dan kan je direct op index opslaan index = Entry.index - first.
   /** Contains all of the logs collected from within actors (via ThreadLocal LogHolders) */
   private var accuEntries: List[List[Entry]] = Nil
 
@@ -78,8 +77,9 @@ private object LogLocal :
         val holds = holder.get
         if min > holds.min then min = holds.min
         if max < holds.max then max = holds.max
-        // Deze entries (van holder.get) zijn wel geordend, maar niet dicht.
         println(s"*** adding to accu ${holds}")
+        /* Note that, since this all runs thread local the entries should be ordered but are
+         * not necessarily directly sequential. */
         addToAccu(holds.entries)
         /* .. remove the content from the holder for reuse. */
         holder.clear()
@@ -91,16 +91,16 @@ private object LogLocal :
    * Left(false) to indicate we could not handle this call. If the holder is present, but the level is
    * not sufficient for action return Left(true) to indicate the situation has been dealt with. When feed
    ( is true, the entry will be directly stored on the log queue. Return the required entry instance. */
-  private[actors] def entry(feed: Boolean, level: Level, className: String, message: => String): Either[Boolean,Entry] =
+  private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
     /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
     val holder = threadedHolder.get()
     /* If so, we do not have a container and we must try the globalHolder as fallback (thus we return false.
      * Otherwise we use the obtained holder for thread local handling. Since we
      * are in this thread, no synchronize needed. */
     if holder == null then Left(false) else
-      if !holder.pass(level) then Left(true) else
+      if !holder.pass(level,actorFilter) then Left(true) else
         /* Construct the entry on the holder. */
-        val entry = holder.make(level,className,message)
+        val entry = holder.make(level,kind,path,message)
         /* Add the entry to the log queue.  */
         if feed then holder.add(entry)
         /* Construct the entry on the holder. */

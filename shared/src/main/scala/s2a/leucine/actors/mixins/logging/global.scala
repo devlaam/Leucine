@@ -32,7 +32,8 @@ package s2a.leucine.actors
  * enabled. All actions are thread save, but of course require synchronization. */
 private object LogGlobal :
   import ActorLogger.{Level, Entry}
-  import LogHolder.Hold
+  import Static.Kind
+  import LogHolder.{Hold, ActorFilter}
 
   /**
    * Temporary contains all log entries that could not be logged via a threadLocal collection. Usually
@@ -53,14 +54,14 @@ private object LogGlobal :
    * not handle this. If the holder is present, the level may not be sufficient for action, then return
    * Left(true) to indicate the situation has been dealt with. If feed is true, the entry will be directly
    * stored on the log queue. Return the required entry instance packed in right. */
-  private[actors] def entry(feed: Boolean, level: Level, className: String, message: => String): Either[Boolean,Entry] =
+  private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
     holderOpt match
     case None => Left(false)
-    case Some(holder) if !holder.pass(level) => Left(true)
+    case Some(holder) if !holder.pass(level,actorFilter) => Left(true)
     case Some(holder) =>
       /* Construct the entry on the holder. Note that, due to the fact that this instruction is outside
        * the synchronization protection below, entries can be places in any order in the holder. */
-      val entry = holder.make(level,className,message)
+      val entry = holder.make(level,kind,path,message)
       /* Add the entry to the log queue if requested to do so. */
       if feed then synchronized { holder.add(entry) }
       /* Construct the entry on the holder. */

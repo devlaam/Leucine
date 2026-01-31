@@ -34,17 +34,21 @@ package s2a.leucine.actors
  * For internal use only. The class is not thread safe by design, so synchronize your calls
  * or ensure that you are using this holder in one thread by other means. The latter is comes
  * natural when used as a thread local variable. */
-private class LogHolder(val path: String, val level: ActorLogger.Level, val timing: ActorLogger.Timing) :
+private class LogHolder(val actorPath: String, val level: ActorLogger.Level, val timing: ActorLogger.Timing) :
   import ActorLogger.{Level, Entry}
-  import LogHolder.{Hold, minStart, maxStart}
+  import Static.Kind
+  import LogHolder.{Hold, ActorFilter, minStart, maxStart}
 
+  /* Although we produce a Hold at the end of the LogHolders lifetime , we choose not to
+   * do the work inside the Hold itself, for it would require construction and destruction
+   * of a Hold instance for each log entry. The current is approach is less clean but
+   * also uses less resources. */
+
+  /* Variables to keep track of the lowest and highest stored indices in this instance. */
   private var min: Long = minStart
   private var max: Long = maxStart
 
   /** Managed container for all log entries. */
-  // We kunnen dit refactoren naar een Hold en daar het werk doen.
-  // geeft wel steeds een nieuw extra object wat aangemaakt moet worden
-  // bij elke log.
   private var entries: List[Entry] = Nil
 
   /** Check if the holder contains any entries */
@@ -53,11 +57,12 @@ private class LogHolder(val path: String, val level: ActorLogger.Level, val timi
   /**
    * Construct an log entry based on the given data and add a timestamp, an index,  a thread
    * name, timing and actor path name (if available) */
-  private[actors] def make(level: Level, className: String, message: String): Entry =
-    Entry(path,level,timing,className,message)
+  private[actors] def make(level: Level, sourceKind: Kind, sourcePath: String, message: String): Entry =
+    Entry(actorPath,level,timing,sourceKind,sourcePath,message)
 
   /** Test if an log entry with the given level would pass for the current settings. */
-  private[actors] def pass(level: Level): Boolean = level <= this.level
+  private[actors] def pass(level: Level, pathFilter: ActorFilter): Boolean =
+    level <= this.level && pathFilter(level,actorPath)
 
   /** Add a log entry to the list. */
   private[actors] def add(entry: Entry): Unit =
@@ -81,6 +86,10 @@ private class LogHolder(val path: String, val level: ActorLogger.Level, val timi
  * For internal use only */
 private object LogHolder :
   import ActorLogger.{Level, Entry}
+  import Static.Kind
+
+  /* Helper type to locally pass filters around */
+  private[actors] type ActorFilter = (Level,String) => Boolean
 
   /* Universal start values to determine the highest and lowest index values */
   private inline val minStart = Long.MaxValue
@@ -107,25 +116,28 @@ private object LogHolder :
     /* The empty holder with no contents. */
     def empty[E] = Hold[E](minStart,Nil,maxStart)
 
-  case class Store(val start: Long, val entries: IArray[Entry | Null])
 
-  object Store :
+  /** Helper class to temporarily store log entries that may not yet be spooled. */
+  private[actors] case class Store(val start: Long, val entries: IArray[Entry | Null])
+
+  private[actors] object Store :
     /* The empty holder with no contents. */
     def empty = Store(0,IArray.empty)
+
 
   /**
    * Make a new log entry of the current thread, if that thread has an active local container. If not,
    * the entry is created by the global container. Returns the constructed entry for further processing.
    * If feed is true, the entry will be directly stored on the log queue. */
-  private[actors] def entry(feed: Boolean, level: Level, className: String, message: => String): Option[Entry] =
+  private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
     /* Try to construct the entry on the thread local container */
-    LogLocal.entry(feed,level,className,message) match
+    LogLocal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
       /* This was a success, return the entry */
       case Right(entry) => Some(entry)
       /* The container was there but the entry could not be made due to insufficient log level. */
       case Left(true)   => None
       /* The container was not there, we must try the global container. */
-      case Left(false)  => LogGlobal.entry(feed,level,className,message) match
+      case Left(false)  => LogGlobal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
         /* This was a success, return the entry */
         case Right(entry) => Some(entry)
         /* The entry could not be made due to insufficient log level or absent global logger. */

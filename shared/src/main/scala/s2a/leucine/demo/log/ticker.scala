@@ -34,10 +34,10 @@ class TestHandler(s: String) :
   // def handleTick(value: Int)(using Log: Log) : Unit =
   //   Logger.debug(s"tick = $value")
   //   Log.info(s"===> tick = $value")
-  DefaultActorLogger.trace()
+  DefaultActorLogger.trace(DefaultActorLogger.GroupC)
 
   def handleTick(value: Int) : Unit =
-    DefaultActorLogger.trace()
+    DefaultActorLogger.trace(DefaultActorLogger.GroupA)
     Logger.debug(s"tick = $value, s=$s")
     DefaultActorLogger.info(s"===> tick = $value")
 
@@ -48,16 +48,11 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
 
-  DefaultActorLogger.trace()
+  DefaultActorLogger.trace(DefaultActorLogger.GroupB)
 
   private val testHandler = new TestHandler("Hallo")
   /* We allow full tracing for this actor. */
   final override def tracing = Tracing.Enabled
-
-  // TODO: Later beslissen hoe we dit uitvoeren.
-  //val lefje = ActorLogger.Level.Info
-  //DefaultActorLogger.direct(lefje,"===> Test de direct logger")
-
 
   /* We just log the fact that this actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
@@ -92,8 +87,8 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
       case Ticker.Tick(value: Int) =>
         /* Report that we are in the 'tick' state*/
         testHandler.handleTick(value)
-        //Logger.debug(s"tick = $value")
-        //Log.debug(s"===> tick = $value")
+        Logger.debug(s"tick = $value")
+        DefaultActorLogger.debug(s"===> tick = $value")
         /* Send a new letter to myself to continue the work */
         this ! Ticker.Work
         /* Change the state to a new one. This is obligatory. */

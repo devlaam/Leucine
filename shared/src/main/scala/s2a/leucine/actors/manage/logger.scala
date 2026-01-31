@@ -33,39 +33,81 @@ import scala.annotation.nowarn
  * method of this interface and the FixLevel to get your logger running. See the
  * DefaultActorLogger object for an example. */
 trait ActorLogger(using context: ActorContext) extends LogHandler :
-  import ActorLogger.{Level, Timing, Entry}
-  import LogHolder.{Hold, Store}
-
-  /* Type to store Entries in Arrays. Arrays are initialized with null's. It is inefficient
-   * to reinitialize them with a special Nil Entry since these stay all within Leucine.
-   * So we allow for Null here and make sure these never reach the user of Leucine. */
-  private type NEntry = Entry | Null
+  import ActorLogger.{Level, Timing, Entry, ShowGroups}
+  import LogHolder.Hold
 
   /**
    * FixLevel defines the logging level used at compile time. Regular log statements with a higher
-   * level will to removed from the code. Use this for example to eliminate info and debug log
-   * messages by setting it to Level.Warn for a production release. */
+   * level will to removed from the code at compile time. Use this for example to eliminate info and
+   * debug log messages by setting it to Level.Warn for a production release. */
   type FixLevel <: Level
 
   /**
-   * Direct can be set to true if you want to directly receive the log entries without making
+   * DirectSpool can be set to true if you want to directly receive the log entries without making
    * use of the per thread collectors. Sometimes this can be handy to zoom in on a critical bug
-   * or if you have your own threaded log handler. However, the 'direct' call on the logger is
-   * always direct, and the 'delayed' call on the logger is always delayed, both independent
-   * of this setting. */
-  type Direct <: Boolean
+   * or if you have your own threaded log handler. */
+  type DirectSpool <: Boolean
 
   /**
-   * Develop can be set to true if you want to incorporate the logger statements 'direct' and
-   * delayed in your code. When set to false, these are eliminated at compile time, independent
-   * of the level used. Note that these statements are only compile time eliminated based on
-   * the level on best effort basis. */
-  type Develop <: Boolean
-
-  /**
-   * Select if you want full class paths in your logs or just class names.
-   */
+   * Log entries contain information about the origin of their use (objects, classes and methods). With
+   * FullPath to true these will contain full class paths. This can be handy, but also make to logging
+   * bulky. Set to false for concise naming. Setting is effective at compile time, is system wide and
+   * cannot be superseded by a local setting. */
   type FullPath <: Boolean
+
+  /**
+   * Traces contain the parameters and their values of their origin when FullParams is set to true.
+   * Even more than with FullPath, this can become very bulky. If set to false, each parameter is replaced
+   * by a dot. The setting is used when no local preference is given. The latter will supersede this value. */
+  type FullParams <: Boolean
+
+  /**
+   * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
+   * call will generate a log entry for debug. Normally this is set to true, but by setting it to false, you
+   * can focus on the special group enabled debug log entries. Elimination is done at compile time */
+  type GroupDebugDefault <: Boolean
+
+  /**
+   * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
+   * call will generate a log entry for trace. Normally this is set to true, but by setting it to false, you
+   * can focus on the special group enabled trace log entries. Elimination is done at compile time */
+  type GroupTraceDefault <: Boolean
+
+  /**
+   * Each log entry contains information about its source, objects, classes and methods. Implement this filter so
+   * you can zoom in on particular log entries by inspecting the path. It is a run time filter that works for all
+   * levels. However, if a fatal event appears, the special call handleFatal will nevertheless be used, even
+   * if you block the corresponding  entry here. The passed path depends on the setting of FullPath. Return true
+   * to allow for the entry, return false to block it. If there is no need for this functionality, just return true.
+   * Implementation is obligatory, even if unused. */
+  def sourcePathFilter(level: Level, path: String): Boolean
+
+  /**
+   * Log entries that are made inside the execution of an actor (can be any class or object) contains information
+   * about its actor name/path. With this filter you can zoom in on particular log entries by inspecting the path.
+   * It is a run time filter that works for all levels. However, if a fatal event appears, the special call
+   * handleFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
+   * for the entry, return false to block it. If there is no need for this functionality, just return true.
+   * Implementation is obligatory, even if unused. */
+  def actorPathFilter(level: Level, path: String): Boolean
+
+  /**
+   * Special purpose group that is part of all logging groups. Supply as parameter for the debug or trace call to
+   * ensure the entry passes for every setting of showGroups and GroupDebugDefault or GroupTraceDefault. */
+  final transparent inline def AllGroups = ActorLogger.AllGroups
+
+  /**
+   * Implement this method with the **identical signature** to define the groups to be show in the logging which
+   * have a membership group defined. Make use of the ShowGroups class to set the groups. Implement as follows:
+   * - Two pass entries for the groups (defined as objects) with names MyFirstGroup and MySecondGroup:
+   *   transparent inline def showGroups: ShowGroups((MyFirstGroup,MySecondGroup))
+   * - Two pass entries for only one group:
+   *   transparent inline def showGroups: ShowGroups((MySecondGroup))
+   * - To block all self defined groups:
+   *   transparent inline def showGroups: ShowGroups(())
+   * You also use the latter syntax if the group selection is not needed. See  ShowGroups for more
+   * documentation. Implementation is obligatory, even if unused. */
+  transparent inline def showGroups: ShowGroups[?]
 
   /* Keep an lower bound of the index since the last retrieve. Note that we must synchronize
    * since longs are not atomic with respect to read/write in Java (others are, except doubles) */
@@ -100,6 +142,368 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
      * at the definition side. */
     LogHolder.retrieve()
 
+  /**
+   * This must be implemented with a method that spools the log entries to the process method.
+   * The log entries can be obtained with a call to retrieve(). See the different examples for
+   * possible implementations. Spool is called by Leucine on a regular basis to offload the log
+   * entries from the actor framework to you logging framework. The parameter completed will be
+   * true upon the very last call. */
+  def spool(completed: Boolean): Unit
+
+  /**
+   * Set localSettings to true to allow for changes in logging level and timing within the actors.
+   * Usually, this is only relevant while developing. In deployment you want these settings to be
+   * equal throughout the whole application. Setting this to false makes that so, without have
+   * to revisit all logging code lines. */
+  def localSettings: Boolean
+
+  /**
+   * Define the max number of logs allowed before spooling must start. Do not make this value
+   * to low, since it every time logs are spooled, they interfere if even ever so slightly,
+   * with the actor processing. Realistic values depend on the number of log statements in
+   * you code, but 20 to 100 should be considered as realistic lower bounds. Note that logs
+   * are also periodically spooled. So this number is effective only if the number of logs
+   * builds up quickly in between. */
+  def maxLogs: Int
+
+  /** Define the default active logging level (see ActorLogger.Level for documentation) */
+  def level: Level
+
+  /** Define the default active logging level (see ActorLogger.Level for documentation) */
+  def timing: Timing
+
+  /**
+   * This method is called for every log entry when the entries are spooled. Note that the implementation
+   * must be re-entrant and thread save. */
+  def process(entry: Entry): Unit
+
+  /**
+   * Implement a handler for the event a fatal situation occurs. Note that the implementation must be
+   * re-entrant and thread save. */
+  def handleFatal(message: String): Unit
+
+  /* As soon as this trait is instantiated, make sure the ActorGuard is aware. Note
+   * that you should instantiate this trait only once, the second time will be ignored. */
+  ActorGuard.logger = this
+
+
+/**
+ * Default logger you may use to simply send your logs to the console via the main thread.
+ * It contains reasonable defaults for all obligatory definitions of the settings. */
+trait DefaultLoggerSettings :
+  import ActorLogger.{Level, Timing, Entry}
+  import LogHolder.{Hold, Store}
+
+  /** Set FixLevel to Level.Trace to ensure all logs pass during development. */
+  type FixLevel = Level.Trace
+
+  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
+  type DirectSpool = false
+
+  /** Set FullPath to false to have concise object/class/method names. */
+  type FullPath = false
+
+  /** Set FullParams to true so we see for each trace the parameters used in the call/ */
+  type FullParams = true
+
+  /** Set GroupDebugDefault to true to show all logs at debug level that are not member of a group. */
+  type GroupDebugDefault = false
+
+  /** Set GroupTraceDefault to true to show all logs at trace level that are not member of a group. */
+  type GroupTraceDefault = false
+
+  /* Keep log entries that could not yet be processed. */
+  private var store: Store = Store.empty
+
+  /** Do not filter of the source path, so return true. */
+  def sourcePathFilter(level: Level, path: String): Boolean = true
+
+  /** Do not filter of the actor path, so return true. */
+  def actorPathFilter(level: Level, path: String): Boolean = true
+
+  /** Set the number of maxLogs to 25 */
+  val maxLogs = 25
+
+  /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
+  val timing: Timing = Timing.Millis
+
+  /** Set default logging level to trace to see all logs during development. */
+  val level:  Level = Level.Trace
+
+  /** Set local to true to allow for changes in logging level and timing within the actors. */
+  val localSettings: Boolean = true
+
+  /** Signature of the retrieve() method that returns all the log entries so far in random order. */
+  def retrieve(): Hold[List[Entry]]
+
+  /**
+   * Example implementation for the spool method. This implementation makes use of a temporary store that
+   * delays log entries to be spooled as long as there are entries missing. Makes a best effort to produce
+   * a dense and continuous log entry numbering. */
+  def spool(completed: Boolean): Unit = store.synchronized :
+    store = ActorLogger.stichedSpool(retrieve(),store,10*maxLogs,completed,process)
+
+  /** Simply say in the console that a fatal event occurred. */
+  def handleFatal(message: String): Unit = println(s"THERE WAS A FATAL EVENT: $message")
+
+  /** Pass all logs to the console. */
+  def process(entry: Entry): Unit = println(entry)
+
+
+
+/**
+ * Object that holds the different levels of logging, settings for the timing, and the Entry
+ * class that contains your log statement. */
+object ActorLogger  :
+  import LogHolder.{Hold, Store}
+  import Static.Kind
+
+  /**
+   * Base trait for defining your groups for debug/trace logging selection. Make your custom groups like this:
+   *  object MyFirstGroup extends GroupBase
+   *  object MySecondGroup extends GroupBase
+   * etc. */
+  trait GroupBase
+
+  /** Special group with the property that it fits all groups you manually define. */
+  object AllGroups extends GroupBase
+
+  /**
+   * Definer class so that you can which groups are to be visible at logging. Use is described at the
+   * showGroups method in the ActorLogger trait. Note that, since there is no proper syntax for a tuple
+   * with zero or one element yet, we interpret the ShowGroups(()) as ShowGroups with a zero element
+   * tuple as parameter and ShowGroups((MyGroup)) as a ShowGroups(Tuple1(MyGroup)). */
+  class ShowGroups[Groups <: Tuple | GroupBase | Unit](groups: Groups):
+
+    /* Extract the type from the class parameter. */
+    final private type GroupMembers =
+      Groups match
+        /* The user meant an empty tuple. */
+        case Unit      => Nothing
+        /* The user meant tuple with one element. */
+        case GroupBase => groups.type
+        /* Make a union of the types for this tuple. */
+        case Tuple     => Tuple.Union[Groups]
+
+    /* Compile time test to see if the group here is element of the groups in this collection. */
+    transparent inline def contains[Group <: GroupBase](group: Group): Boolean =
+      inline group match
+        /* Here, the group is a member */
+        case _ : GroupMembers   => true
+        /* Here, we always accept the AllGroups group independent from the collection groups. */
+        case _ : AllGroups.type => true
+        /* Any other group is rejected. */
+        case _                  => false
+
+  /* Type to store Entries in Arrays. Arrays are initialized with null's. It is inefficient
+   * to reinitialize them with a special Nil Entry since these stay all within Leucine.
+   * So we allow for Null here and make sure these never reach the end user of Leucine. */
+  private type NEntry = Entry | Null
+
+  /* Fixed conversion factor to go from milliseconds to nanoseconds. */
+  private inline val millisToNanos = 1000000
+
+  /* If we make use of logging we want to know the moment the application started. This
+   * does not need to be at the nanosecond exact, but it must be some stable point around the start.
+   * The start is obtained in both nanosecond and millisecond accuracy, so we can combine both timers
+   * into one.  */
+  private val startNanos: Long  = System.nanoTime
+  private val startMillis: Long = System.currentTimeMillis() * millisToNanos
+
+  /* Logs are indexed with strict order. This counter is used to t*/
+  private val logCounter: AtomicLong = AtomicLong(1)
+
+  /** Keeps a timestamp of the last allTerminated poll in milliseconds */
+  private val lastRecent: AtomicLong = AtomicLong(startMillis)
+
+  /** Thread update the lastRecent timer with the current value */
+  private[actors] def updateRecent(): Unit = lastRecent.set(System.currentTimeMillis() * millisToNanos)
+
+  /** Thread save manner to obtain a the index for a log entries */
+  private[actors] def getIndex: Long = logCounter.get
+
+  /** Thread save manner to obtain a new index for a log entry */
+  private def getAndIncIndex(): Long = logCounter.getAndIncrement()
+
+  /**
+   * Get a timestamp for the current time in nano seconds from the application start.
+   * Note, since the application start cannot be determined with nano second accuracy, it
+   * is build upon a time mark at global logger construction obtained with millisecond
+   * accuracy. From there a reconstruction is made with the passed time in nano seconds. */
+  private[actors] def getTimeStamp(timing: Timing): Long = timing match
+    case Timing.Recent  => lastRecent.get
+    case Timing.Millis  => System.currentTimeMillis() * millisToNanos
+    case Timing.Nanos   => startMillis + (System.nanoTime - startNanos)
+
+  /* Unfortunately it is not possible to properly inline Scala enums and eliminate code with that.
+   * Therefore Level is not implemented as enum but as old fashioned sealed trait. That way we can
+   * eliminate all debug and info log calls if the minimal logging level is set to Warn. See also
+   * the forum discussion: https://users.scala-lang.org/t/how-to-inline-an-enum-properly/12181 */
+
+  /**
+   * Attribute to each log level an ordinal on the type level. This makes it possible to compare
+   * level at compile time an eliminate unneeded code. */
+  type Ordinal[L <: Level] <: Int = L match
+    case Level.System => 0
+    case Level.Fatal  => 1
+    case Level.Error  => 2
+    case Level.Warn   => 3
+    case Level.Info   => 4
+    case Level.Debug  => 5
+    case Level.Trace  => 6
+
+  /**
+   * The different levels that are available for logging. Note that the level System is only there
+   * as bottom level. Setting logging to this level effectively disables all logging, and should only
+   * be used as temporary measure. Note the an actor may locally override this setting. This is what you
+   * want, so you can zoom in on particular behavior. For the log level Fatal you can supply a special
+   * handler and orderly shutdown hook if needed, which is handled before the log entry is processed.
+   * The other levels are the common ones: Error, Warn, Info and Debug. */
+  sealed trait Level extends EnumOrder[Level] :
+    inline def ordinal: Int
+
+  object Level :
+    /** Type aliases to define the compile time fixed level syntactically equal to the runtime log level. */
+    type System = System.type
+    type Fatal  = Fatal.type
+    type Error  = Error.type
+    type Warn   = Warn.type
+    type Info   = Info.type
+    type Debug  = Debug.type
+    type Trace  = Trace.type
+
+    /**
+     * Meaning: level to disable all user logging (including fatal!).
+     * Usage:   to temporarily silence (most) of the logging.
+     * Action:  none, but do not use this level for production.
+     * Example: to focus on the logging of one or some actors in a test. */
+    case object System extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.System]]
+
+    /**
+     * Meaning: indicates that further processing is unreliable and shutdown is imminent.
+     * Usage:   report messages directly (circumvent regular logging) and initiate last goodbyes.
+     * Action:  immediate, will require root cause investigation and system restart.
+     * Example: in case of a caught "out of memory" or "null pointer exception". */
+    case object Fatal extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Fatal]]
+
+    /**
+     * Meaning: severe disturbances in process handling, but system can continue with other tasks.
+     * Usage:   to request attention from the operator and/or developer.
+     * Action:  immediate, repair damage to data and investigation of the cause.
+     * Example: in case of "disk full", unexpected absence of user profiles etc. */
+    case object Error extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Error]]
+
+    /**
+     * Meaning: indication that something is out of the ordinary, but processing can continue.
+     * Usage:   to request attention from the operator and/or developer
+     * Action:  quickly investigate the cause
+     * Example: any situation that you do not expect such as missing a data field etc. */
+    case object Warn extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Warn]]
+
+    /**
+     * Meaning: to keep the developer/user informed about the systems whereabouts
+     * Usage:   to enable a high level reconstruction of the systems actions
+     * Action:  none
+     * Example: see new users, written data, new network connection, etc. */
+    case object Info extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Info]]
+
+    /**
+     * Meaning: to communicate internals of the system for diagnostic purposes.
+     * Usage:   to enable a low level reconstruction of the systems actions
+     * Action:  debug, refactor, code, drink coffee.
+     * Example: any detail you need to know to understand possible problems */
+    case object Debug extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Debug]]
+
+    /**
+     * Meaning: to follow the flow of the code for diagnostic purposes.
+     * Usage:   supply each class and method definition with a trace
+     * Action:  debug, refactor, code, drink coffee.
+     * Example: any detail you need to know to understand possible problems */
+    case object Trace extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
+
+  /**
+   * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,
+   * although the granularity may be (significantly) higher. The cost is a System.nanoTime() call at each log
+   * entry. The values are guaranteed to be strictly monotonic and are added to the start time of  the system.
+   * Millis offer a millisecond resolution (and usually same granularity) by calling System.currentTimeMillis().
+   * The latter can be 6 times more efficient than the former, but are not guaranteed to be monotonic. The
+   * times can be used to order the logs, but the log entries also contain an index that can be used to that end.
+   * If second level accuracy is sufficient, you may use Recent as setting, which simply uses the last available
+   * call to System.currentTimeMillis() rounded to one second, which is the fastest option. The granularity
+   * depends on the frequency of spooling the log entries to an external logging facility.
+   * All times are passed as UTC times, daylight saving and local time zones are ignored. */
+  enum Timing :
+    /** Log entries will be not individually timed and are accurate up to the second at most. */
+    case Recent
+    /** Log entries will contain absolute times (from system clock) with millisecond accuracy.  */
+    case Millis
+    /** Log entries will contain relative times (from system start) with nanosecond accuracy. */
+    case Nanos
+
+  /**
+   * The log entry itself.
+   * index:      strictly monotonous and dense index for all log entries starting at 1.
+   * level:      the log level of this entry, one of (Fatal,Error,Warn,Info,Debug)
+   * timing:     the log timing granularity (second/millisecond/nanosecond)
+   * timestamp:  number of nanoseconds starting from the Unix Epoch (granularity maybe less)
+   * threadName: name of the thread the log was made in.
+   * actorName:  name of the actor the log was made in (empty if outside the actor framework)
+   * className:  full name of the enclosing class the log was made in
+   * message:    the log message from the developer. */
+  class Entry(val index: Long, val level: Level, val timing: Timing, val timestamp: Long, val threadName: String, val actorName: String, val sourceKind: Kind, val sourcePath: String, val message: String) :
+
+    /* We know that the date methods are deprecated. Ignore that for now. */
+    /** Simple formatter to show the contents of a log entry. */
+    @nowarn
+    override def toString: String =
+      import java.util.Date
+      val nanos  = timestamp - ((timestamp / 1000000000) * 1000000000)
+      val millis = nanos / 1000000
+      val date   = Date(timestamp / 1000000)
+      val indexStr  = s"%${2}s".format(index)
+      val levelStr  = s"%${5}s".format(level)
+      val yearStr   = f"${date.getYear() + 1900}%04d"
+      val monthStr  = f"${date.getMonth() + 1}%02d"
+      val datumStr  = f"${date.getDate()}%02d"
+      val hoursStr  = f"${date.getHours()}%02d"
+      val minsStr   = f"${date.getMinutes()}%02d"
+      val secsStr   = f"${date.getSeconds()}%02d"
+      val source    = sourceKind.toString
+      val subsecStr = timing match
+        case Timing.Recent => ""
+        case Timing.Millis => f".$millis%03d"
+        case Timing.Nanos  => f".$nanos%09d"
+      val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
+      if level < Level.Trace
+      then s"LOG($indexStr; $levelStr; $dtStr; thread($threadName); actor($actorName); $source($sourcePath); $message)"
+      else s"LOG($indexStr; $levelStr; $dtStr; thread($threadName); actor($actorName); $source; $message"
+
+  object Entry :
+    /**
+     * Construct an log entry based on the given data and add a timestamp, an index,  a thread
+     * name, timing and actor path name (if available) */
+    def apply(path: String, level: Level, timing: Timing, sourceKind: Kind, sourcePath: String, message: String): Entry =
+      val index      = getAndIncIndex()
+      val timeStamp  = getTimeStamp(timing)
+      val threadName = Thread.currentThread().getName()
+      new Entry(index,level,timing,timeStamp,threadName,path,sourceKind,sourcePath,message)
+
+
+    /** Construct a System log entry. This is meant to be used by Leucine itself. */
+    inline def system(message: String): Entry =
+      val sourcePath = Static.pathInfo(true)
+      val sourceKind = Static.kindInfo
+      val timeStamp  = getTimeStamp(Timing.Millis)
+      val threadName = Thread.currentThread().getName()
+      new Entry(0,Level.System,Timing.Millis,timeStamp,threadName,"",sourceKind,sourcePath,message)
+
 
   /**
    * Simple sorting routine to sort all entries in the holder upon index. Returns an
@@ -119,17 +523,8 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
         slots(index) = entry
     IArray.unsafeFromArray(slots)
 
-  /**
-   * This must be implemented with a method that spools the log entries to the process method.
-   * The log entries can be obtained with a call to retrieve(). See the different examples for
-   * possible implementations. Spool is called by Leucine on a regular basis to offload the log
-   * entries from the actor framework to you logging framework. The parameter completed will be
-   * true upon the very last call. */
-  def spool(completed: Boolean): Unit
-
-
   /** Just spool all log entries unsorted. Use if your own logging framework takes care of this. */
-  def simpleSpool(hold: Hold[List[Entry]]): Unit = hold.entries.foreach(_.foreach(process))
+  def simpleSpool(hold: Hold[List[Entry]], process: Entry => Unit): Unit = hold.entries.foreach(_.foreach(process))
 
   /**
    * Collects all log entries from all different logHolders, orders them and simply spools them
@@ -139,15 +534,15 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
    * this method if you want to handle the entries in bulk yourself. Completed will be true on
    * the very last call to spool. The application will terminate soon after. You may want to use
    * this information when building your own sorted logger. */
-  def sortedSpool(hold: Hold[List[Entry]]): Unit = sort(hold).withFilter(_ != null).foreach(process)
-
+  def sortedSpool(hold: Hold[List[Entry]], process: Entry => Unit): Unit = sort(hold).withFilter(_ != null).foreach(process)
 
   /**
    * Spool method where we stitch new log entries before processing. Stitching means that if the
    * current spool session has missing entries, that part will be temporarily stored for reprocessing
    * in the next run of spool. That way we obtain strict ordering with respect of the log index, at
-   * the cost of a slight delay of processing. When complete is true all remaining logs will be spooled. */
-  def stichedSpool(hold: Hold[List[Entry]], store: Store, completed: Boolean): Store = synchronized :
+   * the cost of a slight delay of processing. When complete is true all remaining logs will be spooled.
+   * We will limit the resulting array to maxArraySize. If it gets bigger, log entries are spooled anyway. */
+  def stichedSpool(hold: Hold[List[Entry]], store: Store, maxArraySize: Int, completed: Boolean, process: Entry => Unit): Store =
 
     def arrayToString(array: IArray[Entry | Null]): String =
      def convert(x: Entry | Null): Char = if x==null then '-' else 'o'
@@ -168,9 +563,6 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
      * entry will be our new start. We must further build in a safety measure that the stored array does not become
      * too long. At some time its better to disrupt the order than to blow op the memory. Also, when all actors
      * are finished, we spool anything that is left, since there will be no one around to produce new logs. */
-
-    /* We will limit the resulting array to this size. If it gets bigger, log entries are spooled anyway. */
-    val maxArraySize = 10 * maxLogs
 
     /* Visualization of the processing of the two entry arrays.
      *  |o-...| = array of entries.
@@ -278,292 +670,3 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
     println(s"*** result(sendIndex=$sendIndex),array=${arrayToString(IArray.unsafeFromArray(result))}")
     Store(sendIndex,IArray.unsafeFromArray(result))
 
-  /**
-   * Set localSettings to true to allow for changes in logging level and timing within the actors.
-   * Usually, this is only relevant while developing. In deployment you want these settings to be
-   * equal throughout the whole application. Setting this to false makes that so, without have
-   * to revisit all logging code lines. */
-  def localSettings: Boolean
-
-  /**
-   * Define the max number of logs allowed before spooling must start. Do not make this value
-   * to low, since it every time logs are spooled, they interfere if even ever so slightly,
-   * with the actor processing. Realistic values depend on the number of log statements in
-   * you code, but 20 to 100 should be considered as realistic lower bounds. Note that logs
-   * are also periodically spooled. So this number is effective only if the number of logs
-   * builds up quickly in between. */
-  def maxLogs: Int
-
-  /** Define the default active logging level (see ActorLogger.Level for documentation) */
-  def level: Level
-
-  /** Define the default active logging level (see ActorLogger.Level for documentation) */
-  def timing: Timing
-
-  /**
-   * This method is called for every log entry when the entries are spooled.
-   * Note that the implementation must be re-entrant and thread save. */
-  def process(entry: Entry): Unit
-
-  /**
-   * Implement a handler for the event a fatal situation occurs.
-   * Note that the implementation must be re-entrant and thread save. */
-  def handleFatal(message: String): Unit
-
-  /* As soon as this trait is instantiated, make sure the ActorGuard is aware. Note
-   * that you should instantiate this trait only once, the second time will be ignored. */
-  ActorGuard.logger = this
-
-
-/**
- * Default logger you may use to simply send your logs to the console via the main thread.
- * It contains reasonable defaults for all obligatory definitions of the settings. */
-trait DefaultLoggerSettings :
-  import ActorLogger.{Level, Timing, Entry}
-  import LogHolder.{Hold, Store}
-
-  /** Set FixLevel to Level.Debug to ensure all logs pass during development. */
-  type FixLevel = Level.Debug
-
-  /** Set Direct to false to ensure all logs pass the thread local entry collectors */
-  type Direct = false
-
-  /** Set Develop to false to ensure development log calls are incorporated */
-  type Develop = false
-
-  /** Select if you want full class paths in your logs or just class names. */
-  type FullPath = false
-
-
-  /* Log entries that could not yet be processed. */
-  private var store: Store = Store.empty
-
-  /** Set the number of maxLogs to 25 */
-  val maxLogs = 25
-
-  /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
-  val timing: Timing = Timing.Millis
-
-  /** Set logging level to debug to see all logs during development. */
-  val level:  Level = Level.Debug
-
-  /** Set local to true allow for changes in logging level and timing within the actors. */
-  val localSettings: Boolean = true
-
-  def retrieve(): Hold[List[Entry]]
-  def simpleSpool(hold: Hold[List[Entry]]): Unit
-  def sortedSpool(hold: Hold[List[Entry]]): Unit
-  def stichedSpool(hold: Hold[List[Entry]], store: Store, completed: Boolean): Store
-  def spool(completed: Boolean): Unit = store = stichedSpool(retrieve(),store,completed)
-  //def spool(completed: Boolean): Unit = sortedSpool(retrieve())
-
-  /** Simply say in the console that a fatal event occurred. */
-  def handleFatal(message: String): Unit = println(s"THERE WAS A FATAL EVENT: $message")
-
-  /** Pass all logs to the console. */
-  def process(entry: Entry): Unit = println(entry)
-
-
-
-/**
- * Object that holds the different levels of logging, settings for the timing, and the Entry
- * class that contains your log statement. */
-object ActorLogger  :
-
-  /* Fixed conversion factor to go from milliseconds to nanoseconds. */
-  private inline val millisToNanos = 1000000
-
-  /* If we make use of logging we want to know the moment the application started. This
-   * does not need to be at the nanosecond exact, but it must be some stable point around the start.
-   * The start is obtained in both nanosecond and millisecond accuracy, so we can combine both timers
-   * into one.  */
-  private val startNanos: Long  = System.nanoTime
-  private val startMillis: Long = System.currentTimeMillis() * millisToNanos
-
-  /* Logs are indexed with strict order. This counter is used to t*/
-  private val logCounter: AtomicLong = AtomicLong(1)
-
-  /** Keeps a timestamp of the last allTerminated poll in milliseconds */
-  private val lastRecent: AtomicLong = AtomicLong(startMillis)
-
-  /** Thread update the lastRecent timer with the current value */
-  private[actors] def updateRecent(): Unit = lastRecent.set(System.currentTimeMillis() * millisToNanos)
-
-  /** Thread save manner to obtain a the index for a log entries */
-  private[actors] def getIndex: Long = logCounter.get
-
-  /** Thread save manner to obtain a new index for a log entry */
-  private def getAndIncIndex(): Long = logCounter.getAndIncrement()
-
-  /**
-   * Get a timestamp for the current time in nano seconds from the application start.
-   * Note, since the application start cannot be determined with nano second accuracy, it
-   * is build upon a time mark at global logger construction obtained with millisecond
-   * accuracy. From there a reconstruction is made with the passed time in nano seconds. */
-  private[actors] def getTimeStamp(timing: Timing): Long = timing match
-    case Timing.Recent  => lastRecent.get
-    case Timing.Millis  => System.currentTimeMillis() * millisToNanos
-    case Timing.Nanos   => startMillis + (System.nanoTime - startNanos)
-
-  /* Unfortunately it is not possible to properly inline Scala enums and eliminate code with that.
-   * Therefore Level is not implemented as enum but as old fashioned sealed trait. That way we can
-   * eliminate all debug and info log calls if the minimal logging level is set to Warn. See also
-   * the forum discussion: https://users.scala-lang.org/t/how-to-inline-an-enum-properly/12181 */
-
-  /**
-   * Attribute to each log level an ordinal on the type level. This makes it possible to compare
-   * level at compile time an eliminate unneeded code. */
-  type Ordinal[L <: Level] <: Int = L match
-    case Level.System => 0
-    case Level.Fatal  => 1
-    case Level.Error  => 2
-    case Level.Warn   => 3
-    case Level.Info   => 4
-    case Level.Debug  => 5
-    case Level.Trace  => 6
-
-  /**
-   * The different levels that are available for logging. Note that the level System is only there
-   * as bottom level. Setting logging to this level effectively disables all logging, and should only
-   * be used as temporary measure. Note the an actor may locally override this setting. This is what you
-   * want, so you can zoom in on particular behavior. For the log level Fatal you can supply a special
-   * handler and orderly shutdown hook if needed, which is handled before the log entry is processed.
-   * The other levels are the common ones: Error, Warn, Info and Debug. */
-  sealed trait Level extends EnumOrder[Level] :
-    inline def ordinal: Int
-
-  object Level :
-    /** Type aliases to define the compile time fixed level syntactically equal to the runtime log level. */
-    type System = System.type
-    type Fatal  = Fatal.type
-    type Error  = Error.type
-    type Warn   = Warn.type
-    type Info   = Info.type
-    type Debug  = Debug.type
-    type Trace  = Trace.type
-
-    /**
-     * Meaning: level to disable all logging (including fatal!).
-     * Usage:   to temporarily silence (most) of the logging.
-     * Action:  none, but do not use this level for production.
-     * Example: to focus on the logging of one or some actors in a test. */
-    case object System extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.System]]
-
-    /**
-     * Meaning: indicates that further processing is unreliable and shutdown is imminent.
-     * Usage:   report messages directly (circumvent regular logging) and initiate last goodbyes.
-     * Action:  immediate, will require root cause investigation and system restart.
-     * Example: in case of "out of memory" or "null pointer exception". */
-    case object Fatal extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.Fatal]]
-
-    /**
-     * Meaning: severe disturbances in process handling, but system can continue with other tasks.
-     * Usage:   to request attention from the operator and/or developer.
-     * Action:  immediate, repair damage to data and investigation of the cause.
-     * Example: in case of "disk full", unexpected absence of user profiles etc. */
-    case object Error extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.Error]]
-
-    /**
-     * Meaning: indication that something is out of the ordinary, but processing can continue.
-     * Usage:   to request attention from the operator and/or developer
-     * Action:  quickly investigate the cause
-     * Example: any situation that you do not expect such as missing a data field etc. */
-    case object Warn extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.Warn]]
-
-    /**
-     * Meaning: to keep the developer/user informed about the systems whereabouts
-     * Usage:   to enable a high level reconstruction of the systems actions
-     * Action:  none
-     * Example: see new users, written data, new network connection, etc. */
-    case object Info extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.Info]]
-
-    /**
-     * Meaning: to communicate internals of the system for diagnostic purposes.
-     * Usage:   to enable a low level reconstruction of the systems actions
-     * Action:  debug, refactor, code, drink coffee.
-     * Example: any detail you need to know to understand possible problems */
-    case object Debug extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.Debug]]
-
-    /**
-     * Meaning: to follow the flow of the code for diagnostic purposes.
-     * Usage:   supply each class and method definition with a trace
-     * Action:  debug, refactor, code, drink coffee.
-     * Example: any detail you need to know to understand possible problems */
-    case object Trace extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
-
-  /**
-   * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,
-   * although the granularity may be (significantly) higher. The cost is a System.nanoTime() call at each log
-   * entry. The values are guaranteed to be strictly monotonic and are added to the start time of  the system.
-   * Millis offer a millisecond resolution (and usually same granularity) by calling System.currentTimeMillis().
-   * The latter can be 6 times more efficient than the former, but are not guaranteed to be monotonic. The
-   * times can be used to order the logs, but the log entries also contain an index that can be used to that end.
-   * If second level accuracy is sufficient, you may use Recent as setting, which simply uses the last available
-   * call to System.currentTimeMillis() rounded to one second, which is the fastest option. The granularity
-   * depends on the frequency of spooling the log entries to an external logging facility.
-   * All times are passed as UTC times, daylight saving and local time zones are ignored. */
-  enum Timing :
-    /** Log entries will be not individually timed and are accurate up to the second at most. */
-    case Recent
-    /** Log entries will contain absolute times (from system clock) with millisecond accuracy.  */
-    case Millis
-    /** Log entries will contain relative times (from system start) with nanosecond accuracy. */
-    case Nanos
-
-  /**
-   * The log entry itself.
-   * index:      strictly monotonous and dense index for all log entries starting at 1.
-   * level:      the log level of this entry, one of (Fatal,Error,Warn,Info,Debug)
-   * timing:     the log timing granularity (second/millisecond/nanosecond)
-   * timestamp:  number of nanoseconds starting from the Unix Epoch (granularity maybe less)
-   * threadName: name of the thread the log was made in.
-   * actorName:  name of the actor the log was made in (empty if outside the actor framework)
-   * className:  full name of the enclosing class the log was made in
-   * message:    the log message from the developer. */
-  class Entry(val index: Long, val level: Level, val timing: Timing, val timestamp: Long, val threadName: String, val actorName: String, val className: String, val message: String) :
-
-    /* We know that the date methods are deprecated. Ignore that for now. */
-    /** Simple formatter to show the contents of a log entry. */
-    @nowarn
-    override def toString: String =
-      import java.util.Date
-      val nanos  = timestamp - ((timestamp / 1000000000) * 1000000000)
-      val millis = nanos / 1000000
-      val date   = Date(timestamp / 1000000)
-      val indexStr  = s"%${2}s".format(index)
-      val levelStr  = s"%${5}s".format(level)
-      val yearStr   = f"${date.getYear() + 1900}%04d"
-      val monthStr  = f"${date.getMonth() + 1}%02d"
-      val datumStr  = f"${date.getDate()}%02d"
-      val hoursStr  = f"${date.getHours()}%02d"
-      val minsStr   = f"${date.getMinutes()}%02d"
-      val secsStr   = f"${date.getSeconds()}%02d"
-      val subsecStr = timing match
-        case Timing.Recent => ""
-        case Timing.Millis => f".$millis%03d"
-        case Timing.Nanos  => f".$nanos%09d"
-      val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
-      s"LOG($indexStr; $levelStr; $dtStr; thread($threadName); actor($actorName); class($className); $message)"
-
-  object Entry :
-    /**
-     * Construct an log entry based on the given data and add a timestamp, an index,  a thread
-     * name, timing and actor path name (if available) */
-    def apply(path: String, level: Level, timing: Timing, className: String, message: String): Entry =
-      val index      = getAndIncIndex()
-      val timeStamp  = getTimeStamp(timing)
-      val threadName = Thread.currentThread().getName()
-      new Entry(index,level,timing,timeStamp,threadName,path,className,message)
-
-    inline def system(message: String): Entry =
-      val className  = StaticInfo.pathInfo(true)
-      val timeStamp  = getTimeStamp(Timing.Millis)
-      val threadName = Thread.currentThread().getName()
-      new Entry(0,Level.System,Timing.Millis,timeStamp,threadName,"",className,message)
