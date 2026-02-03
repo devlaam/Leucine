@@ -45,6 +45,7 @@ private object LogGlobal :
   //TODO: We willen de incidents die in deze context gebeuren ook nog ergens melden. WAAR?
   // Note: De incidents die binnen actors plaatsvinden kunnen met lokale en globale monitors worden gespot.
   // Waarschijnlijk is het het beste als we deze accumuleren in een AtomicLong, en opvragen via de GlobalMonitor.
+  // Doen als we de logger uit de guard halen.
   private[actors] def retrieve(): Hold[Entry] = synchronized :
     holderOpt.map(holder =>
       val hold = holder.get

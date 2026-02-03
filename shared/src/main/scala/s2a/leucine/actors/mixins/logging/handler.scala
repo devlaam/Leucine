@@ -44,7 +44,10 @@ private trait LogHandler :
   type FullPath <: Boolean
 
   /* Select if you want all parameters with values in your traces or just dots. */
-  type FullParams <: Boolean
+  type FullParameters <: Boolean
+
+  /* Select if you want to see the confidential log messages or public ones. */
+  type ShowConfidential <: Boolean
 
   /* Filter which log entries may pass based on the level and path/name of the origin (object,class,method) */
   def sourcePathFilter(level: Level, path: String): Boolean
@@ -119,6 +122,36 @@ private trait LogHandler :
     feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
 
   /**
+   * Make lazy (delayed) log entry with level Info (see ActorLogger.Level for documentation on the level).
+   * Use this call to log sensitive information like usernames and passwords. During testing, with
+   * ShowConfidential set to true, the confidentialMessage is used for logging. At production, set
+   * ShowConfidential to false. Now the publicMessage is passed to the logger. The reference to
+   * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
+   * when not needed on a best effort approach. */
+  inline def info(confidentialMesssage: => String, publicMessage: => String): Unit  =
+    inline if constValue[ShowConfidential]
+    then feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],confidentialMesssage)
+    else feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],publicMessage)
+
+  /**
+   * Make lazy (delayed) log entry with level Beta (see ActorLogger.Level for documentation on the level).
+   * This call is eliminated from the code when not needed on a best effort approach. */
+  inline def beta(message: => String): Unit  =
+    feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+
+  /**
+   * Make lazy (delayed) log entry with level Beta (see ActorLogger.Level for documentation on the level).
+   * Use this call to log sensitive information like usernames and passwords. During testing, with
+   * ShowConfidential set to true, the confidentialMessage is used for logging. At production, set
+   * ShowConfidential to false. Now the publicMessage is passed to the logger. The reference to
+   * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
+   * when not needed on a best effort approach. */
+  inline def beta(confidentialMesssage: => String, publicMessage: => String): Unit  =
+    inline if constValue[ShowConfidential]
+    then feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],confidentialMesssage)
+    else feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],publicMessage)
+
+  /**
    * Make lazy (delayed) log entry with level Debug (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def debug(message: => String): Unit = inline if constValue[GroupDebugDefault] then
@@ -135,26 +168,26 @@ private trait LogHandler :
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace(): Unit = inline if constValue[GroupTraceDefault] then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],constValue[FullParams]))
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],constValue[FullParameters]))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
-   * Override the global setting FullParams with the parameter withParams to investigate a special case.
+   * Override the global setting FullParameters with the parameter withParameters to investigate a special case.
    * This call is eliminated from the code when not needed on a best effort approach. */
-  inline def trace(withParams: Boolean): Unit = inline if constValue[GroupTraceDefault] then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],withParams))
+  inline def trace(withParameters: Boolean): Unit = inline if constValue[GroupTraceDefault] then
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],withParameters))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
    * Log entry is only made when the group in the parameter is activated via showGroups.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[Group <: GroupBase](group: Group): Unit = inline if showGroups.contains(group) then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],constValue[FullParams]))
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],constValue[FullParameters]))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
    * Log entry is only made when the group in the parameter is activated via showGroups.
-   * Override the global setting FullParams with the parameter withParams to investigate a special case.
+   * Override the global setting FullParameters with the parameter withParameters to investigate a special case.
    * This call is eliminated from the code when not needed on a best effort approach. */
-  inline def trace[Group <: GroupBase](group: Group, withParams: Boolean): Unit = inline if showGroups.contains(group) then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],withParams))
+  inline def trace[Group <: GroupBase](group: Group, withParameters: Boolean): Unit = inline if showGroups.contains(group) then
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],withParameters))

@@ -56,10 +56,17 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
   type FullPath <: Boolean
 
   /**
-   * Traces contain the parameters and their values of their origin when FullParams is set to true.
+   * Traces contain the parameters and their values of their origin when FullParameters is set to true.
    * Even more than with FullPath, this can become very bulky. If set to false, each parameter is replaced
-   * by a dot. The setting is used when no local preference is given. The latter will supersede this value. */
-  type FullParams <: Boolean
+   * by a dot. The setting is used when no local preference is given. The latter will supersede this value.
+   * Setting only influences the logging at the level Trace. */
+  type FullParameters <: Boolean
+
+  /**
+   * If you need to log confidential data, for example during testing, you can use the info and beta level
+   * logs with an optional confidential message and public message. Set ShowConfidential to true to see the
+   * former, and to false the latter. The latter setting should be the default for a production release.  */
+  type ShowConfidential <: Boolean
 
   /**
    * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
@@ -192,32 +199,28 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
 
 
 /**
- * Default logger you may use to simply send your logs to the console via the main thread.
- * It contains reasonable defaults for all obligatory definitions of the settings. */
-trait DefaultLoggerSettings :
-  import ActorLogger.{Level, Timing, Entry}
-  import LogHolder.{Hold, Store}
+ * Default logger settings you may use for your application in production.
+ * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
+trait ProductionLoggerSettings :
+  import ActorLogger.{Level, Timing}
 
-  /** Set FixPassLevel to Level.Trace to ensure all logs pass during development. */
-  type FixPassLevel = Level.Trace
-
-  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
-  type DirectSpool = false
+  /** Set FixPassLevel to Level.Info to for a realistic information load. */
+  type FixPassLevel = Level.Info
 
   /** Set FullPath to false to have concise object/class/method names. */
   type FullPath = false
 
-  /** Set FullParams to true so we see for each trace the parameters used in the call/ */
-  type FullParams = true
+  /** Setting not relevant when no trace information is passed. */
+  type FullParameters = false
 
-  /** Set GroupDebugDefault to true to show all logs at debug level that are not member of a group. */
-  type GroupDebugDefault = true
+  /** Set ShowConfidential to true to see usernames and passwords in the logs. */
+  type ShowConfidential = true
 
-  /** Set GroupTraceDefault to true to show all logs at trace level that are not member of a group. */
-  type GroupTraceDefault = true
+  /** Setting not relevant when no debug information is passed. */
+  type GroupDebugDefault = false
 
-  /* Keep log entries that could not yet be processed. */
-  private var store: Store = Store.empty
+  /** Setting not relevant when no trace information is passed. */
+  type GroupTraceDefault = false
 
   /** Do not filter of the source path, so return true. */
   def sourcePathFilter(level: Level, path: String): Boolean = true
@@ -225,11 +228,104 @@ trait DefaultLoggerSettings :
   /** Do not filter of the actor path, so return true. */
   def actorPathFilter(level: Level, path: String): Boolean = true
 
-  /** Set the number of maxLogs to 25 */
-  val maxLogs = 25
+  /** During production we do not closely follow the log production. */
+  val maxLogs = 100
+
+  /** During production second level accuracy suffices. This is more efficient. */
+  val timing: Timing = Timing.Recent
+
+  /** Since FixPassLevel is already Level.Info, lower makes no sense here. */
+  val passLevel: Level = Level.Info
+
+  /** Warnings and above still count as incident. */
+  val incidentLevel: Level = Level.Warn
+
+  /** Disable any local settings in actors for more efficiency. */
+  val localSettings: Boolean = false
+
+
+
+/**
+ * Default logger settings you may use for your application during beta testing production.
+ * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
+trait BetaTestLoggerSettings :
+  import ActorLogger.{Level, Timing}
+
+  /** Set FixPassLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
+  type FixPassLevel = Level.Beta
+
+  /** Set FullPath to false to have concise object/class/method names. */
+  type FullPath = false
+
+  /** Setting not relevant when no trace information is passed. */
+  type FullParameters = false
+
+  /** Set ShowConfidential to true to see usernames and passwords in the logs. */
+  type ShowConfidential = true
+
+  /** Setting not relevant when no debug information is passed. */
+  type GroupDebugDefault = false
+
+  /** Setting not relevant when no trace information is passed. */
+  type GroupTraceDefault = false
+
+  /** Do not filter of the source path, so return true. */
+  def sourcePathFilter(level: Level, path: String): Boolean = true
+
+  /** Do not filter of the actor path, so return true. */
+  def actorPathFilter(level: Level, path: String): Boolean = true
+
+  /** During beta testing we do not closely follow the log production. */
+  val maxLogs = 100
 
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
   val timing: Timing = Timing.Millis
+
+  /** Since FixPassLevel is already Level.Beta, lower makes no sense here. */
+  val passLevel:  Level = Level.Beta
+
+  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
+  val incidentLevel: Level = Level.Warn
+
+  /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
+  val localSettings: Boolean = true
+
+
+/**
+ * Default logger settings you may use for your application during development production.
+ * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
+trait DevelopmentLoggerSettings :
+  import ActorLogger.{Level, Timing}
+
+  /** Set FixPassLevel to Level.Trace to ensure all logs pass during development. */
+  type FixPassLevel = Level.Trace
+
+  /** Set FullPath to true to obtain full info on object/class/method names. */
+  type FullPath = true
+
+  /** Set FullParameters to true so we see for each trace the parameters used in the call. */
+  type FullParameters = true
+
+  /** Set ShowConfidential to true to see usernames and passwords in the logs. */
+  type ShowConfidential = true
+
+  /** Set GroupDebugDefault to true to show all logs at debug level that are not member of a group. */
+  type GroupDebugDefault = true
+
+  /** Set GroupTraceDefault to true to show all logs at trace level that are not member of a group. */
+  type GroupTraceDefault = true
+
+  /** Please specify the filter on the sourcePath in your logger. */
+  def sourcePathFilter(level: Level, path: String): Boolean
+
+  /** Please specify the filter on the actorPath in your logger. */
+  def actorPathFilter(level: Level, path: String): Boolean
+
+  /** Set the number of maxLogs low, so we have responsive logging. */
+  val maxLogs = 10
+
+  /** Set timing to Nanos to have accurate log entries. */
+  val timing: Timing = Timing.Nanos
 
   /** Set default logging level to trace to see all logs during development. */
   val passLevel:  Level = Level.Trace
@@ -237,8 +333,25 @@ trait DefaultLoggerSettings :
   /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
   val incidentLevel: Level = Level.Warn
 
-  /** Set local to true to allow for changes in logging level and timing within the actors. */
+  /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
   val localSettings: Boolean = true
+
+
+/**
+ * Default logger you may use to simply send your logs to the console via the main thread.
+ * It contains reasonable defaults for all obligatory definitions of the settings. */
+trait DefaultLoggerProcessing :
+  import ActorLogger.Entry
+  import LogHolder.{Hold, Store}
+
+  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
+  type DirectSpool = false
+
+  /* Keep log entries that could not yet be processed. */
+  private var store: Store = Store.empty
+
+  /** Get the max number of logs defined in your settings. */
+  def maxLogs: Int
 
   /** Signature of the retrieve() method that returns all the log entries so far in random order. */
   def retrieve(): Hold[List[Entry]]
@@ -347,18 +460,22 @@ object ActorLogger  :
     case Level.Error  => 2
     case Level.Warn   => 3
     case Level.Info   => 4
-    case Level.Debug  => 5
-    case Level.Trace  => 6
+    case Level.Beta   => 5
+    case Level.Debug  => 6
+    case Level.Trace  => 7
 
   /**
    * The different levels that are available for logging. Note that the level System is only there
    * as bottom level. Setting logging to this level effectively disables all logging, and should only
-   * be used as temporary measure. Note the an actor may locally override this setting. This is what you
+   * be used as temporary measure. Note that an actor may locally override this setting. This is what you
    * want, so you can zoom in on particular behavior. For the log level Fatal you can supply a special
    * handler and orderly shutdown hook if needed, which is handled before the log entry is processed.
-   * The other levels are the common ones: Error, Warn, Info and Debug. */
+   * Apart from the common levels: Error, Warn, Info and Debug we have the level Beta. This level is in
+   * between Info and Debug. Use this level where you would normally use Debug in production. You should
+   * in fact not use Debug in production, but we all have been there. We leave them in during beta testing.
+   * Here the level Beta comes in handy, it provides the info you need, without having the include all
+   * Debug stuff.  */
   sealed trait Level extends EnumOrder[Level] :
-    import Auxiliary.toUnit
     /* Each level is given a fixed ordinal number. The highest level (System) has the lowest number (0). */
     inline def ordinal: Int
     /* The use of each level is counted for informational purposes. */
@@ -376,6 +493,7 @@ object ActorLogger  :
     type Error  = Error.type
     type Warn   = Warn.type
     type Info   = Info.type
+    type Beta   = Beta.type
     type Debug  = Debug.type
     type Trace  = Trace.type
 
@@ -412,12 +530,20 @@ object ActorLogger  :
       inline def ordinal: Int = constValue[Ordinal[Level.Warn]]
 
     /**
-     * Meaning: to keep the developer/user informed about the systems whereabouts
+     * Meaning: to keep the user informed about the systems whereabouts
      * Usage:   to enable a high level reconstruction of the systems actions
      * Action:  none
      * Example: see new users, written data, new network connection, etc. */
     case object Info extends Level :
       inline def ordinal: Int = constValue[Ordinal[Level.Info]]
+
+    /**
+     * Meaning: to keep the developer informed about the systems whereabouts
+     * Usage:   to monitor behavior for beta releases, same importance as Info.
+     * Action:  none
+     * Example: see new users, written data, new network connection, etc. */
+    case object Beta extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Beta]]
 
     /**
      * Meaning: to communicate internals of the system for diagnostic purposes.
@@ -436,7 +562,7 @@ object ActorLogger  :
       inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
 
     /** This are all available level in one list. From high to low. */
-    val allLevels = List(System,Fatal,Error,Warn,Info,Debug,Trace)
+    val allLevels = List(System,Fatal,Error,Warn,Info,Beta,Debug,Trace)
 
     /**
      * Take a sample from all level creations. Note, the samples are taken sequentially and
@@ -465,7 +591,7 @@ object ActorLogger  :
   /**
    * The log entry itself.
    * index:      strictly monotonous and dense index for all log entries starting at 1.
-   * level:      the log level of this entry, one of (Fatal,Error,Warn,Info,Debug)
+   * level:      the log level of this entry, one of (System,Fatal,Error,Warn,Info,Beta,Debug,Trace)
    * timing:     the log timing granularity (second/millisecond/nanosecond)
    * timestamp:  number of nanoseconds starting from the Unix Epoch (granularity maybe less)
    * threadName: name of the thread the log was made in.

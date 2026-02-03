@@ -34,14 +34,17 @@ import s2a.leucine.actors.*
 /* The default actor context for these examples */
 given actorContext: ActorContext = ActorContext.system
 
-object DefaultActorLogger extends ActorLogger, DefaultLoggerSettings :
-  import ActorLogger.{ShowGroups, GroupBase}
+object DefaultActorLogger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProcessing :
+  import ActorLogger.{Level, ShowGroups, GroupBase}
 
   object GroupA extends GroupBase
   object GroupB extends GroupBase
   object GroupC extends GroupBase
 
   transparent inline def showGroups = ShowGroups((GroupA))
+  def sourcePathFilter(level: Level, path: String): Boolean = true
+  def actorPathFilter(level: Level, path: String): Boolean = true
+
 
 
 
