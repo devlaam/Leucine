@@ -165,10 +165,10 @@ object Static :
 
     /* Choose the correct response for each kind of enclosure */
     Info(true).kind match
-      case Object  => '{ Object }
-      case Class   => '{ Class  }
-      case Method  => '{ Method }
-      case Unknown => '{ Unknown  }
+      case Object  => '{ Object  }
+      case Class   => '{ Class   }
+      case Method  => '{ Method  }
+      case Unknown => '{ Unknown }
 
 
   /**

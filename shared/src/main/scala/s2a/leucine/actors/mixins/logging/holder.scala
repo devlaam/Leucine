@@ -31,10 +31,11 @@ package s2a.leucine.actors
  * for large amounts of logs due to the scattered nature of memory use and missed cache hits
  * at garbage collection. The class also keeps a local copy of the active level and timing
  * settings. Any entry can be (runtime) checked prior to entry construction and storage.
+ * The incident level is used to determine when an entry is counted as incident.
  * For internal use only. The class is not thread safe by design, so synchronize your calls
  * or ensure that you are using this holder in one thread by other means. The latter is comes
  * natural when used as a thread local variable. */
-private class LogHolder(val actorPath: String, val level: ActorLogger.Level, val timing: ActorLogger.Timing) :
+private case class LogHolder(actorPath: String, passLevel: ActorLogger.Level, incidentLevel: ActorLogger.Level, timing: ActorLogger.Timing, private var incidents: Int = 0) :
   import ActorLogger.{Level, Entry}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter, minStart, maxStart}
@@ -48,8 +49,22 @@ private class LogHolder(val actorPath: String, val level: ActorLogger.Level, val
   private var min: Long = minStart
   private var max: Long = maxStart
 
+  /**
+   * Return the variable that keep track of the number of incidents for this holder. Note that
+   * this variable is never cleared during the lifetime if the instance. Recreate the holder if
+   * you need to start from zero again. */
+  private[actors] def getIncidents: Int = incidents
+
   /** Managed container for all log entries. */
   private var entries: List[Entry] = Nil
+
+  /** See it the settings of this holder match the given setting. */
+  private[actors] def alike(passLevel: ActorLogger.Level, incidentLevel: ActorLogger.Level, timing: ActorLogger.Timing): Boolean =
+    passLevel == this.passLevel && incidentLevel == this.incidentLevel && timing == this.timing
+
+  /** Create a new LogHolder with new settings but on the same path and with incidents kept. */
+  private[actors] def inherit(passLevel: ActorLogger.Level, incidentLevel: ActorLogger.Level, timing: ActorLogger.Timing): LogHolder =
+    LogHolder(actorPath,passLevel,incidentLevel,timing,incidents)
 
   /** Check if the holder contains any entries */
   private[actors] def isEmpty: Boolean = entries.isEmpty
@@ -58,11 +73,16 @@ private class LogHolder(val actorPath: String, val level: ActorLogger.Level, val
    * Construct an log entry based on the given data and add a timestamp, an index,  a thread
    * name, timing and actor path name (if available) */
   private[actors] def make(level: Level, sourceKind: Kind, sourcePath: String, message: String): Entry =
+    /* We count the incidents as occurred when we construct the entry and not when we add it. This
+     * is because in case of direct spooling entries are not added to the holder. Make sure you
+     * use every entry that is made here. */
+    if level <= incidentLevel then incidents = incidents + 1
+    /* Construct the new entry. */
     Entry(actorPath,level,timing,sourceKind,sourcePath,message)
 
   /** Test if an log entry with the given level would pass for the current settings. */
   private[actors] def pass(level: Level, pathFilter: ActorFilter): Boolean =
-    level <= this.level && pathFilter(level,actorPath)
+    level <= passLevel && pathFilter(level,actorPath)
 
   /** Add a log entry to the list. */
   private[actors] def add(entry: Entry): Unit =
@@ -99,7 +119,7 @@ private object LogHolder :
    * Holder class for multiple log entries. The values min and max indicate the lowest and highest
    * index values present within the entries in the container. The entries themselves may or may not
    * be ordered. Values of min and max are 0 (and thus invalid) if there are no entries. */
-  case class Hold[E](val min: Long, val entries: List[E], val max: Long) :
+  case class Hold[E](min: Long, entries: List[E], max: Long) :
     /**
      * Determine how many slots must be reserved if we want to store all entries in an array.
      * Note that there may be less entries present in the container. */
@@ -107,10 +127,10 @@ private object LogHolder :
     /**
      * Merge this container with a container of containers. If this entries list is empty, no empty
      * list will be added. */
-    def + (hold: Hold[List[E]]): Hold[List[E]] = if entries.isEmpty then hold else
-      val min = if (this.min < hold.min) then this.min else hold.min
-      val max = if (this.max > hold.max) then this.max else hold.max
-      Hold(min,this.entries :: hold.entries,max)
+    def + (that: Hold[List[E]]): Hold[List[E]] = if entries.isEmpty then that else
+      val min = if (this.min < that.min) then this.min else that.min
+      val max = if (this.max > that.max) then this.max else that.max
+      Hold(min,this.entries :: that.entries,max)
 
   object Hold :
     /* The empty holder with no contents. */
@@ -128,7 +148,8 @@ private object LogHolder :
   /**
    * Make a new log entry of the current thread, if that thread has an active local container. If not,
    * the entry is created by the global container. Returns the constructed entry for further processing.
-   * If feed is true, the entry will be directly stored on the log queue. */
+   * If feed is true, the entry will be directly stored on the log queue. If not, the entry will only be
+   * constructed on the holder, and you are responsible for further processing. */
   private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
     /* Try to construct the entry on the thread local container */
     LogLocal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match

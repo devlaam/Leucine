@@ -88,7 +88,7 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
         /* Report that we are in the 'tick' state*/
         testHandler.handleTick(value)
         Logger.debug(s"tick = $value")
-        DefaultActorLogger.debug(s"===> tick = $value")
+        DefaultActorLogger.warn(s"===> tick = $value")
         /* Send a new letter to myself to continue the work */
         this ! Ticker.Work
         /* Change the state to a new one. This is obligatory. */

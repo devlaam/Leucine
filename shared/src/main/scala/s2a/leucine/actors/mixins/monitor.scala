@@ -32,6 +32,7 @@ private trait MonitorDefs  extends BareDefs:
   private[actors] def probeTiming(): Option[MonitorAid.Timing]  = None
   private[actors] def probeFamily(): Option[MonitorAid.Family]  = None
   private[actors] def probeProtect(): Option[MonitorAid.Protect]  = None
+  private[actors] def probeLogs(): Option[MonitorAid.Logs]  = None
   private[actors] def monitorSend[Sender >: Common <: Accept](mail: Actor.Mail, envelope: Env[Sender]): Unit = ()
   private[actors] def monitorEnter[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
   private[actors] def monitorExit[Sender >: Common <: Accept](envelope: Env[Sender]): Unit = ()
@@ -128,7 +129,7 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
     /* Take the samples in a synchronized way. */
     val (samples,traces) = synchronized {
       /* Do the actual probing work on all mixins and the bare actor trait. */
-      val samples = List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect()).flatten
+      val samples = List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect(), probeLogs()).flatten
       /* Get the traces gathered from this actor */
       val traces = this.traces
       /* Clean the trace storage */
@@ -309,7 +310,7 @@ object MonitorAid :
   /** Class to marshal all the KPI's of the bare actor. */
   case class Bare(phase: BareActor.Phase, stop: Actor.Stop, lettersSum: Int, lettersMax: Int, exceptionsSum: Int, failedSum: Int, needles: Int, processLoad: Double) extends Sample :
     def userPPM = (processLoad * 1000000).toInt
-    def show = s"phase=$phase, stop=$stop, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, failedSum=$failedSum, needles=$needles, processLoad=${userPPM}ppm"
+    def show = s"phase=$phase, stop=$stop, lettersSum=$lettersSum, lettersMax=$lettersMax, exceptionsSum=$exceptionsSum, failedSum=$failedSum, needles=$needles, processLoad=${userPPM}"
 
   /** Class to marshal all the KPI's of the Stash mixin. */
   case class Stash(lettersSum: Int, lettersMax: Int) extends Sample :
@@ -326,3 +327,8 @@ object MonitorAid :
   /** Class to marshal all the KPI's of the Protect mixin. */
   case class Protect(alarmsSum: Int) extends Sample :
     def show = s"alarmsSum=$alarmsSum"
+
+  /** Class to marshal all the KPI's of the Log mixin. */
+  case class Logs(incidentsSum: Int) extends Sample :
+    def show = s"incidentsSum=$incidentsSum"
+

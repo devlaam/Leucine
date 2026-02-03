@@ -35,7 +35,7 @@ private trait LogHandler :
   import Static.{Kind, kindInfo, pathInfo, callInfo}
 
   /* FixLevel defines the logging level used at compile time. */
-  type FixLevel <: Level
+  type FixPassLevel <: Level
 
   /* With direct you can force all log call to be made directly */
   type DirectSpool <: Boolean
@@ -75,7 +75,7 @@ private trait LogHandler :
      * method is called from the fixed level methods or with a compile time constant in in the variable
      * log methods code will be eliminated when not reachable. We do not use 'inline if' here because
      * we want to allow for variable level use as well. Inline should work automagically is possible */
-    inline if level.ordinal <= constValue[Ordinal[FixLevel]] then
+    inline if level.ordinal <= constValue[Ordinal[FixPassLevel]] then
       /* If we are dealing with a Fatal event, extra steps may be needed, for the system may crash before
        * the log queue is flushed. First report that this happened. */
       inline if level.ordinal == Level.Fatal.ordinal then handleFatal(message)
@@ -130,9 +130,6 @@ private trait LogHandler :
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def debug[Group <: GroupBase](group: Group, message: => String): Unit = inline if showGroups.contains(group) then
     feed(Level.Debug,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
-
-  // TODO: This line is needed for the compile error
-  //inline def trace(): Unit = println("### "+Static.callInfo(constValue[FullPath],true))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).

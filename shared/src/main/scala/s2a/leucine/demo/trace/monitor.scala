@@ -36,10 +36,10 @@ import s2a.leucine.actors.*
 class Monitor extends GlobalMonitor :
   /* Custom method to show the results obtained so far. Since this example only has one short
    * run the results are show at the end. */
-  def show(samples: Boolean = false, postsAndTraces: Boolean = false): Unit = report(println,samples,postsAndTraces,postsAndTraces)
+  def show(samples: Boolean = false, postsAndTraces: Boolean = false): Unit = report(println,samples,postsAndTraces,postsAndTraces,samples)
   /* This is a short running application, probe often */
   def probeInterval: FiniteDuration = 5.seconds
-  /* Global setting of tracing. Here we enable is for all actors. Since the personal setting is Default
+  /* Global setting of tracing. Here we enable it for all actors. Since the personal setting is Default
    * this should activate TraceCount and TraceFull. */
   def tracing = MonitorAid.Tracing.Enabled
   /* Start the monitor directly. */

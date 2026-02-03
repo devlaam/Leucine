@@ -40,7 +40,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
    * FixLevel defines the logging level used at compile time. Regular log statements with a higher
    * level will to removed from the code at compile time. Use this for example to eliminate info and
    * debug log messages by setting it to Level.Warn for a production release. */
-  type FixLevel <: Level
+  type FixPassLevel <: Level
 
   /**
    * DirectSpool can be set to true if you want to directly receive the log entries without making
@@ -114,7 +114,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
   private var lastIndex: Long = 0
 
   /* Contains the logHolder for the main and other threads without local logHolders. */
-  private[actors] lazy val logHolder = new LogHolder("",level,timing)
+  private[actors] lazy val logHolder = LogHolder("",passLevel,incidentLevel,timing)
 
   /** Test if we have enough new logs for spooling, entry should be the last or recently produced. */
   private[actors] def trySpool(entry: Entry): Unit =
@@ -136,7 +136,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
      * log entries on this number it will be to high. However, that is better than the opposite
      * since this number is used to call for intermediate spooling if the periodic calls from
      * the guard are insufficient.  */
-    val currIndex = ActorLogger.getIndex
+    val currIndex = ActorLogger.Entry.getIndex
     synchronized { lastIndex = currIndex }
     /* Get the data, clear the collection, return the result. This call is synchronized
      * at the definition side. */
@@ -167,9 +167,13 @@ trait ActorLogger(using context: ActorContext) extends LogHandler :
   def maxLogs: Int
 
   /** Define the default active logging level (see ActorLogger.Level for documentation) */
-  def level: Level
+  def passLevel: Level
 
-  /** Define the default active logging level (see ActorLogger.Level for documentation) */
+  /**
+   * Level (equal and) above which the log event is counted as incident. */
+  def incidentLevel: Level
+
+  /** Define the default active logging level (see ActorLogger.Timing for documentation) */
   def timing: Timing
 
   /**
@@ -194,8 +198,8 @@ trait DefaultLoggerSettings :
   import ActorLogger.{Level, Timing, Entry}
   import LogHolder.{Hold, Store}
 
-  /** Set FixLevel to Level.Trace to ensure all logs pass during development. */
-  type FixLevel = Level.Trace
+  /** Set FixPassLevel to Level.Trace to ensure all logs pass during development. */
+  type FixPassLevel = Level.Trace
 
   /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
   type DirectSpool = false
@@ -207,10 +211,10 @@ trait DefaultLoggerSettings :
   type FullParams = true
 
   /** Set GroupDebugDefault to true to show all logs at debug level that are not member of a group. */
-  type GroupDebugDefault = false
+  type GroupDebugDefault = true
 
   /** Set GroupTraceDefault to true to show all logs at trace level that are not member of a group. */
-  type GroupTraceDefault = false
+  type GroupTraceDefault = true
 
   /* Keep log entries that could not yet be processed. */
   private var store: Store = Store.empty
@@ -228,7 +232,10 @@ trait DefaultLoggerSettings :
   val timing: Timing = Timing.Millis
 
   /** Set default logging level to trace to see all logs during development. */
-  val level:  Level = Level.Trace
+  val passLevel:  Level = Level.Trace
+
+  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
+  val incidentLevel: Level = Level.Warn
 
   /** Set local to true to allow for changes in logging level and timing within the actors. */
   val localSettings: Boolean = true
@@ -310,20 +317,11 @@ object ActorLogger  :
   private val startNanos: Long  = System.nanoTime
   private val startMillis: Long = System.currentTimeMillis() * millisToNanos
 
-  /* Logs are indexed with strict order. This counter is used to t*/
-  private val logCounter: AtomicLong = AtomicLong(1)
-
   /** Keeps a timestamp of the last allTerminated poll in milliseconds */
   private val lastRecent: AtomicLong = AtomicLong(startMillis)
 
   /** Thread update the lastRecent timer with the current value */
   private[actors] def updateRecent(): Unit = lastRecent.set(System.currentTimeMillis() * millisToNanos)
-
-  /** Thread save manner to obtain a the index for a log entries */
-  private[actors] def getIndex: Long = logCounter.get
-
-  /** Thread save manner to obtain a new index for a log entry */
-  private def getAndIncIndex(): Long = logCounter.getAndIncrement()
 
   /**
    * Get a timestamp for the current time in nano seconds from the application start.
@@ -360,7 +358,16 @@ object ActorLogger  :
    * handler and orderly shutdown hook if needed, which is handled before the log entry is processed.
    * The other levels are the common ones: Error, Warn, Info and Debug. */
   sealed trait Level extends EnumOrder[Level] :
+    import Auxiliary.toUnit
+    /* Each level is given a fixed ordinal number. The highest level (System) has the lowest number (0). */
     inline def ordinal: Int
+    /* The use of each level is counted for informational purposes. */
+    private val counter: AtomicLong = AtomicLong(0)
+    /* Increment the counter by one in a thread safe manner */
+    private[ActorLogger] def created(): Long = counter.incrementAndGet()
+    /* Obtain the current counter value and set it to zero afterwards in a thread safe manner */
+    private[ActorLogger] def creations: Long = counter.get
+
 
   object Level :
     /** Type aliases to define the compile time fixed level syntactically equal to the runtime log level. */
@@ -428,6 +435,14 @@ object ActorLogger  :
     case object Trace extends Level :
       inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
 
+    /** This are all available level in one list. From high to low. */
+    val allLevels = List(System,Fatal,Error,Warn,Info,Debug,Trace)
+
+    /**
+     * Take a sample from all level creations. Note, the samples are taken sequentially and
+     * may not represent the number of creations at one single moment of time. */
+    def sample: List[(Level,Long)] = allLevels.map(level => (level,level.creations))
+
   /**
    * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,
    * although the granularity may be (significantly) higher. The cost is a System.nanoTime() call at each log
@@ -456,8 +471,20 @@ object ActorLogger  :
    * threadName: name of the thread the log was made in.
    * actorName:  name of the actor the log was made in (empty if outside the actor framework)
    * className:  full name of the enclosing class the log was made in
-   * message:    the log message from the developer. */
-  class Entry(val index: Long, val level: Level, val timing: Timing, val timestamp: Long, val threadName: String, val actorName: String, val sourceKind: Kind, val sourcePath: String, val message: String) :
+   * message:    the log message from the developer.
+   * It is not possible to create instances directly from the class definition since they will not be
+   * accounted for. Use the factory methods to that end. */
+  class Entry private (
+    val index:       Long,
+    val level:       Level,
+    val counter:     Long,
+    val timing:      Timing,
+    val timestamp:   Long,
+    val threadName:  String,
+    val actorName:   String,
+    val sourceKind:  Kind,
+    val sourcePath:  String,
+    val message:     String) :
 
     /* We know that the date methods are deprecated. Ignore that for now. */
     /** Simple formatter to show the contents of a log entry. */
@@ -469,6 +496,7 @@ object ActorLogger  :
       val date   = Date(timestamp / 1000000)
       val indexStr  = s"%${2}s".format(index)
       val levelStr  = s"%${5}s".format(level)
+      val countStr  = s"%${2}s".format(index)
       val yearStr   = f"${date.getYear() + 1900}%04d"
       val monthStr  = f"${date.getMonth() + 1}%02d"
       val datumStr  = f"${date.getDate()}%02d"
@@ -482,27 +510,42 @@ object ActorLogger  :
         case Timing.Nanos  => f".$nanos%09d"
       val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
       if level < Level.Trace
-      then s"LOG($indexStr; $levelStr; $dtStr; thread($threadName); actor($actorName); $source($sourcePath); $message)"
-      else s"LOG($indexStr; $levelStr; $dtStr; thread($threadName); actor($actorName); $source; $message"
+      then s"LOG($indexStr; $levelStr; #($countStr); $dtStr; thread($threadName); actor($actorName); $source($sourcePath); $message)"
+      else s"LOG($indexStr; $levelStr; #($countStr); $dtStr; thread($threadName); actor($actorName); $source; $message"
 
   object Entry :
+
+    /* Logs entries are indexed with strict order. This counter is used to order all entries when spooled.
+     * In case of very long uptimes of an application it may happen that an Int is not enough to count for
+     * entries. Therefore we make use of a long here. */
+    private val index: AtomicLong = AtomicLong(1)
+
+    /** Thread save manner to obtain a the index for a log entries */
+    private[actors] def getIndex: Long = index.get
+
+    /** Thread save manner to obtain a new index for a log entry */
+    private def getAndIncIndex(): Long = index.getAndIncrement()
+
     /**
-     * Construct an log entry based on the given data and add a timestamp, an index,  a thread
-     * name, timing and actor path name (if available) */
+     * Construct an log entry based on the given data and add a timestamp, an index,  a thread name, timing and
+     * actor path name (if available). Every entry that is created gets a new unique index number, and the level
+     * at which it is created also increases a use counter. */
     def apply(path: String, level: Level, timing: Timing, sourceKind: Kind, sourcePath: String, message: String): Entry =
+      val counter    = level.created()
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
-      new Entry(index,level,timing,timeStamp,threadName,path,sourceKind,sourcePath,message)
+      new Entry(index,level,counter,timing,timeStamp,threadName,path,sourceKind,sourcePath,message)
 
 
     /** Construct a System log entry. This is meant to be used by Leucine itself. */
-    inline def system(message: String): Entry =
+    def system(message: String): Entry =
+      val counter    = Level.System.created()
       val sourcePath = Static.pathInfo(true)
       val sourceKind = Static.kindInfo
       val timeStamp  = getTimeStamp(Timing.Millis)
       val threadName = Thread.currentThread().getName()
-      new Entry(0,Level.System,Timing.Millis,timeStamp,threadName,"",sourceKind,sourcePath,message)
+      new Entry(0,Level.System,counter,Timing.Millis,timeStamp,threadName,"",sourceKind,sourcePath,message)
 
 
   /**

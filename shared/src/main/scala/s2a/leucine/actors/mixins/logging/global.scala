@@ -42,6 +42,9 @@ private object LogGlobal :
   private def holderOpt: Option[LogHolder] = ActorGuard.logger.map(_.logHolder)
 
   /** Get a thread save copy of the global logs and clear the container. */
+  //TODO: We willen de incidents die in deze context gebeuren ook nog ergens melden. WAAR?
+  // Note: De incidents die binnen actors plaatsvinden kunnen met lokale en globale monitors worden gespot.
+  // Waarschijnlijk is het het beste als we deze accumuleren in een AtomicLong, en opvragen via de GlobalMonitor.
   private[actors] def retrieve(): Hold[Entry] = synchronized :
     holderOpt.map(holder =>
       val hold = holder.get
@@ -60,7 +63,7 @@ private object LogGlobal :
     case Some(holder) if !holder.pass(level,actorFilter) => Left(true)
     case Some(holder) =>
       /* Construct the entry on the holder. Note that, due to the fact that this instruction is outside
-       * the synchronization protection below, entries can be places in any order in the holder. */
+       * the synchronization protection below, entries can be placed in any order in the holder. */
       val entry = holder.make(level,kind,path,message)
       /* Add the entry to the log queue if requested to do so. */
       if feed then synchronized { holder.add(entry) }

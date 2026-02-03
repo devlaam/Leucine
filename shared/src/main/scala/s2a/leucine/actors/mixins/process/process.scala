@@ -25,7 +25,7 @@ package s2a.leucine.actors
  **/
 
 
-/* Methods stub for when there is no stash mixin used. */
+/* Methods stub for when there is no process mixin used. */
 private trait ProcessDefs extends BareDefs
 
 /** Mixin if you need to make use of partial functions for the message processing. */

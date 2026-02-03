@@ -35,7 +35,7 @@ object Auxiliary :
   object Rename :
     val empty = Rename("",false)
 
-  /** Use this to silence any warnings of discarded values. */
+  /** Use this to properly convert any type to a type Unit and silence any warnings of discarded values. */
   extension (any: Any)
     inline def toUnit = ()
 

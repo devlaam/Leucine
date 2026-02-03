@@ -51,6 +51,9 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
   /** Holds all trace (for traceFull) entries. */
   private var traces: SortedSet[Trace] = SortedSet.empty
 
+  /** Takes a sample from the number of entries per log level up to now. */
+  private def logs = ActorLogger.Level.sample
+
   /** Holds all triggers, which are entities that get reports after each probe. */
   private var triggers: Set[Trigger] = Set.empty
 
@@ -94,7 +97,7 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
     running = running ++ started
     running.foreach(_.probe())
     running = running -- stopped
-    clearData(triggers.flatMap(_(Probed(samples,posts,traces))).toSet)
+    clearData(triggers.flatMap(_(Probed(samples,posts,traces,logs))).toSet)
 
   /** Tells you the current monitor is global. */
   final def isLocal: Boolean = false
@@ -116,7 +119,7 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
   /**
    * Start the global monitor. You must call this at least once, the global
    * monitor does not start automatically. This can be done for example at the
-   * end of the constructor in the derived class, or at the start of you application. */
+   * end of the constructor in the derived class, or at the start of your application. */
   def start(): Unit = probeStart(true)
 
   /**
@@ -131,11 +134,12 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
    * action is performed outside the the probe loop, data may not be entirely consistent. If this is
    * needed, act upon the Trigger callbacks. This is typically used for small actor systems at the
    * end of the applications lifetime. */
-  def report(writeln: String => Unit, showSamples: Boolean, showPosts: Boolean, showTraces: Boolean): Unit =
+  def report(writeln: String => Unit, showSamples: Boolean, showPosts: Boolean, showTraces: Boolean, showLogs: Boolean): Unit =
     /* Take semi snapshot, note, this may still contain inconsistencies. */
     val samples = this.samples
     val posts   = this.posts
     val traces  = this.traces
+    val logs    = this.logs
     /* Construct a basic String representation from the samples. */
     if showSamples then
       writeln("All Samples:")
@@ -148,6 +152,10 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
     if showTraces then
       writeln("All Traces:")
       traces.foreach(trace => writeln(trace.show))
+    /* Construct a basic String representation for the usage all log levels.*/
+    if showLogs then
+      writeln("All Logs:")
+      logs.foreach((level,counts) => writeln(s"$level: $counts"))
 
 
 object GlobalMonitor :
@@ -158,7 +166,7 @@ object GlobalMonitor :
   type Trigger = Probed => Iterable[Purge]
 
   /** Case class returned to you which contains a snapshot of all collected data. */
-  case class Probed(samples: SortedMap[String,ActorMonitor.Record], posts: SortedMap[Actor.Post,Long], traces: SortedSet[MonitorAid.Trace])
+  case class Probed(samples: SortedMap[String,ActorMonitor.Record], posts: SortedMap[Actor.Post,Long], traces: SortedSet[MonitorAid.Trace], logs: List[(ActorLogger.Level,Long)])
 
   /** Possible cleaning operations after processing the trigger. */
   enum Purge :

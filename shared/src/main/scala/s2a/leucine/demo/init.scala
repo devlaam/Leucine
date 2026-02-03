@@ -45,13 +45,13 @@ object DefaultActorLogger extends ActorLogger, DefaultLoggerSettings :
 
 
 
-// TODO: This version causes a compiler error:
+// This version may cause a compiler error (when trace is included)
 // class MyTestClass(x: Int) :
 //   def this(x: Int, z: String) =
 //     this(x)
-//     DefaultActorLogger.trace()
+//     DefaultActorLogger.trace(withParams = true)
 
-// TODO: This version compiles:
+// This version compiles:
 class MyTestClass(x: Int, z: String = "") :
   DefaultActorLogger.trace(DefaultActorLogger.GroupA)
 

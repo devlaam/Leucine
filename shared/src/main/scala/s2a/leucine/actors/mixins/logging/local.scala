@@ -60,12 +60,14 @@ private object LogLocal :
 
   /** Places a new container (LogHolder) for logs on this thread. */
   private[actors] def fill(logHolder: LogHolder): Unit =
-    assert(threadedHolder.get == null,"No holder should be present when a new one is loaded.")
+    assert(logHolder.isEmpty,"Replaced logHolder should be empty before reuse.")
+    assert(threadedHolder.get == null,"No logHolder should be present when a new one is stored on the thread.")
     threadedHolder.set(logHolder)
 
   /**
    * Try to empty and remove the threadLocal logHolder. Afterwards, the holder is removed from the thread for it
-   * may be reused for other purposes. This can be an actor, but also a future or other manual use. */
+   * may be reused for other purposes. This can be an actor, but also a future or other manual use. Returns the
+   * number of incidents in this run. */
   private[actors] def empty(): Unit =
     /* Get the logHolder for this thread */
     val holder = threadedHolder.get()
@@ -90,7 +92,7 @@ private object LogLocal :
    * Try to make an entry of the log data of the current thread. If the holder is not present, we return
    * Left(false) to indicate we could not handle this call. If the holder is present, but the level is
    * not sufficient for action return Left(true) to indicate the situation has been dealt with. When feed
-   ( is true, the entry will be directly stored on the log queue. Return the required entry instance. */
+   * is true, the entry will be directly stored on the log queue. Return the required entry instance. */
   private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
     /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
     val holder = threadedHolder.get()
