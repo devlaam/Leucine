@@ -37,25 +37,14 @@ private[actors] trait LogDefs extends BareDefs :
  * this trait, logging inside the actor and called instances and methods still work, but each log
  * call synchronizes separately (expensive!), you are unaware in which actor the log call was
  * executed and incidents are not reported on a per-actor basis.  */
-trait LogAid extends ActorInit, ActorDefs :
+trait LogAid(logger: ActorLogger) extends ActorInit, ActorDefs :
   this: BareActor =>
   import ActorLogger.{Level, Timing}
-
-  /** Get the current active logger if defined. */
-  private def activeLogger: Option[ActorLogger] = ActorGuard.logger
-
-  /* Here we get a copy of the level and timing as there are set in the current active logHolder.
-   * These are extracted from the general logger and are not (should not) be changed over time.
-   * We do not use val's here to keep the number of extra objects per actor small. The fallback's
-   * are irrelevant since they will never be used if there is no logger active. */
-  private def fixedPassLevel: Level     = activeLogger.map(_.logHolder.passLevel).getOrElse(Level.System)
-  private def fixedTiming: Timing       = activeLogger.map(_.logHolder.timing).getOrElse(Timing.Recent)
-  private def fixedIncidentLevel: Level = activeLogger.map(_.logHolder.incidentLevel).getOrElse(Level.System)
 
   /* The holder is what we use for collecting log statements in this actor. Since this object is reused every
    * time the actor is rescheduled on the thread, we try to reuse it as much as possible. Its initial settings
    * are copied from the fixed settings. */
-  private var holder = LogHolder(path,fixedPassLevel,fixedIncidentLevel,fixedTiming)
+  private var holder = LogHolder(path,logger.passLevel,logger.incidentLevel,logger.timing)
 
   /**
    * Keeps the actor local logHolder ready for use. If we do not allow for local settings, the actor
@@ -64,7 +53,7 @@ trait LogAid extends ActorInit, ActorDefs :
    * will construct a new logHolder if the settings have changed. Usually that is not very often. */
   private def logHolder: LogHolder =
     /* See if we allow for local settings, if not we can reuse the initial holder (which is current) */
-    if !activeLogger.map(_.localSettings).getOrElse(true) then holder
+    if !logger.localSettings then holder
     /* See if any of the settings have changed, if not we can reuse the current holder */
     else if holder.alike(logPassLevel,logIncidentLevel,logTiming) then holder
     /* In all other situations we must construct a new holder, keep its internals and replace and return.
@@ -76,27 +65,27 @@ trait LogAid extends ActorInit, ActorDefs :
    * Override the global passLevel with a new level for logging for actor local investigation. Note this
    * value is ignored if local settings are not allowed (to be set in the Main Logger Object). If changes
    * are made after actor construction, the will be effective eventually. */
-  protected def logPassLevel: Level = fixedPassLevel
+  protected def logPassLevel: Level = logger.passLevel
 
   /**
    * Override the global incidentLevel with a new level for logging for actor local investigation. Note this
    * value is ignored if local settings are not allowed (to be set in the Main Logger Object). If changes
    * are made after actor construction, the will be effective eventually. */
-  protected def logIncidentLevel: Level = fixedIncidentLevel
+  protected def logIncidentLevel: Level = logger.incidentLevel
 
   /**
    * Override the logTiming with a new timing for logging for actor local investigation. Note this
    * value is ignored if local settings are not allowed (to be set in the Main Logger Object). If changes
    * are made after actor construction, the will be effective eventually. */
-  protected def logTiming: Timing = fixedTiming
+  protected def logTiming: Timing = logger.timing
 
   /* Method to be called just before are the actor is scheduled on a new thread for execution, but
    * before its message queue is processed. It installs a new logHolder that collects all log entries. */
-  private[actors] override def logInit(): Unit = if activeLogger.isDefined then LogLocal.fill(logHolder)
+  private[actors] override def logInit(): Unit = LogLocal.fill(logHolder)
 
   /* Method to be called directly after the message queue is emptied. All acquired log entries will be
    * moved to a central location and the logHolder is emptied and removed from the thread. */
-  private[actors] override def logExit(): Unit = if activeLogger.isDefined then LogLocal.empty()
+  private[actors] override def logExit(): Unit = LogLocal.empty()
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeLogs(): Option[MonitorAid.Logs] = Some(MonitorAid.Logs(holder.getIncidents))

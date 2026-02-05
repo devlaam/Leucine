@@ -24,22 +24,26 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-class Worker :
 
-  /** Counter to generate a unique name for the workers for an actor. */
-  //TODO: This can better be replaced by an AtomicLong (In an Object? No,
-  // because we have globalWorkers and FamilyWorkers. They both have there
-  // own number sequencing by instantiating this Worker Class. )
-  private var _counter: Long = 0L
+/**
+ * Interface for services that need to be started/stopped by the guard. Implement
+ * this in any service you want to put under guards control. You may stop and start
+ * any service monitor at will. */
+trait Service :
 
-  /** Increase the value and get a copy. */
-  private def inc: Long = synchronized {
-    _counter = _counter + 1
-    _counter }
+  /**
+   * Start the service. You must call this at least once, a service does not start
+   * automatically. This can be done for example at the end of the constructor in the derived
+   * class, or at the start of your application. Or, the preferred way, register this service
+   * at the guard, so it can take care of starting and stopping for you. The parameter hello
+   * should be true at first start, so the service may do some special preparation if needed. */
+  def start(hello: Boolean): Unit
 
-  /** Get the number of worker names generated. Local copy, may be outdated. */
-  def size: Long = _counter
-
-  /** Generates a unique name based on this counter */
-  def name(prefix: String): String = s"${prefix}${inc}"
+  /**
+   * Stop the service. the parameter goodbye should be true if you want some special action
+   * before the service stops. Which action that is, depends on the service. Typically this
+   * is when you have no intention to start the service again, for example when yout application
+   * is about to terminate. If the service is registered at the guard, the guard will take care
+   * of this. */
+  def stop(goodbye: Boolean): Unit
 

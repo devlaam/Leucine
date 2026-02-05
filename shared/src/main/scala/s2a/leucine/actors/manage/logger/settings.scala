@@ -24,6 +24,148 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import scala.concurrent.duration.{FiniteDuration, DurationInt}
+
+/**
+ * Setting definitions for the ActorLogger. You must implement these settings
+ * and methods to get a working logger. This can be done by making use of on of
+ * the predefined traits. */
+trait ActorLoggerSettings :
+  import ActorLogger.{Level, Timing, Entry, ShowGroups}
+
+  /**
+   * FixLevel defines the logging level used at compile time. Regular log statements with a higher
+   * level will to removed from the code at compile time. Use this for example to eliminate info and
+   * debug log messages by setting it to Level.Warn for a production release. */
+  type FixPassLevel <: Level
+
+  /**
+   * DirectSpool can be set to true if you want to directly receive the log entries without making
+   * use of the per thread collectors. Sometimes this can be handy to zoom in on a critical bug
+   * or if you have your own threaded log handler. */
+  type DirectSpool <: Boolean
+
+  /**
+   * Log entries contain information about the origin of their use (objects, classes and methods). With
+   * FullPath to true these will contain full class paths. This can be handy, but also make to logging
+   * bulky. Set to false for concise naming. Setting is effective at compile time, is system wide and
+   * cannot be superseded by a local setting. */
+  type FullPath <: Boolean
+
+  /**
+   * Traces contain the parameters and their values of their origin when FullParameters is set to true.
+   * Even more than with FullPath, this can become very bulky. If set to false, each parameter is replaced
+   * by a dot. The setting is used when no local preference is given. The latter will supersede this value.
+   * Setting only influences the logging at the level Trace. */
+  type FullParameters <: Boolean
+
+  /**
+   * If you need to log confidential data, for example during testing, you can use the info and beta level
+   * logs with an optional confidential message and public message. Set ShowConfidential to true to see the
+   * former, and to false the latter. The latter setting should be the default for a production release.  */
+  type ShowConfidential <: Boolean
+
+  /**
+   * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
+   * call will generate a log entry for debug. Normally this is set to true, but by setting it to false, you
+   * can focus on the special group enabled debug log entries. Elimination is done at compile time */
+  type GroupDebugDefault <: Boolean
+
+  /**
+   * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
+   * call will generate a log entry for trace. Normally this is set to true, but by setting it to false, you
+   * can focus on the special group enabled trace log entries. Elimination is done at compile time */
+  type GroupTraceDefault <: Boolean
+
+  /**
+   * Each log entry contains information about its source, objects, classes and methods. Implement this filter so
+   * you can zoom in on particular log entries by inspecting the path. It is a run time filter that works for all
+   * levels. However, if a fatal event appears, the special call handleFatal will nevertheless be used, even
+   * if you block the corresponding  entry here. The passed path depends on the setting of FullPath. Return true
+   * to allow for the entry, return false to block it. If there is no need for this functionality, just return true.
+   * Implementation is obligatory, even if unused. */
+  def sourcePathFilter(level: Level, path: String): Boolean
+
+  /**
+   * Log entries that are made inside the execution of an actor (can be any class or object) contains information
+   * about its actor name/path. With this filter you can zoom in on particular log entries by inspecting the path.
+   * It is a run time filter that works for all levels. However, if a fatal event appears, the special call
+   * handleFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
+   * for the entry, return false to block it. If there is no need for this functionality, just return true.
+   * Implementation is obligatory, even if unused. */
+  def actorPathFilter(level: Level, path: String): Boolean
+
+  /**
+   * Special purpose group that is part of all logging groups. Supply as parameter for the debug or trace call to
+   * ensure the entry passes for every setting of showGroups and GroupDebugDefault or GroupTraceDefault. */
+  final transparent inline def AllGroups = ActorLogger.AllGroups
+
+  /**
+   * Implement this method with the **identical signature** to define the groups to be show in the logging which
+   * have a membership group defined. Make use of the ShowGroups class to set the groups. Implement as follows:
+   * - Two pass entries for the groups (defined as objects) with names MyFirstGroup and MySecondGroup:
+   *   transparent inline def showGroups: ShowGroups((MyFirstGroup,MySecondGroup))
+   * - Two pass entries for only one group:
+   *   transparent inline def showGroups: ShowGroups((MySecondGroup))
+   * - To block all self defined groups:
+   *   transparent inline def showGroups: ShowGroups(())
+   * You also use the latter syntax if the group selection is not needed. See  ShowGroups for more
+   * documentation. Implementation is obligatory, even if unused. */
+  transparent inline def showGroups: ShowGroups[?]
+
+  /**
+   * This must be implemented with a method that spools the log entries to the process method.
+   * The log entries can be obtained with a call to retrieve(). See the different examples for
+   * possible implementations. Spool is called by Leucine on a regular basis to offload the log
+   * entries from the actor framework to you logging framework. The parameter completed will be
+   * true upon the very last call. Note that your implementation must be protected against
+   * concurrent entry. This is because each call with uses retrieve which provides each log entry
+   * only once. Concurrent entry will not fail, but most likely mixes up the order in weird ways.*/
+  def spool(completed: Boolean): Unit
+
+  /**
+   * Set localSettings to true to allow for changes in logging level and timing within the actors.
+   * Usually, this is only relevant while developing. In deployment you want these settings to be
+   * equal throughout the whole application. Setting this to false makes that so, without have
+   * to revisit all logging code lines. */
+  def localSettings: Boolean
+
+  /**
+   * Define the max number of logs allowed before spooling must start. Do not make this value
+   * to low, since it every time logs are spooled, they interfere if even ever so slightly,
+   * with the actor processing. Realistic values depend on the number of log statements in
+   * you code, but 20 to 100 should be considered as realistic lower bounds. Note that logs
+   * are also periodically spooled. So this number is effective only if the number of logs
+   * builds up quickly in between. */
+  def maxLogs: Int
+
+  /**
+   * Define how often you want the logs be spooled. Note that this defines a upper bound.
+   * Spools may occur sooner for several reasons, for example if the maxLogs are reached
+   * or if the application is about to terminate. */
+  def spoolInterval: FiniteDuration
+
+  /** Define the default active logging level (see ActorLogger.Level for documentation) */
+  def passLevel: Level
+
+  /**
+   * Level (equal and) above which the log event is counted as incident. */
+  def incidentLevel: Level
+
+  /** Define the default active logging level (see ActorLogger.Timing for documentation) */
+  def timing: Timing
+
+  /**
+   * This method is called for every log entry when the entries are spooled. Note that the implementation
+   * must be re-entrant and thread save. If you correctly implemented spool() you may expect strict
+   * sequential access to process, but each access can originate from an other thread. */
+  def process(entry: Entry): Unit
+
+  /**
+   * Implement a handler for the event a fatal situation occurs. Note that the implementation must be
+   * re-entrant and thread save. This method is not guaranteed to be strictly sequential. */
+  def handleFatal(message: String): Unit
+
 
 /**
  * Default logger settings you may use for your application in production.
@@ -57,6 +199,9 @@ trait ProductionLoggerSettings :
 
   /** During production we do not closely follow the log production. */
   val maxLogs = 100
+
+  /** During production we do not closely follow the log production. */
+  val spoolInterval = 1.minute
 
   /** During production second level accuracy suffices. This is more efficient. */
   val timing: Timing = Timing.Recent
@@ -105,6 +250,9 @@ trait BetaTestLoggerSettings :
   /** During beta testing we do not closely follow the log production. */
   val maxLogs = 100
 
+  /** During production we do not closely follow the log production. */
+  val spoolInterval = 1.minute
+
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
   val timing: Timing = Timing.Millis
 
@@ -150,6 +298,9 @@ trait DevelopmentLoggerSettings :
 
   /** Set the number of maxLogs low, so we have responsive logging. */
   val maxLogs = 10
+
+  /** Set the time between spools low, so we have responsive logging. */
+  val spoolInterval = 5.seconds
 
   /** Set timing to Nanos to have accurate log entries. */
   val timing: Timing = Timing.Nanos

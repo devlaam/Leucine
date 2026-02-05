@@ -54,20 +54,8 @@ object ActorGuard :
   /** Keep the handler for unhandled messages */
   private var posted: Option[Actor.Post => Unit] = None
 
-  /** Holds your logger. Can be set only once. */
-  private var actorLogger: Option[ActorLogger] = None
-
-  /**
-   * Load a custom logger. This is only possible when actors are not active and no
-   * logger was loaded yet. This can only be done once, so do this at the very start
-   * of your application. */
-  private[actors] def logger_=(logger: ActorLogger): Unit = synchronized {
-    if actorLogger.isEmpty && actors.isEmpty then
-      println("*** ActorLogger Defined")
-      actorLogger = Some(logger) }
-
-  /** See which actorLogger is active. */
-  private[actors] def logger: Option[ActorLogger] = actorLogger
+  /** Contains all services that the guard will manage. */
+  private var services: Set[Service] = Set.empty
 
   /** Add or remove an actor to the needle dropping for silence detection. */
   private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
@@ -108,8 +96,8 @@ object ActorGuard :
     else silent.foreach(_.dropNeedle(true))
     /* Finally we are really terminated if we were allowed to terminate and there were no haltables left. */
     val result = mayTerminate && haltables.isEmpty
-    /* Spool the collected logs so far. This routine may want to know if we are done */
-    actorLogger.foreach(x => { println(s"*** from guard => spool($result)"); x.spool(result) })
+    /* Stop all services if we have reached the end. */
+    if result then services.foreach(_.stop(true))
     /* Return the result of allTerminated */
     result
 
@@ -144,8 +132,7 @@ object ActorGuard :
    * prematurely. The post handler can be called in any context, so the execution should
    * be very brief. It is for logging, or post processing by sending it to an other actor.
    * Nothing more. Define this handler at the beginning of your application and make sure
-   * it is only defined once.
-   **/
+   * it is only defined once.  */
   def failed(post: Actor.Post => Unit): Unit = posted = Some(post)
 
   /**
@@ -154,6 +141,11 @@ object ActorGuard :
    * already inside a family actor, it is more efficient to search just that tree. */
   def get(path: String)(using context: ActorContext): Option[Actor] = FamilyParent.searchFor(path,context.familyPathSeparator,index)
 
+  /**
+   * Register a service to put it under guard control. This implies that the guard will start them
+   * as soon as you call watch, and stops them after all the actors have finished. In the former
+   * case start will be called with hello=true and in the latter case with goodbye=true. */
+  def register(service: Service): Unit = services += service
 
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are
@@ -167,6 +159,8 @@ object ActorGuard :
    * manually. The function complete() is called after all actors have stopped. Calling the watch method
    * may be needed to start the actor system  depending on the platform. */
   def watch(force: Boolean, pollInterval: FiniteDuration, complete: () => Unit = () => ())(using context: ActorContext): Unit =
+    /* Start all services */
+    services.foreach(_.start(true))
     /* Make sure we wait at least one second. */
     val pollLimited = pollInterval max 1.second
     /* Now, wait for the system to complete by polling allTerminated. At completion call the complete handler. */

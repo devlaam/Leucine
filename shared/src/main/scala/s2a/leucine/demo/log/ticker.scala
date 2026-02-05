@@ -44,7 +44,7 @@ class TestHandler(s: String) :
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)), LogAid :
+class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)), LogAid(DefaultActorLogger) :
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
 

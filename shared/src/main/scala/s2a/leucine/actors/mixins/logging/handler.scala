@@ -33,6 +33,7 @@ import scala.compiletime.constValue
 private trait LogHandler :
   import ActorLogger.{Entry, Level, Ordinal, ShowGroups, GroupBase}
   import Static.{Kind, kindInfo, pathInfo, callInfo}
+  import LogHolder.ActorFilter
 
   /* FixLevel defines the logging level used at compile time. */
   type FixPassLevel <: Level
@@ -64,6 +65,8 @@ private trait LogHandler :
   /* Method that returns which debug/trace groups may be shown. */
   transparent inline def showGroups: ShowGroups[?]
 
+  protected def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry]
+
   // TODO: why can't i refactor this using inline val fixLevel = constValue[Ordinal[FixLevel]]
   // here with fixLevel as substitute for the expression on the method feed?? This leads to an
   // inlining error
@@ -85,8 +88,8 @@ private trait LogHandler :
       if sourcePathFilter(level,path) then
         /* Now, construct and feed if needed the log entry directly to the process handler or to the log queue */
         inline if direct
-          then LogHolder.entry(false,level,actorPathFilter,kind,path,message).foreach(process)
-          else LogHolder.entry(true,level,actorPathFilter,kind,path,message).foreach(trySpool)
+          then entry(false,level,actorPathFilter,kind,path,message).foreach(process)
+          else entry(true,level,actorPathFilter,kind,path,message).foreach(trySpool)
 
   /** This method is called for every log entry when the entries are spooled. */
   def process(entry: Entry): Unit
@@ -98,8 +101,26 @@ private trait LogHandler :
   def handleFatal(message: String): Unit
 
   /**
+   * Make lazy (delayed) log entry with level System (see ActorLogger.Level for documentation on the level).
+   * For use with logs from Leucine itself. Cannot be suppressed by setting a level value. */
+  //private[actors] def system(message: => String)(using ValueOf[DirectSpool],ValueOf[FullPath]): Unit =
+  private[actors] def system(direct: Boolean, message: => String): Unit =
+    // Dit gaat niet werken
+    //feed(Level.System,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    //feed(Level.System,kindInfo,pathInfo(valueOf[FullPath]),valueOf[DirectSpool],message)
+    // Dus de vraag is, wat moeten we hiermee? Vanuit het systeem zelf kun je eigenlijk niet fatsoenlijk
+    // logs aanmaken, omdat je niet bij het courante logger kan. Daarnaast is veel van de info niet relevant
+    // (er is geen actorPath, wat moet je met het sourcePatn, kind heeft ook geen zin.
+    // Misshien is het beter het huidige traceln aan te vullen van ee infoln en die beschikbaar te stellen
+    // voor de gebruiker om door te koppellen indien nodig. Het onderstaan kan hiervoor een begin zijn.
+    // We willen er nu niet te lang mee bezig zijn.
+    if direct
+    then entry(false,Level.System,(_,_) => true,Static.Object,"",message).foreach(process)
+    else entry(true,Level.System,(_,_) => true,Static.Object,"",message).foreach(trySpool)
+
+  /**
    * Make lazy (delayed) log entry with level Fatal (see ActorLogger.Level for documentation on the level).
-   * This call is eliminated from the code when FixLevel is set to Ignore. */
+   * This call is eliminated from the code when FixLevel is set to System. */
   inline def fatal(message: => String): Unit =
     feed(Level.Fatal,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
 

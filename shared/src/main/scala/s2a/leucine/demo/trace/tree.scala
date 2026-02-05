@@ -30,7 +30,7 @@ import s2a.leucine.actors.*
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(globalMonitor), LogAid :
+class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(Monitor), LogAid(DefaultActorLogger) :
   import Auxiliary.toUnit
 
   /* Write the results of this actor to the console. */

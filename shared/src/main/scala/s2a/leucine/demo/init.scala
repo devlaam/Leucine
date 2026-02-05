@@ -69,6 +69,8 @@ object Init extends LogInfo:
 
   @main
   def main(): Unit =
+    ActorGuard.register(DefaultActorLogger)
+    ActorGuard.register(Monitor)
     DefaultActorLogger.trace(DefaultActorLogger.AllGroups)
     DefaultActorLogger.info("===> Main called")
     /* Welcome message */

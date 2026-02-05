@@ -28,7 +28,7 @@ import scala.collection.immutable.{SortedMap, SortedSet}
 
 
 /** Extend and Instantiate this class to get a custom made monitor */
-abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
+abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor, Service :
   import GlobalMonitor.{Probed, Purge, Trigger}
   import ActorMonitor.Record
   import MonitorAid.{Trace, Sample}
@@ -57,14 +57,17 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
   /** Holds all triggers, which are entities that get reports after each probe. */
   private var triggers: Set[Trigger] = Set.empty
 
-  /* Separate object to synchronize started/stopped actors. */
-  private val guard: Object = new Object
+  /* Separate object to synchronize starting/stopping actor mutations on started/stopped */
+  private val actorGuard: Object = new Object
+
+  /* Separate object to synchronize making probes. These should be strictly sequential. */
+  private val probeGuard: Object = new Object
 
   /** Add one actor to the actors map to be monitored. */
-  private[actors] def addActor(actor: ProbableActor): Unit = guard.synchronized { started = actor :: started }
+  private[actors] def addActor(actor: ProbableActor): Unit = actorGuard.synchronized { started = actor :: started }
 
   /** Delete one actor to the actors map, will not be monitored any longer */
-  private[actors] def delActor(actor: ProbableActor): Unit = guard.synchronized { stopped = actor :: stopped }
+  private[actors] def delActor(actor: ProbableActor): Unit = actorGuard.synchronized { stopped = actor :: stopped }
 
   /** Update the samples gathered from the specific actor. */
   private[actors] def setSamples(path: String, gathered: List[Sample]): Unit = samples = samples.updatedWith(path)(_.map(_.probe(gathered)))
@@ -85,13 +88,18 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
     else if purges.contains(Purge.Inactive)  then samples = samples.filter( (_,r) => r.active)
     else if purges.contains(Purge.Workers)   then samples = samples.filter( (_,r) => !r.worker || r.active)
 
-  /** Copy the traces and collect the samples of all enabled actors. */
-  private[actors] protected def probeNow(): Unit =
-    val (started,stopped) = guard.synchronized {
+  /**
+   * Copy the traces and collect the samples of all enabled actors. Calls to probeNow must be strictly sequential
+   * and are therefore protected by a synchronization call. */
+  private[actors] protected def probeNow(): Unit = probeGuard.synchronized :
+    /* During the probing we do not want have mutations on the actors. If any actors are added, we handle them
+     * next time. So we make a copy of all actors added and removed as quickly as possible, and use this copy
+     * for further investigations. */
+    val (started,stopped) = actorGuard.synchronized :
       val result = (this.started,this.stopped)
       this.started = Nil
       this.stopped = Nil
-      result }
+      result
     started.foreach(actor => samples = samples.updatedWith(actor.path)(_.map(_.inc).orElse(Record.start(actor.isWorker))))
     stopped.foreach(actor => samples = samples.updatedWith(actor.path)(_.map(_.off)))
     running = running ++ started
@@ -108,26 +116,29 @@ abstract class GlobalMonitor(using context: ActorContext) extends ActorMonitor :
    * containing the latest snapshot of data. Each trigger may return one or more purge flags to
    * cleanup the collected data in the monitor. The combination of these flags (or-ed) is applied.
    * If tracing is active, it is advised to at least clear all tracing each time. */
-  def register(trigger: Trigger): Unit = guard.synchronized { triggers += trigger }
+  def register(trigger: Trigger): Unit = actorGuard.synchronized { triggers += trigger }
 
   /** Remove one or more triggers from the trigger set. */
-  def remove(trigger: Trigger *): Unit = guard.synchronized { triggers --= trigger }
+  def remove(trigger: Trigger *): Unit = actorGuard.synchronized { triggers --= trigger }
 
   /** Remove all triggers from the trigger set. */
-  def removeAll(): Unit = guard.synchronized { triggers = Set.empty }
+  def removeAll(): Unit = actorGuard.synchronized { triggers = Set.empty }
 
   /**
-   * Start the global monitor. You must call this at least once, the global
-   * monitor does not start automatically. This can be done for example at the
-   * end of the constructor in the derived class, or at the start of your application. */
-  def start(): Unit = probeStart(true)
+   * Start the global monitor. You must call this at least once, the global monitor does not start
+   * automatically. This can be done for example at the end of the constructor in the derived class,
+   * or at the start of your application. Or you must register your defined monitor to the ActorGuard,
+   * so it can take care of its lifetime management. The latter is the preferred way, if you make
+   * use of ActorGuard.watch. You still can stop and restart the monitor by hand in between if needed.
+   * The parameter hello should be true upon first start. */
+  def start(hello: Boolean): Unit = probeStart(hello)
 
   /**
-   * Stop the global monitor. You may stop and start the global monitor at will, which
-   * can be useful to catch a specific part of the action and not get overwhelmed by
-   * the trace data. The parameter withProbe determines if you want to make a final
-   * last probe. */
-  def stop(withProbe: Boolean): Unit = probeStop(withProbe)
+   * Stop the global monitor. You may stop and start the global monitor at will, which can be useful to
+   * catch a specific part of the action and not get overwhelmed by the trace data. The parameter
+   * goodbye should be true upon last stop (for a final last probe). Also here, if the monitor is
+   * registered at the ActorGuard, it will take care of stopping it at application termination. */
+  def stop(goodbye: Boolean): Unit = probeStop(goodbye)
 
   /**
    * Create a full report to a given string writer. Contains only the present data. Note, since this

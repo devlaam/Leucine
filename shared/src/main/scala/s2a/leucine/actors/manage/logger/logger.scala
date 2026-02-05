@@ -32,170 +32,103 @@ import scala.annotation.nowarn
  * Basic interface for each custom ActorLogger. You must at least implement the last
  * method of this interface and the FixLevel to get your logger running. See the
  * DefaultActorLogger object for an example. */
-trait ActorLogger(using context: ActorContext) extends LogHandler :
-  import ActorLogger.{Level, Timing, Entry, ShowGroups}
-  import LogHolder.Hold
-
-  /**
-   * FixLevel defines the logging level used at compile time. Regular log statements with a higher
-   * level will to removed from the code at compile time. Use this for example to eliminate info and
-   * debug log messages by setting it to Level.Warn for a production release. */
-  type FixPassLevel <: Level
-
-  /**
-   * DirectSpool can be set to true if you want to directly receive the log entries without making
-   * use of the per thread collectors. Sometimes this can be handy to zoom in on a critical bug
-   * or if you have your own threaded log handler. */
-  type DirectSpool <: Boolean
-
-  /**
-   * Log entries contain information about the origin of their use (objects, classes and methods). With
-   * FullPath to true these will contain full class paths. This can be handy, but also make to logging
-   * bulky. Set to false for concise naming. Setting is effective at compile time, is system wide and
-   * cannot be superseded by a local setting. */
-  type FullPath <: Boolean
-
-  /**
-   * Traces contain the parameters and their values of their origin when FullParameters is set to true.
-   * Even more than with FullPath, this can become very bulky. If set to false, each parameter is replaced
-   * by a dot. The setting is used when no local preference is given. The latter will supersede this value.
-   * Setting only influences the logging at the level Trace. */
-  type FullParameters <: Boolean
-
-  /**
-   * If you need to log confidential data, for example during testing, you can use the info and beta level
-   * logs with an optional confidential message and public message. Set ShowConfidential to true to see the
-   * former, and to false the latter. The latter setting should be the default for a production release.  */
-  type ShowConfidential <: Boolean
-
-  /**
-   * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
-   * call will generate a log entry for debug. Normally this is set to true, but by setting it to false, you
-   * can focus on the special group enabled debug log entries. Elimination is done at compile time */
-  type GroupDebugDefault <: Boolean
-
-  /**
-   * Debug and Trace log methods can be made part of a group. When not, this setting defines if the particular
-   * call will generate a log entry for trace. Normally this is set to true, but by setting it to false, you
-   * can focus on the special group enabled trace log entries. Elimination is done at compile time */
-  type GroupTraceDefault <: Boolean
-
-  /**
-   * Each log entry contains information about its source, objects, classes and methods. Implement this filter so
-   * you can zoom in on particular log entries by inspecting the path. It is a run time filter that works for all
-   * levels. However, if a fatal event appears, the special call handleFatal will nevertheless be used, even
-   * if you block the corresponding  entry here. The passed path depends on the setting of FullPath. Return true
-   * to allow for the entry, return false to block it. If there is no need for this functionality, just return true.
-   * Implementation is obligatory, even if unused. */
-  def sourcePathFilter(level: Level, path: String): Boolean
-
-  /**
-   * Log entries that are made inside the execution of an actor (can be any class or object) contains information
-   * about its actor name/path. With this filter you can zoom in on particular log entries by inspecting the path.
-   * It is a run time filter that works for all levels. However, if a fatal event appears, the special call
-   * handleFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
-   * for the entry, return false to block it. If there is no need for this functionality, just return true.
-   * Implementation is obligatory, even if unused. */
-  def actorPathFilter(level: Level, path: String): Boolean
-
-  /**
-   * Special purpose group that is part of all logging groups. Supply as parameter for the debug or trace call to
-   * ensure the entry passes for every setting of showGroups and GroupDebugDefault or GroupTraceDefault. */
-  final transparent inline def AllGroups = ActorLogger.AllGroups
-
-  /**
-   * Implement this method with the **identical signature** to define the groups to be show in the logging which
-   * have a membership group defined. Make use of the ShowGroups class to set the groups. Implement as follows:
-   * - Two pass entries for the groups (defined as objects) with names MyFirstGroup and MySecondGroup:
-   *   transparent inline def showGroups: ShowGroups((MyFirstGroup,MySecondGroup))
-   * - Two pass entries for only one group:
-   *   transparent inline def showGroups: ShowGroups((MySecondGroup))
-   * - To block all self defined groups:
-   *   transparent inline def showGroups: ShowGroups(())
-   * You also use the latter syntax if the group selection is not needed. See  ShowGroups for more
-   * documentation. Implementation is obligatory, even if unused. */
-  transparent inline def showGroups: ShowGroups[?]
+trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSettings, Service :
+  import ActorLogger.{Level, Entry}
+  import LogHolder.{Hold, ActorFilter}
+  import Static.Kind
 
   /* Keep an lower bound of the index since the last retrieve. Note that we must synchronize
-   * since longs are not atomic with respect to read/write in Java (others are, except doubles) */
-  private var lastIndex: Long = 0
+   * since bare longs are not atomic with respect to read/write in Java (others are, except doubles) */
+  private val lastIndex: AtomicLong = AtomicLong(0L)
 
-  /* Contains the logHolder for the main and other threads without local logHolders. */
-  private[actors] lazy val logHolder = LogHolder("",passLevel,incidentLevel,timing)
+  /* A timer is used to schedule the regular log spool actions. This is defined lazy for the
+   * spoolInterval will not yet be available at this part of the object construction. */
+  private lazy val timer: Timer = Timer(spoolInterval,action)
+
+  /* Contains the logHolder for the main and other threads without local logHolders. (non top
+   * level objects are lazy, so we have the correct values here, this works) */
+  private object LogGlobal extends LogGlobal(LogHolder("",passLevel,incidentLevel,timing))
+
+  /**
+   * Make a new log entry of the current thread, if that thread has an active local container. If not,
+   * the entry is created by the global container. Returns the constructed entry for further processing.
+   * If feed is true, the entry will be directly stored on the log queue. If not, the entry will only be
+   * constructed on the holder, and you are responsible for further processing. */
+  protected def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
+    /* Try to construct the entry on the thread local container */
+    LogLocal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
+      /* This was a success, return the entry */
+      case Right(entry) => Some(entry)
+      /* The container was there but the entry could not be made due to insufficient log level. */
+      case Left(true)   => None
+      /* The container was not there, we must try the global container. */
+      case Left(false)  => LogGlobal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
+        /* This was a success, return the entry */
+        case Right(entry) => Some(entry)
+        /* The entry could not be made due to insufficient log level or absent global logger. */
+        case Left(_)      => None
+
 
   /** Test if we have enough new logs for spooling, entry should be the last or recently produced. */
   private[actors] def trySpool(entry: Entry): Unit =
-    val size = synchronized { entry.index - lastIndex }
+    val size = entry.index - lastIndex.get
     if size > maxLogs then
       println("*** from trySpool => spool")
       context.deferred(spool(false))
 
   /**
-   * Manually retrieve and clear the log entries collected since the last retrieve.
-   * Make a new recent time stamp and record the last index. */
+   * Manually retrieve and clear the log entries collected since the last retrieve. Make a new recent
+   * time stamp and record the last index. You must make sure yourself that you are not calling this
+   * method concurrently. However, since this is solely called within spool handling, and that method
+   * must also obey that restriction, we do not protect it here. */
   final def retrieve(): Hold[List[Entry]] =
     /* Update the recent time stamp. Note this is done before retrieving, which may lead
      * to some generated log entries to have the new timestamp. Since their log
      * timestamps are in fact closer to this moment, that is no problem. */
     ActorLogger.updateRecent()
-    /* Get an the current value of the log index. Note, immediately after the call the value
+    /* Store the current value of the log index. Note, immediately after the call the value
      * is already outdated, so if we base an estimation about the number of none processed
      * log entries on this number it will be to high. However, that is better than the opposite
      * since this number is used to call for intermediate spooling if the periodic calls from
      * the guard are insufficient.  */
-    val currIndex = ActorLogger.Entry.getIndex
-    synchronized { lastIndex = currIndex }
-    /* Get the data, clear the collection, return the result. This call is synchronized
-     * at the definition side. */
-    LogHolder.retrieve()
+    lastIndex.set(ActorLogger.Entry.getIndex)
+    /* Get the data, clear the collection, return the result. */
+    LogGlobal.retrieve() + LogLocal.retrieve()
+
+
+  private[actors] protected def action(): Unit = context.deferred(spool(false))
+
+  // Het type DirectSpool vervangen door een final val. Dat kan, en dan kunnen we er ook
+  // runtime by.
+  // verder moeten we de timers niet starten bij dSpool = true.
+  def dSpool: Boolean = false
 
   /**
-   * This must be implemented with a method that spools the log entries to the process method.
-   * The log entries can be obtained with a call to retrieve(). See the different examples for
-   * possible implementations. Spool is called by Leucine on a regular basis to offload the log
-   * entries from the actor framework to you logging framework. The parameter completed will be
-   * true upon the very last call. */
-  def spool(completed: Boolean): Unit
+   * Start the logger. You must call this at least once, the logger does not start spooling automatically.
+   * If you log direct (no spooling) this is not needed. It can be done for example at the end of the
+   * constructor in the derived class or at the start of your application. Or you must register your
+   * logger to the ActorGuard, so it can take care of its lifetime management. The latter is the preferred
+   * way, if you make use of ActorGuard.watch. You still can stop and restart the logger by hand in between
+   * if needed. The parameter hello should be true upon first start. */
+  def start(hello: Boolean): Unit =
+    /* Report that logging has started. Note that this does not imply this is the first entry,
+     * only that we started spooling of the logs on a regular basis. */
+    system(dSpool,"Logger started.")
+    /* Start the logging spool timer. Most likely there are already a lot of start up messages.
+     * In order to get them into the open as quickly as possible we copy hello (guard makes it so) */
+    timer.start(hello)
 
   /**
-   * Set localSettings to true to allow for changes in logging level and timing within the actors.
-   * Usually, this is only relevant while developing. In deployment you want these settings to be
-   * equal throughout the whole application. Setting this to false makes that so, without have
-   * to revisit all logging code lines. */
-  def localSettings: Boolean
-
-  /**
-   * Define the max number of logs allowed before spooling must start. Do not make this value
-   * to low, since it every time logs are spooled, they interfere if even ever so slightly,
-   * with the actor processing. Realistic values depend on the number of log statements in
-   * you code, but 20 to 100 should be considered as realistic lower bounds. Note that logs
-   * are also periodically spooled. So this number is effective only if the number of logs
-   * builds up quickly in between. */
-  def maxLogs: Int
-
-  /** Define the default active logging level (see ActorLogger.Level for documentation) */
-  def passLevel: Level
-
-  /**
-   * Level (equal and) above which the log event is counted as incident. */
-  def incidentLevel: Level
-
-  /** Define the default active logging level (see ActorLogger.Timing for documentation) */
-  def timing: Timing
-
-  /**
-   * This method is called for every log entry when the entries are spooled. Note that the implementation
-   * must be re-entrant and thread save. */
-  def process(entry: Entry): Unit
-
-  /**
-   * Implement a handler for the event a fatal situation occurs. Note that the implementation must be
-   * re-entrant and thread save. */
-  def handleFatal(message: String): Unit
-
-  /* As soon as this trait is instantiated, make sure the ActorGuard is aware. Note
-   * that you should instantiate this trait only once, the second time will be ignored. */
-  ActorGuard.logger = this
+   * Stop the logger. You may stop and start the logger at will, which can be useful to catch a specific
+   * part of the action and not get overwhelmed by the other log data. The parameter goodbye should be true
+   * upon the final stop (for a final last spool). Also here, if the logger is registered at the ActorGuard,
+   * it will take care of stopping it at application termination. */
+  def stop(goodbye: Boolean): Unit =
+    /* Report that logging has stopped. Usually this does imply this is the last entry since all
+     * actors are inactive now. */
+    system(dSpool,"Logger stopped.")
+    if goodbye then spool(true)
+    timer.stop(false)
 
 
 /**
@@ -393,7 +326,7 @@ object ActorLogger  :
 
     /**
      * Take a sample from all level creations. Note, the samples are taken sequentially and
-     * may not represent the number of creations at one single moment of time. */
+     * may not represent the number of creations at one single moment in time. */
     def sample: List[(Level,Long)] = allLevels.map(level => (level,level.creations))
 
   /**
@@ -449,7 +382,7 @@ object ActorLogger  :
       val date   = Date(timestamp / 1000000)
       val indexStr  = s"%${2}s".format(index)
       val levelStr  = s"%${5}s".format(level)
-      val countStr  = s"%${2}s".format(index)
+      val countStr  = counter.toString
       val yearStr   = f"${date.getYear() + 1900}%04d"
       val monthStr  = f"${date.getMonth() + 1}%02d"
       val datumStr  = f"${date.getDate()}%02d"
@@ -463,8 +396,8 @@ object ActorLogger  :
         case Timing.Nanos  => f".$nanos%09d"
       val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
       if level < Level.Trace
-      then s"LOG($indexStr; $levelStr; #($countStr); $dtStr; thread($threadName); actor($actorName); $source($sourcePath); $message)"
-      else s"LOG($indexStr; $levelStr; #($countStr); $dtStr; thread($threadName); actor($actorName); $source; $message"
+      then s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName); actor($actorName); $source($sourcePath); $message)"
+      else s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName); actor($actorName); $source; $message"
 
   object Entry :
 
@@ -485,20 +418,11 @@ object ActorLogger  :
      * at which it is created also increases a use counter. */
     def apply(path: String, level: Level, timing: Timing, sourceKind: Kind, sourcePath: String, message: String): Entry =
       val counter    = level.created()
+      if level == Level.System then println(s"JA ==> Level.System($counter)=$message")
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
       new Entry(index,level,counter,timing,timeStamp,threadName,path,sourceKind,sourcePath,message)
-
-
-    /** Construct a System log entry. This is meant to be used by Leucine itself. */
-    def system(message: String): Entry =
-      val counter    = Level.System.created()
-      val sourcePath = Static.pathInfo(true)
-      val sourceKind = Static.kindInfo
-      val timeStamp  = getTimeStamp(Timing.Millis)
-      val threadName = Thread.currentThread().getName()
-      new Entry(0,Level.System,counter,Timing.Millis,timeStamp,threadName,"",sourceKind,sourcePath,message)
 
 
   /**

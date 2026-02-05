@@ -30,10 +30,7 @@ import java.lang.ThreadLocal
 private object LogLocal :
   import ActorLogger.{Level, Entry}
   import Static.Kind
-  import LogHolder.{Hold, ActorFilter}
-
-  private inline val minStart = Long.MaxValue
-  private inline val maxStart = 0
+  import LogHolder.{Hold, ActorFilter, minStart, maxStart}
 
   private var min: Long = minStart
   private var max: Long = maxStart
@@ -43,10 +40,12 @@ private object LogLocal :
 
   println(s"*** accuEntries = ${accuEntries}")
 
-  /** Add some entries to the full collection. */
+  /**
+   * Add some entries to the full collection. This method is synchronized since it may be called
+   * from different threads. */
   private def addToAccu(entries: List[Entry]): Unit = synchronized { accuEntries ::= entries }
 
-  /** Get a thread save copy of all local logs and clear the container */
+  /** Get a thread save copy of all local logs and clear the container. */
   private[actors] def retrieve(): Hold[List[Entry]] = synchronized :
     val copy = Hold[List[Entry]](min,accuEntries,max)
     min = minStart
@@ -96,9 +95,9 @@ private object LogLocal :
   private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
     /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
     val holder = threadedHolder.get()
-    /* If so, we do not have a container and we must try the globalHolder as fallback (thus we return false.
-     * Otherwise we use the obtained holder for thread local handling. Since we
-     * are in this thread, no synchronize needed. */
+    /* If so, we do not have a container and we must try the globalHolder as fallback (thus we return false).
+     * Otherwise we use the obtained holder for thread local handling. Since we are always in one thread, (for
+     * empty, which removes data and entry which adds data) synchronize is not needed. */
     if holder == null then Left(false) else
       if !holder.pass(level,actorFilter) then Left(true) else
         /* Construct the entry on the holder. */

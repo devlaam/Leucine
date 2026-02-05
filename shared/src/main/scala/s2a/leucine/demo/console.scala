@@ -31,7 +31,7 @@ import s2a.leucine.actors.*
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends AcceptActor(Console,!#), TimingAid, LogAid :
+private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(DefaultActorLogger) :
   import Auxiliary.toUnit
   DefaultActorLogger.trace(DefaultActorLogger.GroupA)
   DefaultActorLogger.info("===> Console started.")

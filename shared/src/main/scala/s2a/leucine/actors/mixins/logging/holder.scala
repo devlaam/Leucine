@@ -106,14 +106,13 @@ private case class LogHolder(actorPath: String, passLevel: ActorLogger.Level, in
  * For internal use only */
 private object LogHolder :
   import ActorLogger.{Level, Entry}
-  import Static.Kind
 
   /* Helper type to locally pass filters around */
   private[actors] type ActorFilter = (Level,String) => Boolean
 
   /* Universal start values to determine the highest and lowest index values */
-  private inline val minStart = Long.MaxValue
-  private inline val maxStart = 0
+  private[actors] inline val minStart = Long.MaxValue
+  private[actors] inline val maxStart = 0
 
   /**
    * Holder class for multiple log entries. The values min and max indicate the lowest and highest
@@ -143,31 +142,3 @@ private object LogHolder :
   private[actors] object Store :
     /* The empty holder with no contents. */
     def empty = Store(0,IArray.empty)
-
-
-  /**
-   * Make a new log entry of the current thread, if that thread has an active local container. If not,
-   * the entry is created by the global container. Returns the constructed entry for further processing.
-   * If feed is true, the entry will be directly stored on the log queue. If not, the entry will only be
-   * constructed on the holder, and you are responsible for further processing. */
-  private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
-    /* Try to construct the entry on the thread local container */
-    LogLocal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
-      /* This was a success, return the entry */
-      case Right(entry) => Some(entry)
-      /* The container was there but the entry could not be made due to insufficient log level. */
-      case Left(true)   => None
-      /* The container was not there, we must try the global container. */
-      case Left(false)  => LogGlobal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
-        /* This was a success, return the entry */
-        case Right(entry) => Some(entry)
-        /* The entry could not be made due to insufficient log level or absent global logger. */
-        case Left(_)      => None
-
-
-  /** Collect all the logs that are present and empty the containers */
-  private[actors] def retrieve(): Hold[List[Entry]] = synchronized :
-    /* Although each separate call of retrieve is already synchronized on their owning objects,
-     * we must also synchronized the sum calculation, otherwise this can lead to mixed results. */
-    LogGlobal.retrieve() + LogLocal.retrieve()
-

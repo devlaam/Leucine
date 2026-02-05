@@ -36,6 +36,9 @@ trait DefaultLoggerProcessing :
   /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
   type DirectSpool = false
 
+  /* Access to spooling must be strictly sequential. This object guards the entry. */
+  private object spoolGuard
+
   /* Keep log entries that could not yet be processed. */
   private var store: Store = Store.empty
 
@@ -48,8 +51,8 @@ trait DefaultLoggerProcessing :
   /**
    * Example implementation for the spool method. This implementation makes use of a temporary store that
    * delays log entries to be spooled as long as there are entries missing. Makes a best effort to produce
-   * a dense and continuous log entry numbering. */
-  def spool(completed: Boolean): Unit = store.synchronized :
+   * a dense and continuous log entry numbering. Access is protected by spoolGuard for strict sequential entry. */
+  def spool(completed: Boolean): Unit = spoolGuard.synchronized :
     store = ActorLogger.stichedSpool(retrieve(),store,10*maxLogs,completed,process)
 
   /** Simply say in the console that a fatal event occurred. */
