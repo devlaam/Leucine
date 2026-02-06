@@ -33,13 +33,13 @@ import scala.compiletime.constValue
 private trait LogHandler :
   import ActorLogger.{Entry, Level, Ordinal, ShowGroups, GroupBase}
   import Static.{Kind, kindInfo, pathInfo, callInfo}
-  import LogHolder.ActorFilter
+  import LogHolder.{ActorFilter, allPass}
 
   /* FixLevel defines the logging level used at compile time. */
   type FixPassLevel <: Level
 
-  /* With direct you can force all log call to be made directly */
-  type DirectSpool <: Boolean
+  /* With directSpool you can force all log call to be made directly. */
+  def directSpool: Boolean
 
   /* Select if you want full class paths in your logs or just class names. */
   type FullPath <: Boolean
@@ -76,7 +76,7 @@ private trait LogHandler :
    * stripped down to the statements that are relevant at the logging level of execution. */
   // TODO: why is it not possible to remove the [actors] from private[actors] here?? The method is
   // completely private, but it leads to an inlining error.
-  inline private[actors] def feed(inline level: Level, inline kind: Kind, inline path: String, inline direct: Boolean, inline message: String): Unit =
+  inline private[actors] def feed(inline level: Level, inline kind: Kind, inline path: String, inline message: String): Unit =
     /* See if the current fixed level surpassed the level of this entry, if not, we are done. If this
      * method is called from the fixed level methods or with a compile time constant in in the variable
      * log methods code will be eliminated when not reachable. We do not use 'inline if' here because
@@ -87,7 +87,7 @@ private trait LogHandler :
       inline if level.ordinal == Level.Fatal.ordinal then handleFatal(message)
       if sourcePathFilter(level,path) then
         /* Now, construct and feed if needed the log entry directly to the process handler or to the log queue */
-        inline if direct
+        inline if directSpool
           then entry(false,level,actorPathFilter,kind,path,message).foreach(process)
           else entry(true,level,actorPathFilter,kind,path,message).foreach(trySpool)
 
@@ -100,47 +100,45 @@ private trait LogHandler :
   /** Implement a handler for the event a fatal situation occurs */
   def handleFatal(message: String): Unit
 
+  /* Discussion: Logging from the within the system is kind of hard, because we usually do not
+   * have the logger object at hand. We could extract it from the guard services, or make a
+   * special field for it. Or we make all internal logs available via a generic method call
+   * that the user may implement and couple to his/her logger. A bit like the traceln() call
+   * in the context (which does not belong there anyway). Actually i think this is the best
+   * option right now. The user will couple the logs he want to see to system (remove the
+   * private[actors] modifier. If he does not want to see them => Ignore them. */
+
   /**
    * Make lazy (delayed) log entry with level System (see ActorLogger.Level for documentation on the level).
    * For use with logs from Leucine itself. Cannot be suppressed by setting a level value. */
-  //private[actors] def system(message: => String)(using ValueOf[DirectSpool],ValueOf[FullPath]): Unit =
-  private[actors] def system(direct: Boolean, message: => String): Unit =
-    // Dit gaat niet werken
-    //feed(Level.System,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
-    //feed(Level.System,kindInfo,pathInfo(valueOf[FullPath]),valueOf[DirectSpool],message)
-    // Dus de vraag is, wat moeten we hiermee? Vanuit het systeem zelf kun je eigenlijk niet fatsoenlijk
-    // logs aanmaken, omdat je niet bij het courante logger kan. Daarnaast is veel van de info niet relevant
-    // (er is geen actorPath, wat moet je met het sourcePatn, kind heeft ook geen zin.
-    // Misshien is het beter het huidige traceln aan te vullen van ee infoln en die beschikbaar te stellen
-    // voor de gebruiker om door te koppellen indien nodig. Het onderstaan kan hiervoor een begin zijn.
-    // We willen er nu niet te lang mee bezig zijn.
-    if direct
-    then entry(false,Level.System,(_,_) => true,Static.Object,"",message).foreach(process)
-    else entry(true,Level.System,(_,_) => true,Static.Object,"",message).foreach(trySpool)
+  private[actors] def system(message: => String): Unit =
+    if directSpool
+    then entry(false,Level.System,allPass,Static.Unknown,"",message).foreach(process)
+    else entry(true,Level.System,allPass,Static.Unknown,"",message).foreach(trySpool)
 
   /**
    * Make lazy (delayed) log entry with level Fatal (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when FixLevel is set to System. */
   inline def fatal(message: => String): Unit =
-    feed(Level.Fatal,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Fatal,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Error (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def error(message: => String): Unit =
-    feed(Level.Error,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Error,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Warn (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def warn(message: => String): Unit  =
-    feed(Level.Warn,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Warn,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Info (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def info(message: => String): Unit  =
-    feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Info (see ActorLogger.Level for documentation on the level).
@@ -151,14 +149,14 @@ private trait LogHandler :
    * when not needed on a best effort approach. */
   inline def info(confidentialMesssage: => String, publicMessage: => String): Unit  =
     inline if constValue[ShowConfidential]
-    then feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],confidentialMesssage)
-    else feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],publicMessage)
+    then feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),confidentialMesssage)
+    else feed(Level.Info,kindInfo,pathInfo(constValue[FullPath]),publicMessage)
 
   /**
    * Make lazy (delayed) log entry with level Beta (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def beta(message: => String): Unit  =
-    feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Beta (see ActorLogger.Level for documentation on the level).
@@ -169,41 +167,41 @@ private trait LogHandler :
    * when not needed on a best effort approach. */
   inline def beta(confidentialMesssage: => String, publicMessage: => String): Unit  =
     inline if constValue[ShowConfidential]
-    then feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],confidentialMesssage)
-    else feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],publicMessage)
+    then feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),confidentialMesssage)
+    else feed(Level.Beta,kindInfo,pathInfo(constValue[FullPath]),publicMessage)
 
   /**
    * Make lazy (delayed) log entry with level Debug (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def debug(message: => String): Unit = inline if constValue[GroupDebugDefault] then
-    feed(Level.Debug,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Debug,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Debug (see ActorLogger.Level for documentation on the level).
    * Log entry is only made when the group in the parameter is activated via showGroups.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def debug[Group <: GroupBase](group: Group, message: => String): Unit = inline if showGroups.contains(group) then
-    feed(Level.Debug,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],message)
+    feed(Level.Debug,kindInfo,pathInfo(constValue[FullPath]),message)
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace(): Unit = inline if constValue[GroupTraceDefault] then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],constValue[FullParameters]))
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),callInfo(constValue[FullPath],constValue[FullParameters]))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
    * Override the global setting FullParameters with the parameter withParameters to investigate a special case.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace(withParameters: Boolean): Unit = inline if constValue[GroupTraceDefault] then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],withParameters))
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),callInfo(constValue[FullPath],withParameters))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
    * Log entry is only made when the group in the parameter is activated via showGroups.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[Group <: GroupBase](group: Group): Unit = inline if showGroups.contains(group) then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],constValue[FullParameters]))
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),callInfo(constValue[FullPath],constValue[FullParameters]))
 
   /**
    * Make lazy (delayed) log entry with level Trace (see ActorLogger.Level for documentation on the level).
@@ -211,4 +209,4 @@ private trait LogHandler :
    * Override the global setting FullParameters with the parameter withParameters to investigate a special case.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[Group <: GroupBase](group: Group, withParameters: Boolean): Unit = inline if showGroups.contains(group) then
-    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),constValue[DirectSpool],callInfo(constValue[FullPath],withParameters))
+    feed(Level.Trace,kindInfo,pathInfo(constValue[FullPath]),callInfo(constValue[FullPath],withParameters))

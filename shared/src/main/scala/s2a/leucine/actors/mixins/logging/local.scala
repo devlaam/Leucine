@@ -26,7 +26,9 @@ package s2a.leucine.actors
 
 import java.lang.ThreadLocal
 
-
+/**
+ * This object gives access to the thread local logHolders and accumulates its entries
+ * and boundary values. To be used next to LogGlobal. */
 private object LogLocal :
   import ActorLogger.{Level, Entry}
   import Static.Kind
@@ -37,8 +39,6 @@ private object LogLocal :
 
   /** Contains all of the logs collected from within actors (via ThreadLocal LogHolders) */
   private var accuEntries: List[List[Entry]] = Nil
-
-  println(s"*** accuEntries = ${accuEntries}")
 
   /**
    * Add some entries to the full collection. This method is synchronized since it may be called
@@ -51,7 +51,6 @@ private object LogLocal :
     min = minStart
     max = maxStart
     accuEntries = Nil
-    println(s"*** accuEntries = ${accuEntries}")
     copy
 
   /** A per thread logHolder for logs that are produced by the actors. */
@@ -78,7 +77,6 @@ private object LogLocal :
         val holds = holder.get
         if min > holds.min then min = holds.min
         if max < holds.max then max = holds.max
-        println(s"*** adding to accu ${holds}")
         /* Note that, since this all runs thread local the entries should be ordered but are
          * not necessarily directly sequential. */
         addToAccu(holds.entries)

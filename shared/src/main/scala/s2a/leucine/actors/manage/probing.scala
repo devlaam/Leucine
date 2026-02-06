@@ -54,4 +54,4 @@ transparent trait Probing(using context: ActorContext)  :
    * once more. Note that the timers may or may not keep the application running, depending on the
    * platform. At application termination its best to manually perform the action on probeNow() if
    * needed and call this with allowLast = false, to ensure the quickest possible exit. */
-  private[actors] protected def probeStop(allowLast: Boolean): Unit = timer.start(allowLast)
+  private[actors] protected def probeStop(allowLast: Boolean): Unit = timer.stop(allowLast)

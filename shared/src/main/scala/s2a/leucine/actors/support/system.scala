@@ -55,7 +55,7 @@ trait SystemParameters :
  * of your own and initialize the ActorImplementation with that. You may of course also write a
  * completely new ActorImplementation. To make use of tracing, use println(s) for example. */
 object DefaultSystem extends SystemParameters :
-  //Zouden we de traceln niet beter in de logger onderbrengen?? Is eigenlijk geen systeem parameter.
+  // TODO: Zouden we de traceln niet beter in de logger onderbrengen?? Is eigenlijk geen systeem parameter.
   def traceln(s: => String): Unit     = ()
   val idleThreadPause: FiniteDuration = 10.millis
   val threadsPerCore: Int             = 4

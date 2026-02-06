@@ -40,10 +40,16 @@ trait ActorLoggerSettings :
   type FixPassLevel <: Level
 
   /**
-   * DirectSpool can be set to true if you want to directly receive the log entries without making
-   * use of the per thread collectors. Sometimes this can be handy to zoom in on a critical bug
-   * or if you have your own threaded log handler. */
-  type DirectSpool <: Boolean
+   * directSpool can be set to true if you want to directly receive the log entries without making
+   * use of the per thread collectors. Sometimes this is handy to zoom in on a critical bug or if you
+   * have your own threaded log handler. For delayed logging (which is the purpose of the whole framework
+   * inside the actors) this should be false. Note, this definition MUST be implemented with 'inline def'
+   * or 'inline val', otherwise there will be compiler errors at the use site. And it MUST be implemented
+   * in the top most logger object, thus not in some trait you mix in. This is due to a compiler bug.
+   * See also the discussion on the Scala Users Forum.
+   * Compiler Bug: TODO: <to-be-published>
+   * Discussion: https://users.scala-lang.org/t/unclear-java-lang-abstractmethoderror/12204 */
+  def directSpool: Boolean
 
   /**
    * Log entries contain information about the origin of their use (objects, classes and methods). With

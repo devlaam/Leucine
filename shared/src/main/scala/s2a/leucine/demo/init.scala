@@ -45,6 +45,8 @@ object DefaultActorLogger extends ActorLogger, DevelopmentLoggerSettings, Defaul
   def sourcePathFilter(level: Level, path: String): Boolean = true
   def actorPathFilter(level: Level, path: String): Boolean = true
 
+  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
+  inline def directSpool = false
 
 
 

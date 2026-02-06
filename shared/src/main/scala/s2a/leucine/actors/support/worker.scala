@@ -27,7 +27,7 @@ package s2a.leucine.actors
 class Worker :
 
   /** Counter to generate a unique name for the workers for an actor. */
-  //TODO: This can better be replaced by an AtomicLong (In an Object? No,
+  // TODO: This can better be replaced by an AtomicLong (In an Object? No,
   // because we have globalWorkers and FamilyWorkers. They both have there
   // own number sequencing by instantiating this Worker Class. )
   private var _counter: Long = 0L

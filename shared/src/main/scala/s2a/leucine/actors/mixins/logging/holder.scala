@@ -109,6 +109,7 @@ private object LogHolder :
 
   /* Helper type to locally pass filters around */
   private[actors] type ActorFilter = (Level,String) => Boolean
+  private[actors] val allPass:  ActorFilter = (_,_) => true
 
   /* Universal start values to determine the highest and lowest index values */
   private[actors] inline val minStart = Long.MaxValue

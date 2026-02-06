@@ -67,7 +67,7 @@ trait Actor :
   /** Offspring Path (lineage) of this actor when part of a family, otherwise equal to its name. */
   def path: String
 
-  /***
+  /**
    * See the current activity of the actor. There are four levels:
    *   Running:    The Actor is working normally and takes letters for processing.
    *   Haltable:   The Actor is working normally but can be stopped by the system.

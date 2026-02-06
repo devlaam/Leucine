@@ -35,19 +35,11 @@ private class LogGlobal(logHolder: LogHolder) :
   import Static.Kind
   import LogHolder.{Hold, ActorFilter}
 
-  /**
-   * Temporary contains all log entries that could not be logged via a threadLocal collection. Usually
-   * these are logs in the main thread. Logs from other threads are allowed, but delay execution due
-   * to the necessary synchronization. */
-  //private def holderOpt: Option[LogHolder] = ActorGuard.logger.map(_.logHolder)
-    /* Contains the logHolder for the main and other threads without local logHolders. */
-
-  //TODO: We willen de incidents die in deze context gebeuren ook nog ergens melden. WAAR?
+  // TODO: We willen de incidents die in deze context gebeuren ook nog ergens melden. WAAR?
   // Note: De incidents die binnen actors plaatsvinden kunnen met lokale en globale monitors worden gespot.
   // Waarschijnlijk is het het beste als we deze accumuleren in een AtomicLong, en opvragen via de GlobalMonitor.
   // Doen als we de logger uit de guard halen.
   private[actors] def getIncidents: Int = logHolder.getIncidents
-
 
   /** Get a thread save copy of the global logs and clear the container. */
   private[actors] def retrieve(): Hold[Entry] = synchronized :

@@ -60,9 +60,10 @@ trait FamilyTree[Tree <: Actor.Parent & FamilyRelay & BareActor] extends FamilyP
 
   /** Register this actor. */
   private[actors] override def register(prename: String): String =
-    // This works:
+    // TODO: Sort out why ...
+    // ... this works:
     parent.map(_.adopt(prename,self)).getOrElse(super.register(prename))
-    // Code below gives: Recursion limit exceeded. Maybe there is an illegal cyclic reference?
+    // ... and this gives: Recursion limit exceeded. Maybe there is an illegal cyclic reference?
     // parent match
     // /* Children register at the parent. */
     //   case Some(p) => p.adopt(prename,self)

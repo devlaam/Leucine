@@ -33,9 +33,6 @@ trait DefaultLoggerProcessing :
   import ActorLogger.Entry
   import LogHolder.{Hold, Store}
 
-  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
-  type DirectSpool = false
-
   /* Access to spooling must be strictly sequential. This object guards the entry. */
   private object spoolGuard
 

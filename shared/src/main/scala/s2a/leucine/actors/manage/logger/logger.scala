@@ -69,12 +69,15 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
         case Left(_)      => None
 
 
-  /** Test if we have enough new logs for spooling, entry should be the last or recently produced. */
-  private[actors] def trySpool(entry: Entry): Unit =
+  /**
+   * Test if we have enough new logs for spooling, entry should be the last or recently produced.
+   * If we are directly spooling this method does nothing, since there is nothing to spool. */
+  private[actors] def trySpool(entry: Entry): Unit = if !directSpool then
+    /* See how far we have come since the last spool. */
     val size = entry.index - lastIndex.get
-    if size > maxLogs then
-      println("*** from trySpool => spool")
-      context.deferred(spool(false))
+    /* See if there are enough logs lingering to perform a manual spool. Note that this action must
+     * be quick, for we want return asap to the task that was calling this. */
+    if size > maxLogs then action()
 
   /**
    * Manually retrieve and clear the log entries collected since the last retrieve. Make a new recent
@@ -90,18 +93,17 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
      * is already outdated, so if we base an estimation about the number of none processed
      * log entries on this number it will be to high. However, that is better than the opposite
      * since this number is used to call for intermediate spooling if the periodic calls from
-     * the guard are insufficient.  */
-    lastIndex.set(ActorLogger.Entry.getIndex)
+     * the guard are insufficient. If we are directly spooling this update is not needed, since
+     * trySpool is inactive anyway. */
+    if !directSpool then lastIndex.set(ActorLogger.Entry.getIndex)
     /* Get the data, clear the collection, return the result. */
     LogGlobal.retrieve() + LogLocal.retrieve()
 
-
+  /**
+   * Access point for the timer events and manual spool events. Since we want the timer thread to be
+   * free as soon as possible the actual task is pushed back on the context. Even when called manually
+   * this is the right thing to do, since we */
   private[actors] protected def action(): Unit = context.deferred(spool(false))
-
-  // Het type DirectSpool vervangen door een final val. Dat kan, en dan kunnen we er ook
-  // runtime by.
-  // verder moeten we de timers niet starten bij dSpool = true.
-  def dSpool: Boolean = false
 
   /**
    * Start the logger. You must call this at least once, the logger does not start spooling automatically.
@@ -113,10 +115,11 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
   def start(hello: Boolean): Unit =
     /* Report that logging has started. Note that this does not imply this is the first entry,
      * only that we started spooling of the logs on a regular basis. */
-    system(dSpool,"Logger started.")
-    /* Start the logging spool timer. Most likely there are already a lot of start up messages.
-     * In order to get them into the open as quickly as possible we copy hello (guard makes it so) */
-    timer.start(hello)
+    system("Logger started.")
+    /* Start the logging spool timer if we are not directly spooling. Most likely there are already a lot
+     * of start up messages. In order to get them into the open as quickly as possible we copy hello
+     * (guard makes it so) */
+    if !directSpool then timer.start(hello)
 
   /**
    * Stop the logger. You may stop and start the logger at will, which can be useful to catch a specific
@@ -126,9 +129,13 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
   def stop(goodbye: Boolean): Unit =
     /* Report that logging has stopped. Usually this does imply this is the last entry since all
      * actors are inactive now. */
-    system(dSpool,"Logger stopped.")
-    if goodbye then spool(true)
-    timer.stop(false)
+    system("Logger stopped.")
+    /* If we are not directly spooling two actions are needed. */
+    if !directSpool then
+      /* Perform the last spool by hand. */
+      if goodbye then spool(true)
+      /* Stop the spooling timer. */
+      timer.stop(false)
 
 
 /**
@@ -381,7 +388,7 @@ object ActorLogger  :
       val millis = nanos / 1000000
       val date   = Date(timestamp / 1000000)
       val indexStr  = s"%${2}s".format(index)
-      val levelStr  = s"%${5}s".format(level)
+      val levelStr  = s"%${6}s".format(level)
       val countStr  = counter.toString
       val yearStr   = f"${date.getYear() + 1900}%04d"
       val monthStr  = f"${date.getMonth() + 1}%02d"
@@ -395,9 +402,12 @@ object ActorLogger  :
         case Timing.Millis => f".$millis%03d"
         case Timing.Nanos  => f".$nanos%09d"
       val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
-      if level < Level.Trace
-      then s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName); actor($actorName); $source($sourcePath); $message)"
-      else s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName); actor($actorName); $source; $message"
+      val common = s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName);"
+      level match
+        case Level.System => s"$common $message)"
+        case Level.Trace  => s"$common actor($actorName); $source; $message"
+        case _            => s"$common actor($actorName); $source($sourcePath); $message)"
+
 
   object Entry :
 
@@ -418,7 +428,6 @@ object ActorLogger  :
      * at which it is created also increases a use counter. */
     def apply(path: String, level: Level, timing: Timing, sourceKind: Kind, sourcePath: String, message: String): Entry =
       val counter    = level.created()
-      if level == Level.System then println(s"JA ==> Level.System($counter)=$message")
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
@@ -432,7 +441,6 @@ object ActorLogger  :
    * next call. For efficiency reasons, these values are null instead of some custom
    * Nil variant of Entry. You may override this with your own implementation. */
   def sort(hold: Hold[List[Entry]]): IArray[NEntry] =
-    println(s"*** hold = ${hold}")
     val slots: Array[NEntry] = new Array[NEntry](hold.width)
     val outer = hold.entries.iterator
     while outer.hasNext do
@@ -464,6 +472,9 @@ object ActorLogger  :
    * We will limit the resulting array to maxArraySize. If it gets bigger, log entries are spooled anyway. */
   def stichedSpool(hold: Hold[List[Entry]], store: Store, maxArraySize: Int, completed: Boolean, process: Entry => Unit): Store =
 
+    /**
+     * Way to make the contents of an array visible. For development of this method.
+     * Unused now, but keep it arround a bit more, until we release. */
     def arrayToString(array: IArray[Entry | Null]): String =
      def convert(x: Entry | Null): Char = if x==null then '-' else 'o'
      array.toSeq.map(convert).toString
@@ -471,9 +482,6 @@ object ActorLogger  :
     /* Sort the new entries into an array. */
     val currEntries = sort(hold)
     val lastEntries = store.entries
-
-    println(s"*** lastEntries= |${arrayToString(lastEntries)}|")
-    println(s"*** currEntries= |${arrayToString(currEntries)}|")
 
     /* Since we have no real idea how the arrays appear after each other, it is best to work with two phases,
      * where we walk through the arrays simultaneously, starting at the most early point from both of them.
@@ -556,7 +564,6 @@ object ActorLogger  :
      * there the gaps are so early that we must store more then the maximum amount of entries. This breaks the
      * strict ordering, but is further not harmful. We also stop when we reached the end. */
     def sendPass(index: Long): Long = if index >= endIndex then endIndex else
-      println(s"*** sendPass($index)")
       /* See which array has an entry */
       val hasLast = hasLastEntry(index)
       val hasCurr = hasCurrEntry(index)
@@ -570,7 +577,6 @@ object ActorLogger  :
 
     /* The remainder of the values must be merged into one array (or just copied if the other is shorter) */
     def mergePass(index: Long, offset: Long, result: Array[NEntry]): Array[NEntry] = if index >= endIndex then result else
-      println(s"*** mergePass($index,$offset)")
       /* See which array has an entry */
       val hasLast = hasLastEntry(index)
       val hasCurr = hasCurrEntry(index)
@@ -587,6 +593,5 @@ object ActorLogger  :
     /* Start the merge phase. Returns the first index that does not fulfill the merge phase criteria. */
     val result    = mergePass(sendIndex,sendIndex,new Array[NEntry]((endIndex-sendIndex).toInt))
     /* Return the merged array for the next spool run. */
-    println(s"*** result(sendIndex=$sendIndex),array=${arrayToString(IArray.unsafeFromArray(result))}")
     Store(sendIndex,IArray.unsafeFromArray(result))
 
