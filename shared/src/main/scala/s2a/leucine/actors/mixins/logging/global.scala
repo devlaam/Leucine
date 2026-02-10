@@ -35,10 +35,9 @@ private class LogGlobal(logHolder: LogHolder) :
   import Static.Kind
   import LogHolder.{Hold, ActorFilter}
 
-  // TODO: We willen de incidents die in deze context gebeuren ook nog ergens melden. WAAR?
-  // Note: De incidents die binnen actors plaatsvinden kunnen met lokale en globale monitors worden gespot.
-  // Waarschijnlijk is het het beste als we deze accumuleren in een AtomicLong, en opvragen via de GlobalMonitor.
-  // Doen als we de logger uit de guard halen.
+  /**
+   * Returns the number of incidents outside of the actors. At the moment we do not have a natural way to
+   * to report these. So the method is unused. */
   private[actors] def getIncidents: Int = logHolder.getIncidents
 
   /** Get a thread save copy of the global logs and clear the container. */

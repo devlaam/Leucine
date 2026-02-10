@@ -82,7 +82,7 @@ trait ActorMonitor extends Probing:
    * Setting this to Disabled will always prohibit tracing TraceFull of this actor,
    * and setting it to Default/Enabled leaves the fate in the hands of the personal setting.
    * The personal setting defaults to Tracing.Default. You must define this setting in
-   * you monitor. If unsure what to do, try Tracing.Disabled first. */
+   * your monitor. If unsure what to do, try Tracing.Disabled first. */
   def tracing: Tracing
 
   /**

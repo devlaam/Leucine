@@ -35,7 +35,12 @@ package s2a.leucine.actors
  * For internal use only. The class is not thread safe by design, so synchronize your calls
  * or ensure that you are using this holder in one thread by other means. The latter is comes
  * natural when used as a thread local variable. */
-private case class LogHolder(actorPath: String, passLevel: ActorLogger.Level, incidentLevel: ActorLogger.Level, timing: ActorLogger.Timing, private var incidents: Int = 0) :
+private class LogHolder(
+    private val actorPath: String,
+    private var passLevel: ActorLogger.Level,
+    private val incidentLevel: ActorLogger.Level,
+    private var timing: ActorLogger.Timing,
+    private var incidents: Int = 0) :
   import ActorLogger.{Level, Entry}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter, minStart, maxStart}
@@ -58,13 +63,9 @@ private case class LogHolder(actorPath: String, passLevel: ActorLogger.Level, in
   /** Managed container for all log entries. */
   private var entries: List[Entry] = Nil
 
-  /** See it the settings of this holder match the given setting. */
-  private[actors] def alike(passLevel: ActorLogger.Level, incidentLevel: ActorLogger.Level, timing: ActorLogger.Timing): Boolean =
-    passLevel == this.passLevel && incidentLevel == this.incidentLevel && timing == this.timing
-
-  /** Create a new LogHolder with new settings but on the same path and with incidents kept. */
-  private[actors] def inherit(passLevel: ActorLogger.Level, incidentLevel: ActorLogger.Level, timing: ActorLogger.Timing): LogHolder =
-    LogHolder(actorPath,passLevel,incidentLevel,timing,incidents)
+  private[actors] def update(passLevel: ActorLogger.Level, timing: ActorLogger.Timing): Unit =
+    this.passLevel = passLevel
+    this.timing    = timing
 
   /** Check if the holder contains any entries */
   private[actors] def isEmpty: Boolean = entries.isEmpty

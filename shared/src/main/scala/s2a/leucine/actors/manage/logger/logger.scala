@@ -265,9 +265,9 @@ object ActorLogger  :
     type Trace  = Trace.type
 
     /**
-     * Meaning: level to disable all user logging (including fatal!).
-     * Usage:   to temporarily silence (most) of the logging.
-     * Action:  none, but do not use this level for production.
+     * Meaning: level for messages from the actor framework itself.
+     * Usage:   for example to redirect actor trace messages to the logger
+     * Action:  depends on the message, usually only informative.
      * Example: to focus on the logging of one or some actors in a test. */
     case object System extends Level :
       inline def ordinal: Int = constValue[Ordinal[Level.System]]
@@ -381,6 +381,7 @@ object ActorLogger  :
 
     /* We know that the date methods are deprecated. Ignore that for now. */
     /** Simple formatter to show the contents of a log entry. */
+    //TODO: Use non deprecated formatters that produce UTC values for the time.
     @nowarn
     override def toString: String =
       import java.util.Date
@@ -463,6 +464,9 @@ object ActorLogger  :
    * the very last call to spool. The application will terminate soon after. You may want to use
    * this information when building your own sorted logger. */
   def sortedSpool(hold: Hold[List[Entry]], process: Entry => Unit): Unit = sort(hold).withFilter(_ != null).foreach(process)
+
+
+  // TODO: Write test software for this and other routines.
 
   /**
    * Spool method where we stitch new log entries before processing. Stitching means that if the

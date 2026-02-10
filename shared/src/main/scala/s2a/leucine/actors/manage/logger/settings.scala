@@ -47,8 +47,8 @@ trait ActorLoggerSettings :
    * or 'inline val', otherwise there will be compiler errors at the use site. And it MUST be implemented
    * in the top most logger object, thus not in some trait you mix in. This is due to a compiler bug.
    * See also the discussion on the Scala Users Forum.
-   * Compiler Bug: TODO: <to-be-published>
-   * Discussion: https://users.scala-lang.org/t/unclear-java-lang-abstractmethoderror/12204 */
+   * Compiler Bug: https://github.com/scala/scala3/issues/25206
+   * Discussion:   https://users.scala-lang.org/t/unclear-java-lang-abstractmethoderror/12204 */
   def directSpool: Boolean
 
   /**
@@ -151,14 +151,13 @@ trait ActorLoggerSettings :
    * or if the application is about to terminate. */
   def spoolInterval: FiniteDuration
 
-  /** Define the default active logging level (see ActorLogger.Level for documentation) */
+  /**  Define the default runtime active logging level (see ActorLogger.Level for documentation) */
   def passLevel: Level
 
-  /**
-   * Level (equal and) above which the log event is counted as incident. */
+  /** Level (equal and) above which the log event is counted as incident in the actors. */
   def incidentLevel: Level
 
-  /** Define the default active logging level (see ActorLogger.Timing for documentation) */
+  /** Define the default runtime active logging timing (see ActorLogger.Timing for documentation) */
   def timing: Timing
 
   /**
@@ -204,22 +203,22 @@ trait ProductionLoggerSettings :
   def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** During production we do not closely follow the log production. */
-  val maxLogs = 100
+  def maxLogs = 100
 
   /** During production we do not closely follow the log production. */
-  val spoolInterval = 1.minute
+  def spoolInterval = 1.minute
 
   /** During production second level accuracy suffices. This is more efficient. */
-  val timing: Timing = Timing.Recent
+  def timing: Timing = Timing.Recent
 
   /** Since FixPassLevel is already Level.Info, lower makes no sense here. */
-  val passLevel: Level = Level.Info
+  def passLevel: Level = Level.Info
 
   /** Warnings and above still count as incident. */
-  val incidentLevel: Level = Level.Warn
+  def incidentLevel: Level = Level.Warn
 
   /** Disable any local settings in actors for more efficiency. */
-  val localSettings: Boolean = false
+  def localSettings: Boolean = false
 
 
 
@@ -254,22 +253,22 @@ trait BetaTestLoggerSettings :
   def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** During beta testing we do not closely follow the log production. */
-  val maxLogs = 100
+  def maxLogs = 100
 
   /** During production we do not closely follow the log production. */
-  val spoolInterval = 1.minute
+  def spoolInterval = 1.minute
 
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
-  val timing: Timing = Timing.Millis
+  def timing: Timing = Timing.Millis
 
   /** Since FixPassLevel is already Level.Beta, lower makes no sense here. */
-  val passLevel:  Level = Level.Beta
+  def passLevel:  Level = Level.Beta
 
   /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
-  val incidentLevel: Level = Level.Warn
+  def incidentLevel: Level = Level.Warn
 
   /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
-  val localSettings: Boolean = true
+  def localSettings: Boolean = true
 
 
 /**
@@ -303,20 +302,20 @@ trait DevelopmentLoggerSettings :
   def actorPathFilter(level: Level, path: String): Boolean
 
   /** Set the number of maxLogs low, so we have responsive logging. */
-  val maxLogs = 10
+  def maxLogs = 10
 
   /** Set the time between spools low, so we have responsive logging. */
-  val spoolInterval = 5.seconds
+  def spoolInterval = 5.seconds
 
   /** Set timing to Nanos to have accurate log entries. */
-  val timing: Timing = Timing.Nanos
+  def timing: Timing = Timing.Nanos
 
   /** Set default logging level to trace to see all logs during development. */
-  val passLevel:  Level = Level.Trace
+  def passLevel: Level = Level.Trace
 
   /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
-  val incidentLevel: Level = Level.Warn
+  def incidentLevel: Level = Level.Warn
 
   /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
-  val localSettings: Boolean = true
+  def localSettings: Boolean = true
 

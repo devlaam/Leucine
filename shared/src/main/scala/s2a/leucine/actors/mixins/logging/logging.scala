@@ -41,49 +41,26 @@ trait LogAid(logger: ActorLogger) extends ActorInit, ActorDefs :
   this: BareActor =>
   import ActorLogger.{Level, Timing}
 
-  /* The holder is what we use for collecting log statements in this actor. Since this object is reused every
-   * time the actor is rescheduled on the thread, we try to reuse it as much as possible. Its initial settings
-   * are copied from the fixed settings. */
-  private var holder = LogHolder(path,logger.passLevel,logger.incidentLevel,logger.timing)
+  /* The holder is what we use for collecting log statements in this actor. This object is loaded
+   * every time the actor is rescheduled on the thread. It has internal variables that we update
+   * directly for efficiency reasons. Its initial settings are copied from the fixed settings. */
+  private val holder = LogHolder(path,logger.passLevel,logger.incidentLevel,logger.timing)
 
   /**
-   * Keeps the actor local logHolder ready for use. If we do not allow for local settings, the actor
-   * log settings are the same as for logging outside the actors, and (thus) equal for all actors. This
-   * is the default situation. If we do allow for local settings every actor that makes use of logging
-   * will construct a new logHolder if the settings have changed. Usually that is not very often. */
-  private def logHolder: LogHolder =
-    /* See if we allow for local settings, if not we can reuse the initial holder (which is current) */
-    if !logger.localSettings then holder
-    /* See if any of the settings have changed, if not we can reuse the current holder */
-    else if holder.alike(logPassLevel,logIncidentLevel,logTiming) then holder
-    /* In all other situations we must construct a new holder, keep its internals and replace and return.
-     * Since this method is always called in the thread where the message queue is processed and that is
-     * never done in parallel with other actions on this actor, there is no need to synchronize. */
-    else { holder = holder.inherit(logPassLevel,logIncidentLevel,logTiming); holder }
+   * With logSettings you can update the logging pass level and the timing of the logger. It only works if
+   * setting these variables is globally allowed for. These settings are effective immediately and stretch
+   * to any code that is executed from this actor. However, only call this method from the constructor or
+   * from within the message handler of the actor. Do NOT call it from outside of the actor or from a future.  */
+  protected def logSettings(passLevel: Level, timing: Timing): Unit =
+    if logger.localSettings then holder.update(passLevel,timing)
 
   /**
-   * Override the global passLevel with a new level for logging for actor local investigation. Note this
-   * value is ignored if local settings are not allowed (to be set in the Main Logger Object). If changes
-   * are made after actor construction, the will be effective eventually. */
-  protected def logPassLevel: Level = logger.passLevel
-
-  /**
-   * Override the global incidentLevel with a new level for logging for actor local investigation. Note this
-   * value is ignored if local settings are not allowed (to be set in the Main Logger Object). If changes
-   * are made after actor construction, the will be effective eventually. */
-  protected def logIncidentLevel: Level = logger.incidentLevel
-
-  /**
-   * Override the logTiming with a new timing for logging for actor local investigation. Note this
-   * value is ignored if local settings are not allowed (to be set in the Main Logger Object). If changes
-   * are made after actor construction, the will be effective eventually. */
-  protected def logTiming: Timing = logger.timing
-
-  /* Method to be called just before are the actor is scheduled on a new thread for execution, but
+   * Method to be called just before are the actor is scheduled on a new thread for execution, but
    * before its message queue is processed. It installs a new logHolder that collects all log entries. */
-  private[actors] override def logInit(): Unit = LogLocal.fill(logHolder)
+  private[actors] override def logInit(): Unit = LogLocal.fill(holder)
 
-  /* Method to be called directly after the message queue is emptied. All acquired log entries will be
+  /**
+   * Method to be called directly after the message queue is emptied. All acquired log entries will be
    * moved to a central location and the logHolder is emptied and removed from the thread. */
   private[actors] override def logExit(): Unit = LogLocal.empty()
 
