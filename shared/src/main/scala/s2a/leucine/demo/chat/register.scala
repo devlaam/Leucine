@@ -29,37 +29,42 @@ import s2a.leucine.actors.*
 
 /** Service that keeps a list of new passwords to be handed out. Starts empty */
 class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Register") :
+  Logger.trace(Logger.GroupChat)
   println("Register Actor Started.")
 
   /* Supply of new passwords */
   private var supply: List[String] = Nil
 
   /* Receive method that handles the incoming requests. */
-  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
-    /* In case new passwords arrive, store them in the supply */
-    case (Register.Passwords(values),_: Noise) => supply = values
-    /* A request for new passwords is made. */
-    case (Register.Request(name),_: Anonymous) =>
-      /* It may be that we have no passwords left, test this first. */
-      if supply.isEmpty
-      then
-        /* If so, let the user know we do not accept users at the moment */
-        println(s"Sorry $name, at the moment we do not accept new accounts, please try again later.")
-        /* and at the same time order new passwords. */
-        noise ! Noise.Request("",3,4)
-      else
-        /* If we have passwords available, let the user know the new password. */
-        println(s"Welcome $name, you may now use this service with the password: ${supply.head}")
-        /* Signal the Access manager that a new user has been welcomed. */
-        access ! Access.Pair(name,supply.head)
-        /* Remove the password from the list, so it is not issued again. */
-        supply = supply.tail
-    /* This cannot be reached, but the compiler is not able to verify. */
-    case (_,_) => assert(false,"Code should not come here.")
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
+    // TODO: Causes java.lang.AssertionError
+    //Logger.trace(Logger.GroupChat)
+    (letter,sender) match
+      /* In case new passwords arrive, store them in the supply */
+      case (Register.Passwords(values),_: Noise) => supply = values
+      /* A request for new passwords is made. */
+      case (Register.Request(name),_: Anonymous) =>
+        /* It may be that we have no passwords left, test this first. */
+        if supply.isEmpty
+        then
+          /* If so, let the user know we do not accept users at the moment */
+          println(s"Sorry $name, at the moment we do not accept new accounts, please try again later.")
+          /* and at the same time order new passwords. */
+          noise ! Noise.Request("",3,4)
+        else
+          /* If we have passwords available, let the user know the new password. */
+          println(s"Welcome $name, you may now use this service with the password: ${supply.head}")
+          /* Signal the Access manager that a new user has been welcomed. */
+          access ! Access.Pair(name,supply.head)
+          /* Remove the password from the list, so it is not issued again. */
+          supply = supply.tail
+      /* This cannot be reached, but the compiler is not able to verify. */
+      case (_,_) => assert(false,"Code should not come here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
 object Register extends RestrictDefine, Stateless :
+  Logger.trace(Logger.GroupChat)
 
   /* We only accept letters from the Noise actor or from an anonymous source. */
   type Accept = Noise | Anonymous

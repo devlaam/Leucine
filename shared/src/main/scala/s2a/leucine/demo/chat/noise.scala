@@ -30,27 +30,32 @@ import s2a.leucine.actors.*
 
 /** This is your ideal white noise char string generator. */
 class Noise extends RestrictActor(Noise,"Noise") :
+  Logger.trace(Logger.GroupChat)
   println("Noise Actor Started.")
 
   /* Constructs a string with 'length' random chars. */
   private def make(length: Int): String = Random.alphanumeric.take(length).mkString
 
   /* Receive method that handles the incoming requests. */
-  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
-    /* Return a sequence of size random strings each of the same length. */
-    case (Noise.Request(_,size,length), source: Register) =>
-      val result = List.fill(size)(make(length))
-      source ! Register.Passwords(result)
-    /* Return a random piece of text of 'size' number of words, each not longer than 'length' chars. */
-    case (Noise.Request(key,size,length), source: Text) =>
-      val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
-      source ! Text.Lipsum(key,result)
-    /* This cannot be reached, but the compiler is not able to verify. */
-    case (_,_) => assert(false,"Code should not come here.")
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
+    // TODO: Causes java.lang.AssertionError
+    //Logger.trace(Logger.GroupChat)
+    (letter,sender) match
+      /* Return a sequence of size random strings each of the same length. */
+      case (Noise.Request(_,size,length), source: Register) =>
+        val result = List.fill(size)(make(length))
+        source ! Register.Passwords(result)
+      /* Return a random piece of text of 'size' number of words, each not longer than 'length' chars. */
+      case (Noise.Request(key,size,length), source: Text) =>
+        val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
+        source ! Text.Lipsum(key,result)
+      /* This cannot be reached, but the compiler is not able to verify. */
+      case (_,_) => assert(false,"Code should not come here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */
 object Noise extends RestrictDefine, Stateless :
+  Logger.trace(Logger.GroupChat)
 
   /* Only the Access and Text actors may request for random content. */
   type Accept = Register | Text

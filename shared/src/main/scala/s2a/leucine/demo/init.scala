@@ -34,49 +34,45 @@ import s2a.leucine.actors.*
 /* The default actor context for these examples */
 given actorContext: ActorContext = ActorContext.system
 
-object DefaultActorLogger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProcessing :
+/* This is our logging object to be used for all demo applications. Experiment with mixing
+ * in the different LoggerSettings, or changing some settings below. */
+object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProcessing :
   import ActorLogger.{Level, ShowGroups, GroupBase}
 
-  object GroupA extends GroupBase
-  object GroupB extends GroupBase
-  object GroupC extends GroupBase
+  /* Create for every demo a separate group for logging. We shall use this only for tracing. */
+  object GroupChat    extends GroupBase
+  object GroupClock   extends GroupBase
+  object GroupTicker  extends GroupBase
+  object GroupCrawler extends GroupBase
 
-  transparent inline def showGroups = ShowGroups((GroupA))
+  /* Experiment here to see the effects of including and excluding groups. */
+  transparent inline def showGroups = ShowGroups((GroupChat,GroupClock,GroupTicker,GroupCrawler))
+
+  /* Experiment here to see the effects of filter defined on the sourcePath or actorPath */
   def sourcePathFilter(level: Level, path: String): Boolean = true
   def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
   inline def directSpool = false
 
+  /**  Per default the pass level is Trace, you can define a new one by overriding this: */
+  final override val passLevel: Level = Level.Info
 
 
-// This version may cause a compiler error (when trace is included)
-// class MyTestClass(x: Int) :
-//   def this(x: Int, z: String) =
-//     this(x)
-//     DefaultActorLogger.trace(withParams = true)
-
-// This version compiles:
-class MyTestClass(x: Int, z: String = "") :
-  DefaultActorLogger.trace(DefaultActorLogger.GroupA)
-
-  val y: String = {  DefaultActorLogger.trace(DefaultActorLogger.GroupC); "TEST"}
-
-object Init extends LogInfo:
-  DefaultActorLogger.trace(DefaultActorLogger.GroupB)
+object Init :
+  Logger.trace(Logger.AllGroups)
   /* When you arrive here, you can be certain all actors are done */
   def complete(): Unit = println("Demo complete")
 
-  val _ = new MyTestClass(1)
-
   @main
   def main(): Unit =
-    ActorGuard.register(DefaultActorLogger)
+    /* Trace the main entry. Note that we may use the logger before it is started below. Starting
+     * the logger only starts the spooling, log entries are always recorded. */
+    Logger.trace(Logger.AllGroups)
+    /* Register the Logger and Monitor so that the ActorGuard can start and stop them. */
+    ActorGuard.register(Logger)
     ActorGuard.register(Monitor)
-    DefaultActorLogger.trace(DefaultActorLogger.AllGroups)
-    DefaultActorLogger.info("===> Main called")
-    /* Welcome message */
-    val _ = new MyTestClass(2,"JA")
+    Logger.info("Main called")
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
     /* Define a handler for unhandled messages */
     ActorGuard.failed(post => println(s"FAILED MESSAGE: ${post.full}"))

@@ -29,26 +29,33 @@ import s2a.leucine.actors.*
 
 /** This is your access controller. Only existing users are granted access. */
 class Access extends RestrictActor(Access,"Access") :
+  Logger.trace(Logger.GroupChat)
   println("Access Actor Started.")
 
   /* Currently registered users. */
   private var store: Map[String,String] = Map.empty
 
   /* See if a user is present in the store, and if so the password is valid. */
-  private def checkUser(name: String, password: String): Boolean = store.get(name).map(_ == password).getOrElse(false)
+  private def checkUser(name: String, password: String): Boolean =
+    Logger.trace(Logger.GroupChat)
+    store.get(name).map(_ == password).getOrElse(false)
 
   /* Receive method that handles the incoming requests. */
-  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = (letter,sender) match
-    /* If the pair message comes from the Register actor, we store it as a new/updated user */
-    case (Access.Pair(name,password),_: Register) => store += name -> password
-    /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
-    case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
-    /* This cannot be reached, but the compiler is not able to verify. */
-    case (_,_) => assert(false,"Code should not come here.")
+  final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
+    // TODO: Causes java.lang.AssertionError
+    //Logger.trace(Logger.GroupChat)
+    (letter,sender) match
+      /* If the pair message comes from the Register actor, we store it as a new/updated user */
+      case (Access.Pair(name,password),_: Register) => store += name -> password
+      /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
+      case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
+      /* This cannot be reached, but the compiler is not able to verify. */
+      case (_,_) => assert(false,"Code should not come here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
 object Access extends RestrictDefine, Stateless :
+  Logger.trace(Logger.GroupChat)
 
   /* We only accept letters from the Register or Text actors. */
   type Accept = Register | Text

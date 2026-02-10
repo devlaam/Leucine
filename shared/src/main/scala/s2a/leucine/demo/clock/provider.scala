@@ -36,8 +36,9 @@ import s2a.leucine.actors.*
  * we could have chosen the AcceptActor as well. This actor is part of a family but does not have children of its own. So
  * we mixin the FamilyLeaf, which requires specifying the parent actor type. We could also have chosen for FamilyBranch, and
  * simply ignoring the children. But less is more. */
-class Provider(protected val socket: ClientSocket, protected val parent: Listener) extends SelectActor(Provider,!#), TimingAid, FamilyLeaf[Listener], LogInfo :
+class Provider(protected val socket: ClientSocket, protected val parent: Listener) extends SelectActor(Provider,!#), TimingAid, LogAid(Logger), FamilyLeaf[Listener] :
   import Auxiliary.toUnit
+  Logger.trace(Logger.GroupClock)
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */
@@ -47,21 +48,25 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
   val _ = post(Provider.Send,2.seconds)
 
   /* Handle the messages, which is only the posted letter in this case. */
-  final protected def receive(letter: Letter, sender: Sender): Unit = letter match
-    case Provider.Send =>
-      val datetime = new Date().toString
-      val message  = s"Provider $path says: $datetime"
-      Logger.info(message)
-      socket.writeln(message)
-      /* Send a new message after two seconds. */
-      post(Provider.Send,2.seconds).toUnit
+  final protected def receive(letter: Letter, sender: Sender): Unit =
+    Logger.trace(Logger.GroupClock)
+    letter match
+      case Provider.Send =>
+        val datetime = new Date().toString
+        val message  = s"Provider $path says: $datetime"
+        Logger.info(message)
+        socket.writeln(message)
+        /* Send a new message after two seconds. */
+        post(Provider.Send,2.seconds).toUnit
 
   /* If this actor is stopped, we must close the connection. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
+    Logger.trace(Logger.GroupClock)
     println(s"Provider $path stopped.")
     socket.close()
 
 object Provider extends SelectDefine, Stateless:
+  Logger.trace(Logger.GroupClock)
   type Accept = Provider
   sealed trait Letter extends Actor.Letter[Accept]
   case object Send extends Letter

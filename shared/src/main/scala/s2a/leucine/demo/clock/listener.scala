@@ -36,8 +36,9 @@ import s2a.leucine.actors.*
  * as well as the ability to wait for an i/o event (with 'expect').
  * Since this Actor spawns other other we want to automatically terminate when it stops, we make it
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
-class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), LogInfo :
+class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger), FamilyRoot() :
   import Auxiliary.toUnit
+  Logger.trace(Logger.GroupClock)
 
   /* Time this demo will last. */
   private val runtime = 60.seconds
@@ -58,12 +59,14 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
    * it uses less resources compared to i/o polling by 'expect'. Anytime a new connection
    * arrives we send a letter to ourselves with the connection enclosed. */
   private val useCallback = serverSocket.onConnect(socket =>
+    Logger.trace(Logger.GroupClock)
     Logger.debug("Callback called.")
     send(Listener.Connect(socket),Actor.Anonymous).toUnit )
 
   /* See if there anyone knocking on the door. We need this if there is no callback
    * function on the platform available. */
   private def connect: Option[Listener.Letter] =
+    Logger.trace(Logger.GroupClock)
     /* Test if we have a request for a connection. */
     serverSocket.request()
     /* This may result in an error, if ... */
@@ -95,27 +98,31 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
 
 
   /* Handle all incoming letters. */
-  final protected def receive(letter: Letter, sender: Sender): Unit = letter match
-    /* The new connection will come in as a letter. */
-    case Listener.Connect(socket) =>
-      Logger.info("Accepted a connection.")
-      /* We see the providers as workers and generate automatic names for them. */
-      new Provider(socket,this)
-      /* Be ready for a new connection. */
-      if !useCallback then expect(connect,expectationAnchor).toUnit
-    /* The request has come to close stop this server. */
-    case Listener.Terminated =>
-      Logger.info("Listener Termination Request")
-      /* Cancel the expectation for a new connection.
-       * BTW, this is automatic in stopDirect, for illustration only. */
-      clearTiming(expectationAnchor)
-      /* Stop the actor. */
-      stop(Actor.Stop.Direct)
+  final protected def receive(letter: Letter, sender: Sender): Unit =
+    Logger.trace(Logger.GroupClock)
+    letter match
+      /* The new connection will come in as a letter. */
+      case Listener.Connect(socket) =>
+        Logger.info("Accepted a connection.")
+        /* We see the providers as workers and generate automatic names for them. */
+        new Provider(socket,this)
+        /* Be ready for a new connection. */
+        if !useCallback then expect(connect,expectationAnchor).toUnit
+      /* The request has come to close stop this server. */
+      case Listener.Terminated =>
+        Logger.info("Listener Termination Request")
+        /* Cancel the expectation for a new connection.
+         * BTW, this is automatic in stopDirect, for illustration only. */
+        clearTiming(expectationAnchor)
+        /* Stop the actor. */
+        stop(Actor.Stop.Direct)
 
   final protected override def except(letter: Listener.Letter, sender: Sender, cause: Exception, size: Int): Unit =
+    Logger.trace(Logger.GroupClock)
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
+    Logger.trace(Logger.GroupClock)
     println("Listener stopped")
     /* Decently close this socket. */
     serverSocket.close()
@@ -123,6 +130,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, FamilyRoot(), 
 
 /* This is the natural location to define all the letters the actor may receive. */
 object Listener extends SelectDefine, Stateless :
+  Logger.trace(Logger.GroupClock)
   type Accept = Listener | Anonymous
   /* Base type of all Listener Letters, sealed because that enables the compiler to see
    * if we handled them all. */

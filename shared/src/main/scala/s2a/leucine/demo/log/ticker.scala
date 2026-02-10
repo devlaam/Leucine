@@ -28,36 +28,30 @@ import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{SortedMap, SortedSet}
 import s2a.leucine.actors.*
 
-
-//class TestHandler extends LogClass:
-class TestHandler(s: String) :
-  // def handleTick(value: Int)(using Log: Log) : Unit =
-  //   Logger.debug(s"tick = $value")
-  //   Log.info(s"===> tick = $value")
-  DefaultActorLogger.trace(DefaultActorLogger.GroupC)
+class TestHandler(name: String) :
+  Logger.trace(Logger.GroupTicker)
 
   def handleTick(value: Int) : Unit =
-    DefaultActorLogger.trace(DefaultActorLogger.GroupA)
-    Logger.debug(s"tick = $value, s=$s")
-    DefaultActorLogger.info(s"===> tick = $value")
+    Logger.trace(Logger.GroupTicker)
+    /* Use the Printer to send the message to the outside. */
+    Printer.default(s"tick = $value by name=$name")
 
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(new LocalMonitor(2.seconds)), LogAid(DefaultActorLogger) :
+class Ticker(debug: Boolean) extends AcceptActor(Ticker), MonitorAid(new LocalMonitor(2.seconds)), LogAid(Logger) :
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
 
-  DefaultActorLogger.trace(DefaultActorLogger.GroupB)
+  Logger.trace(Logger.GroupTicker)
 
-  private val testHandler = new TestHandler("Hallo")
-  /* We allow full tracing for this actor. */
+  private val testHandler = new TestHandler("Unicorn")
+  /* We allow full monitor tracing for this actor. */
   final override def tracing = Tracing.Enabled
 
   /* We just log the fact that this actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.error(s"stopped ticker, complete=$complete")
-    DefaultActorLogger.error(s"===> stopped ticker, complete=$complete")
+    Printer.blue(s"stopped ticker, complete=$complete")
 
   /* Define report functions for each capability */
   private def sampled(samples: List[Sample]): Unit      = samples.foreach(sample => println(s"== SAMPLE ==> ${sample.show}"))
@@ -73,44 +67,45 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), LogInfo, MonitorAid(ne
   probing(debug)
 
   /* In order to set the machinery in motion, a first tick must be send. */
+  // TODO: Sending a message to yourself inside the constructor may be dangerous.
+  // The JIT compiler could move it and its possible the receive method is called
+  // Before the actor is completely constructed. How to prohibit
+  // Check in the send method if sender==receiver and then if actor is complete?
   this ! Ticker.Work
 
   /* Log that the ticker has commenced its operations. */
-  Logger.warn("Ticker Actor created")
-  DefaultActorLogger.warn("===> Ticker Actor created")
+  Printer.blue("Ticker Actor created")
+
+  /* Hmm, lets switch to ansi colors: */
+  Printer.switch(Printer.Device.ANSI)
 
   /* In receive we handle the incoming letters. */
   final protected def receive(letter: Letter, sender: Sender): (State => State) = (state: State) => {
+    Logger.trace(Logger.GroupTicker)
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match
       case Ticker.Tick(value: Int) =>
         /* Report that we are in the 'tick' state*/
         testHandler.handleTick(value)
-        Logger.debug(s"tick = $value")
-        DefaultActorLogger.warn(s"===> tick = $value")
+        Printer.red(s"I got tick = $value")
         /* Send a new letter to myself to continue the work */
         this ! Ticker.Work
         /* Change the state to a new one. This is obligatory. */
         Ticker.Tock(value+1)
       case Ticker.Tock(value: Int) =>
         /* Report that we are in the 'tock' state*/
-        Logger.info(s"tock = $value")
-        Logger.info(s"===> tock = $value")
+        Printer.green(s"I got tock = $value")
         /* As long as we are below 10 we continue the work, otherwise we send ourselves
          * the 'last letter'. Note that in this case this is not really needed, nobody
          * else sends messages to Ticker, so the letter queue empties itself anyway, but
          * to actually quit the application, we need it to stop itself. */
         if value<10 then this ! Ticker.Work else stop(Actor.Stop.Finish)
-        /* After a few ticks we know the app is working, and set the logger level
-         * to debug. Note, this is a soft switch. So some work is done, even for
-         * debug level Debug. Change Logger.level at compile time for production. */
-        if value == 5 then Logger.switch(Logger.Level.Info)
         /* Change the state to a new one. This is obligatory. */
         Ticker.Tick(value+1) }
 
 object Ticker extends AcceptDefine :
-
+  Logger.trace(Logger.GroupTicker)
   type Accept = Actor
   /* The ticker only excepts one letter */
   sealed trait Letter extends Actor.Letter[Actor]

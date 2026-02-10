@@ -30,21 +30,27 @@ import s2a.leucine.actors.*
 
 /* Actor that recursively enters some structure to investigate. It is under monitor supervision.
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
-class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(Monitor), LogAid(DefaultActorLogger) :
+class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(Monitor), LogAid(Logger) :
   import Auxiliary.toUnit
+  Logger.trace(Logger.GroupCrawler)
 
   /* Write the results of this actor to the console. */
-  private def write(kind: String) = println(s"$kind $path")
+  private def write(kind: String) =
+    Logger.trace(Logger.GroupCrawler)
+    println(s"$kind $path")
 
   /* Show when the actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
+    Logger.trace(Logger.GroupCrawler)
     /* This is written for all actors. */
     write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
     if parent.isEmpty && debug then monitor.show(postsAndTraces = true)
 
   /* New children must be created with their parent as parameter. */
-  private def newChild(i: Int) = Tree(s"F$i",debug,Some(this))
+  private def newChild(i: Int) =
+    Logger.trace(Logger.GroupCrawler)
+    Tree(s"F$i",debug,Some(this))
 
   /* Variable to see if all child actors have reported back that their
    * job is done. */
@@ -52,6 +58,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
 
   /* Start the work in this crawler, two wide and three deep. */
   if parent.isEmpty then
+    Logger.trace(Logger.GroupCrawler)
     this ! Tree.Create(2,3)
     this ! Tree.Forward
     /* Show the internals of the actor after some time */
@@ -63,39 +70,42 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
   probing(debug)
 
   /* Handle the incoming letters. */
-  final protected def receive(letter: Letter, sender: Sender): Unit = letter match
-    /* This message creates <width> new children for this actor. */
-    case Tree.Create(width,level) =>
-      /* Calculate how many returns we expect, when we close later on. */
-      if parent.isEmpty then returns = (math.pow(width,level)+0.4).toInt
-      /* Create 'width' number of new children. */
-      (1 to width).foreach(newChild)
-      /* In case we are not yet on the last level, relay this creation order
-       * to the next level. */
-      if (level > 1) then relayAll(Tree.Create(width,level - 1),this).toUnit
-    /* This message will travel forward through the tree structure. */
-    case Tree.Forward =>
-      /* Report that we are in the forward traversal. */
-      write("=>>")
-      /* Relay the message to all children, and see if we succeeded. */
-      val relayed = relayAll(Tree.Forward,this)
-      /* In case there were no children to accept the message, we are at the
-       * end of the structure and start the traversal backwards. */
-      if relayed == 0 then parent.foreach(_ ! Tree.Backward)
-    /* This message will travel backward through the tree structure. */
-    case Tree.Backward =>
-      /* Report that we are in the backward traversal. */
-      write("<<=")
-      /* If we still have a parent, continue the backward traversal. If not,
-       * we reached the root, we subtract one from the returns. When returns
-       * hit zero, the traversal is complete and we may finish.*/
-      parent match
-        case Some(p) => p ! Tree.Backward
-        case None    => returns -= 1; if returns == 0 then println("Wait for silent termination (~12s)")
-    case Tree.Report => if debug then monitor.show(samples = true)
+  final protected def receive(letter: Letter, sender: Sender): Unit =
+    Logger.trace(Logger.GroupCrawler)
+    letter match
+      /* This message creates <width> new children for this actor. */
+      case Tree.Create(width,level) =>
+        /* Calculate how many returns we expect, when we close later on. */
+        if parent.isEmpty then returns = (math.pow(width,level)+0.4).toInt
+        /* Create 'width' number of new children. */
+        (1 to width).foreach(newChild)
+        /* In case we are not yet on the last level, relay this creation order
+         * to the next level. */
+        if (level > 1) then relayAll(Tree.Create(width,level - 1),this).toUnit
+      /* This message will travel forward through the tree structure. */
+      case Tree.Forward =>
+        /* Report that we are in the forward traversal. */
+        write("=>>")
+        /* Relay the message to all children, and see if we succeeded. */
+        val relayed = relayAll(Tree.Forward,this)
+        /* In case there were no children to accept the message, we are at the
+         * end of the structure and start the traversal backwards. */
+        if relayed == 0 then parent.foreach(_ ! Tree.Backward)
+      /* This message will travel backward through the tree structure. */
+      case Tree.Backward =>
+        /* Report that we are in the backward traversal. */
+        write("<<=")
+        /* If we still have a parent, continue the backward traversal. If not,
+         * we reached the root, we subtract one from the returns. When returns
+         * hit zero, the traversal is complete and we may finish.*/
+        parent match
+          case Some(p) => p ! Tree.Backward
+          case None    => returns -= 1; if returns == 0 then println("Wait for silent termination (~12s)")
+      case Tree.Report => if debug then monitor.show(samples = true)
 
 
 object Tree extends AcceptDefine, Stateless :
+  Logger.trace(Logger.GroupCrawler)
   sealed trait Letter extends Actor.Letter[Actor]
   /* Message to create the tree structure. The maximal number of levels
    * is given by depth, the number of actors created in each level given

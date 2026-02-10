@@ -31,17 +31,15 @@ import s2a.leucine.actors.*
 /* The console is also organized as actor, which makes sense, since it must run independently from the application.
  * There is no need to specify a name. Just as an example, and since we need this actor only for a brief time,
  * we define it to be a worker */
-private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(DefaultActorLogger) :
+private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger) :
   import Auxiliary.toUnit
-  DefaultActorLogger.trace(DefaultActorLogger.GroupA)
-  DefaultActorLogger.info("===> Console started.")
-
-  object MyTestObject :
-    DefaultActorLogger.trace(DefaultActorLogger.GroupB)
-
+  Logger.trace(Logger.AllGroups)
+  Logger.info("Console started.")
 
   /* Send a letter to yourself */
-  def selfie(letter: String => Console.Letter): String => Unit = message => this ! letter(message.trim)
+  def selfie(letter: String => Console.Letter): String => Unit =
+    Logger.trace(Logger.AllGroups)
+    message => this ! letter(message.trim)
 
   /* The welcome message. You may choose your demo. As soon as you type the answer, a message is constructed
    * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
@@ -50,31 +48,35 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Default
   CLI.talk("Please state the demo you want to run (ticker, clock, crawler or chatgrt): ", selfie(Console.Demo(_)))
 
   override protected def stopped(cause: Actor.Stop, complete: Boolean) =
+    Logger.trace(Logger.AllGroups)
     /* CIS must be closed, otherwise the application cannot terminate. */
     CLI.close()
 
   /* Completing this console. Note that the demo may still run. */
   def stop(goodbye: String = ""): Unit =
+    Logger.trace(Logger.AllGroups)
     if !goodbye.isEmpty then println(goodbye)
     /* If the user made a choice, this actor is no longer required. */
     stop(Actor.Stop.Direct)
 
   /* Start the demo of choice but staring its corresponding actor. */
-  def receive(letter: Letter, sender: Sender): Unit = letter match
-    case Console.Demo("ticker")        =>  new Ticker(false); stop();
-    case Console.Demo("ticker debug")  =>  new Ticker(true); stop();
-    case Console.Demo("clock")         =>  new Listener; stop();
-    case Console.Demo("crawler")       =>  new Tree("F0",false,None); stop();
-    case Console.Demo("crawler debug") =>  new Tree("F0",true,None); stop();
-    case Console.Demo("chatgrt")       =>  post(Console.Cli,100.millis).toUnit
-    case Console.Demo(unknown)         =>  stop(s"Unknown demo '$unknown', closing ...")
-    case Console.Cmd("exit")           =>  Chatgrt.stop(); stop();
-    case Console.Cmd(command)          =>  Chatgrt.process(command); post(Console.Cli,100.millis).toUnit
-    case Console.Cli                   =>  Chatgrt.request(selfie(Console.Cmd(_)))
+  def receive(letter: Letter, sender: Sender): Unit =
+    Logger.trace(Logger.AllGroups)
+    letter match
+      case Console.Demo("ticker")        =>  new Ticker(false); stop();
+      case Console.Demo("ticker debug")  =>  new Ticker(true); stop();
+      case Console.Demo("clock")         =>  new Listener; stop();
+      case Console.Demo("crawler")       =>  new Tree("F0",false,None); stop();
+      case Console.Demo("crawler debug") =>  new Tree("F0",true,None); stop();
+      case Console.Demo("chatgrt")       =>  post(Console.Cli,100.millis).toUnit
+      case Console.Demo(unknown)         =>  stop(s"Unknown demo '$unknown', closing ...")
+      case Console.Cmd("exit")           =>  Chatgrt.stop(); stop();
+      case Console.Cmd(command)          =>  Chatgrt.process(command); post(Console.Cli,100.millis).toUnit
+      case Console.Cli                   =>  Chatgrt.request(selfie(Console.Cmd(_)))
 
 
 object Console extends AcceptDefine, Stateless :
-  DefaultActorLogger.trace(DefaultActorLogger.GroupC)
+  Logger.trace(Logger.AllGroups)
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
   sealed trait Letter extends Actor.Letter[Actor]
   case class Demo(text: String) extends Letter

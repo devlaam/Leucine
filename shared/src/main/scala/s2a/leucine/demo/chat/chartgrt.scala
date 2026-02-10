@@ -29,6 +29,8 @@ import s2a.leucine.actors.*
 
 /* Main entry point for the ChatGRT demo. */
 object Chatgrt :
+  Logger.trace(Logger.GroupChat)
+
   /* We must provide a default sender. */
   given Actor.Anonymous = Actor.Anonymous
 
@@ -46,21 +48,26 @@ object Chatgrt :
 
   /* Stop this demo */
   def stop(): Unit =
+    Logger.trace(Logger.GroupChat)
     /* Tell all actors to stop directly */
     List(noise,access,register,text).foreach(_.stop(Actor.Stop.Direct))
     /* Tell the user we did stop the actors. */
     println("ChatGRT stopped.")
 
   /* Method to get input from the user. With CLI thus may block (JVM/Native) */
-  def request(action: String => Unit): Unit = CLI.talk("ChatGRT ready, your command: ", action)
+  def request(action: String => Unit): Unit =
+    Logger.trace(Logger.GroupChat)
+    CLI.talk("ChatGRT ready, your command: ", action)
 
   /* Analyze the user input (from Console) to see what must be done. */
-  def process(cmd: String): Unit = cmd.split(" ") match
-    /* The user request for a new account */
-    case Array("signup",name)    => register ! Register.Request(name)
-    /* The user requires some text */
-    case Array("text",name,pass) => text ! Text.Lipsum(name,pass)
-    /* The user needs help */
-    case Array("help")           => println("Type 'signup <name>' or 'text <name> <password>' or 'exit'.")
-    /* In all other cases we do not understand the users wishes, so provide a way to obtain help. */
-    case _                       => println("Unknown command, type 'help'.")
+  def process(cmd: String): Unit =
+    Logger.trace(Logger.GroupChat)
+    cmd.split(" ") match
+      /* The user request for a new account */
+      case Array("signup",name)    => register ! Register.Request(name)
+      /* The user requires some text */
+      case Array("text",name,pass) => text ! Text.Lipsum(name,pass)
+      /* The user needs help */
+      case Array("help")           => println("Type 'signup <name>' or 'text <name> <password>' or 'exit'.")
+      /* In all other cases we do not understand the users wishes, so provide a way to obtain help. */
+      case _                       => println("Unknown command, type 'help'.")
