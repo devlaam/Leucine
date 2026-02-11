@@ -57,4 +57,3 @@ trait DefaultLoggerProcessing :
 
   /** Pass all logs to the console. */
   def process(entry: Entry): Unit = println(entry)
-

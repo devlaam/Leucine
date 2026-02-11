@@ -34,7 +34,7 @@ private class Printer extends AcceptActor(Printer,"printer") :
   import Printer.*
   Logger.trace(Logger.GroupCollatz)
 
-  /* Soft colour of the messages that are printed. Can be changed by during runtime. */
+  /* Device to which the messages are printed. Can be changed by during runtime. */
   private var device: Device = Device.XML
 
   /* Report that this printer has been disabled. */
@@ -45,7 +45,7 @@ private class Printer extends AcceptActor(Printer,"printer") :
   /* Report that this printer has started. */
   println("Started Printer Actor")
 
-  /* receive method that handles the incoming printer and control messages. */
+  /* Receive method that handles the incoming printer and control messages. */
   final protected def receive(letter: Letter, sender: Sender): Unit =
     Logger.trace(Logger.GroupCollatz)
     letter match
@@ -57,7 +57,7 @@ object Printer extends AcceptDefine, Stateless:
   import Auxiliary.toUnit
   Logger.trace(Logger.GroupCollatz)
 
-  /* This are the devices the printer is able to handle. */
+  /* These are the devices the printer is able to handle. */
   enum Device :
     case ANSI, XML, HTML
 
@@ -81,11 +81,8 @@ object Printer extends AcceptDefine, Stateless:
    * we were complete in the implementation of all message types */
   sealed trait Letter extends Actor.Letter[Actor]
 
-  /* Class to send a record message to the printer. */
-  private case class Message(colour: Colour, text: String) extends Letter :
-    Logger.trace(Logger.GroupCollatz)
-    /* Make a reasonable entry for this record. This is done in the Printer Actor context. */
-    def show: String = s"The $colour says: \"$text\""
+  /* Class to send a colored message to the printer. */
+  private case class Message(colour: Colour, text: String) extends Letter
 
   /* Message to dynamically switch the device of the messages. */
   private case class Switch(device: Device) extends Letter

@@ -109,9 +109,9 @@ trait ActorLoggerSettings :
   /**
    * Implement this method with the **identical signature** to define the groups to be show in the logging which
    * have a membership group defined. Make use of the ShowGroups class to set the groups. Implement as follows:
-   * - Two pass entries for the groups (defined as objects) with names MyFirstGroup and MySecondGroup:
+   * - To pass entries for the groups (defined as objects) with names MyFirstGroup and MySecondGroup:
    *   transparent inline def showGroups: ShowGroups((MyFirstGroup,MySecondGroup))
-   * - Two pass entries for only one group:
+   * - To pass entries for only one group:
    *   transparent inline def showGroups: ShowGroups((MySecondGroup))
    * - To block all self defined groups:
    *   transparent inline def showGroups: ShowGroups(())
