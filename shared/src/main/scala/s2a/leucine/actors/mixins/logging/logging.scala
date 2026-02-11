@@ -41,18 +41,32 @@ trait LogAid(logger: ActorLogger) extends ActorInit, ActorDefs :
   this: BareActor =>
   import ActorLogger.{Level, Timing}
 
+  /* Local copies of the passLevel and timing from the global values. Although you may change the
+   * global values from the outside, this has no effect once the actor is created. If the values
+   * are changed with logSettings this has effect directly. */
+  private var _level: Level    = logger.passLevel
+  private var _timing: Timing  = logger.timing
+
+  /* Local functions to produce the values of passLevel and timing inside the local instance of LogHolder. */
+  private def level(): Level   = _level
+  private def timing(): Timing = _timing
+
   /* The holder is what we use for collecting log statements in this actor. This object is loaded
    * every time the actor is rescheduled on the thread. It has internal variables that we update
-   * directly for efficiency reasons. Its initial settings are copied from the fixed settings. */
-  private val holder = LogHolder(path,logger.passLevel,logger.incidentLevel,logger.timing)
+   * via functions directly for efficiency reasons.  */
+  private val holder = LogHolder(path,level,logger.incidentLevel,timing)
 
   /**
    * With logSettings you can update the logging pass level and the timing of the logger. It only works if
    * setting these variables is globally allowed for. These settings are effective immediately and stretch
    * to any code that is executed from this actor. However, only call this method from the constructor or
    * from within the message handler of the actor. Do NOT call it from outside of the actor or from a future.  */
-  protected def logSettings(passLevel: Level, timing: Timing): Unit =
-    if logger.localSettings then holder.update(passLevel,timing)
+  protected def logSettings(level: Level = _level, timing: Timing = _timing): Unit =
+    /* See if we are allowed to update the current values. */
+    if logger.localSettings then
+      /* If so, replace the values. */
+      _level  = level
+      _timing = timing
 
   /**
    * Method to be called just before are the actor is scheduled on a new thread for execution, but

@@ -31,16 +31,16 @@ package s2a.leucine.actors
  * for large amounts of logs due to the scattered nature of memory use and missed cache hits
  * at garbage collection. The class also keeps a local copy of the active level and timing
  * settings. Any entry can be (runtime) checked prior to entry construction and storage.
- * The incident level is used to determine when an entry is counted as incident.
+ * The incident level is used to determine when an entry is counted as incident. The passLevel
+ * and timing are functions, and you may alter their outcome from the outside during operation.
  * For internal use only. The class is not thread safe by design, so synchronize your calls
  * or ensure that you are using this holder in one thread by other means. The latter is comes
  * natural when used as a thread local variable. */
 private class LogHolder(
-    private val actorPath: String,
-    private var passLevel: ActorLogger.Level,
-    private val incidentLevel: ActorLogger.Level,
-    private var timing: ActorLogger.Timing,
-    private var incidents: Int = 0) :
+    actorPath: String,
+    passLevel: () => ActorLogger.Level,
+    incidentLevel: ActorLogger.Level,
+    timing: () => ActorLogger.Timing) :
   import ActorLogger.{Level, Entry}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter, minStart, maxStart}
@@ -54,6 +54,11 @@ private class LogHolder(
   private var min: Long = minStart
   private var max: Long = maxStart
 
+  /* Variable to keep track of the number of incidents. These are log entries which are
+   * as or more severe than the value of incidentLevel. It assumed to be a low value,
+   * but it can never be reset during the entire lifetime of the application. */
+  private var incidents: Int = 0
+
   /**
    * Return the variable that keep track of the number of incidents for this holder. Note that
    * this variable is never cleared during the lifetime if the instance. Recreate the holder if
@@ -62,10 +67,6 @@ private class LogHolder(
 
   /** Managed container for all log entries. */
   private var entries: List[Entry] = Nil
-
-  private[actors] def update(passLevel: ActorLogger.Level, timing: ActorLogger.Timing): Unit =
-    this.passLevel = passLevel
-    this.timing    = timing
 
   /** Check if the holder contains any entries */
   private[actors] def isEmpty: Boolean = entries.isEmpty
@@ -79,11 +80,11 @@ private class LogHolder(
      * use every entry that is made here. */
     if level <= incidentLevel then incidents = incidents + 1
     /* Construct the new entry. */
-    Entry(actorPath,level,timing,sourceKind,sourcePath,message)
+    Entry(actorPath,level,timing(),sourceKind,sourcePath,message)
 
   /** Test if an log entry with the given level would pass for the current settings. */
   private[actors] def pass(level: Level, pathFilter: ActorFilter): Boolean =
-    level <= passLevel && pathFilter(level,actorPath)
+    level <= passLevel() && pathFilter(level,actorPath)
 
   /** Add a log entry to the list. */
   private[actors] def add(entry: Entry): Unit =

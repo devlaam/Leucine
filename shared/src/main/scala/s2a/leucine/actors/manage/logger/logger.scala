@@ -38,8 +38,9 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
   import Static.Kind
 
   /* Keep an lower bound of the index since the last retrieve. Note that we must synchronize
-   * since bare longs are not atomic with respect to read/write in Java (others are, except doubles) */
-  private val lastIndex: AtomicLong = AtomicLong(0L)
+   * since bare longs are not atomic with respect to read/write in Java (others are, except doubles)
+   * The value is to so high that all first logs will be buffered.  */
+  private val lastIndex: AtomicLong = AtomicLong(Int.MaxValue)
 
   /* A timer is used to schedule the regular log spool actions. This is defined lazy for the
    * spoolInterval will not yet be available at this part of the object construction. */
@@ -47,7 +48,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
 
   /* Contains the logHolder for the main and other threads without local logHolders. (non top
    * level objects are lazy, so we have the correct values here, this works) */
-  private object LogGlobal extends LogGlobal(LogHolder("",passLevel,incidentLevel,timing))
+  private object LogGlobal extends LogGlobal(LogHolder("",() => passLevel,incidentLevel, () => timing))
 
   /**
    * Make a new log entry of the current thread, if that thread has an active local container. If not,
@@ -68,6 +69,8 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
         /* The entry could not be made due to insufficient log level or absent global logger. */
         case Left(_)      => None
 
+  /** Enables/Disables buffering by setting the last lastIndex to a very high value or to zero. */
+  private def buffer(active: Boolean): Unit = lastIndex.set(if active then Int.MaxValue else 0)
 
   /**
    * Test if we have enough new logs for spooling, entry should be the last or recently produced.
@@ -80,62 +83,71 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
     if size > maxLogs then action()
 
   /**
-   * Manually retrieve and clear the log entries collected since the last retrieve. Make a new recent
-   * time stamp and record the last index. You must make sure yourself that you are not calling this
-   * method concurrently. However, since this is solely called within spool handling, and that method
-   * must also obey that restriction, we do not protect it here. */
-  final def retrieve(): Hold[List[Entry]] =
-    /* Update the recent time stamp. Note this is done before retrieving, which may lead
-     * to some generated log entries to have the new timestamp. Since their log
-     * timestamps are in fact closer to this moment, that is no problem. */
-    ActorLogger.updateRecent()
+   * Manually retrieve and clear the log entries collected since the last retrieve. You must make sure
+   * yourself that you are not calling this method concurrently. However, since this is solely called
+   * within spool handling, and that method must also obey that restriction, we do not protect it here.
+   * Note that if we are direct spooling there will be no entries available.  */
+  final def retrieve(): Hold[List[Entry]] = if directSpool then Hold.empty else
     /* Store the current value of the log index. Note, immediately after the call the value
      * is already outdated, so if we base an estimation about the number of none processed
      * log entries on this number it will be to high. However, that is better than the opposite
      * since this number is used to call for intermediate spooling if the periodic calls from
-     * the guard are insufficient. If we are directly spooling this update is not needed, since
-     * trySpool is inactive anyway. */
-    if !directSpool then lastIndex.set(ActorLogger.Entry.getIndex)
+     * the guard are insufficient.  */
+    lastIndex.set(ActorLogger.Entry.getIndex)
     /* Get the data, clear the collection, return the result. */
     LogGlobal.retrieve() + LogLocal.retrieve()
 
-  /**
-   * Access point for the timer events and manual spool events. Since we want the timer thread to be
-   * free as soon as possible the actual task is pushed back on the context. Even when called manually
-   * this is the right thing to do, since we */
-  private[actors] protected def action(): Unit = context.deferred(spool(false))
+  /** Access point for the timer events and manual spool events. */
+  private[actors] protected def action(): Unit =
+    /* Update the recent time stamp. Note this is done before retrieving, which may lead to some
+     * generated log entries to have the new timestamp. Since their log timestamps are in fact
+     * closer to this moment, that is no problem. */
+    ActorLogger.updateRecent()
+    /* Since we want the timer thread to be free as soon as possible the actual task is pushed back
+     * on the context. Even when called manually this is the right thing to do, since we do not know
+     * the origin of this call. There is however no need if we are direct spooling since then there
+     * will be no entries available. */
+    if !directSpool then context.deferred(spool(false))
 
   /**
    * Start the logger. You must call this at least once, the logger does not start spooling automatically.
-   * If you log direct (no spooling) this is not needed. It can be done for example at the end of the
-   * constructor in the derived class or at the start of your application. Or you must register your
-   * logger to the ActorGuard, so it can take care of its lifetime management. The latter is the preferred
-   * way, if you make use of ActorGuard.watch. You still can stop and restart the logger by hand in between
-   * if needed. The parameter hello should be true upon first start. */
+   * If you log direct (no spooling) but make use of Timing.Recent you must still call this, for it ensures
+   * periodic updates of the timer. It can be done for example at the end of the constructor in the derived
+   * class or at the start of your application. Or you must register your logger to the ActorGuard, so it
+   * can take care of its lifetime management. The latter is the preferred way, if you make use of
+   * ActorGuard.watch. You still can stop and restart the logger by hand in between if needed. The parameter
+   * hello should be true upon first start. If spooling is not direct, all logs are buffered until this call
+   * is made, to ensure you had ample time to set up the logging pipeline. Note there is no limit on the buffer,
+   * so make the start quickly after application start, or start out on a high pass level. */
   def start(hello: Boolean): Unit =
+    /* Disable the buffering on logs. All logs in the buffer will be spooled quickly (by the next log entry),
+     * if it is already full. */
+    buffer(false)
     /* Report that logging has started. Note that this does not imply this is the first entry,
      * only that we started spooling of the logs on a regular basis. */
-    system("Logger started.")
-    /* Start the logging spool timer if we are not directly spooling. Most likely there are already a lot
-     * of start up messages. In order to get them into the open as quickly as possible we copy hello
+    if hello then system("Logger started.") else system("Logger restarted.")
+    /* Start the logging spool timer. Most likely there are already some start up messages. In order to get
+     * them into the open as quickly as possible we copy the value of hello. This is true at first start.
      * (guard makes it so) */
-    if !directSpool then timer.start(hello)
+    timer.start(hello)
 
   /**
    * Stop the logger. You may stop and start the logger at will, which can be useful to catch a specific
    * part of the action and not get overwhelmed by the other log data. The parameter goodbye should be true
    * upon the final stop (for a final last spool). Also here, if the logger is registered at the ActorGuard,
-   * it will take care of stopping it at application termination. */
+   * it will take care of stopping it at application termination. Note that if you stop the logger by hand,
+   * log entries will still be buffered. If this is not wanted, increase the log pass level to Ignore.*/
   def stop(goodbye: Boolean): Unit =
     /* Report that logging has stopped. Usually this does imply this is the last entry since all
      * actors are inactive now. */
-    system("Logger stopped.")
-    /* If we are not directly spooling two actions are needed. */
-    if !directSpool then
-      /* Perform the last spool by hand. */
-      if goodbye then spool(true)
-      /* Stop the spooling timer. */
-      timer.stop(false)
+    if goodbye then system("Logger stopped.") else system("Logger paused.")
+    /* If we are not directly spooling we should spool any remaining entries. With direct spooling there
+     * are no remaining entries to spool. */
+    if !directSpool then spool(goodbye)
+    /* Stop the spooling timer. Try to prohibit the last queue event if we are only pausing. */
+    timer.stop(!goodbye)
+    /* Enable buffering if we are not at the last take. */
+    if !goodbye then buffer(true)
 
 
 /**
@@ -222,14 +234,15 @@ object ActorLogger  :
    * Attribute to each log level an ordinal on the type level. This makes it possible to compare
    * level at compile time an eliminate unneeded code. */
   type Ordinal[L <: Level] <: Int = L match
-    case Level.System => 0
-    case Level.Fatal  => 1
-    case Level.Error  => 2
-    case Level.Warn   => 3
-    case Level.Info   => 4
-    case Level.Beta   => 5
-    case Level.Debug  => 6
-    case Level.Trace  => 7
+    case Level.Disable => 0
+    case Level.System  => 1
+    case Level.Fatal   => 2
+    case Level.Error   => 3
+    case Level.Warn    => 4
+    case Level.Info    => 5
+    case Level.Beta    => 6
+    case Level.Debug   => 7
+    case Level.Trace   => 8
 
   /**
    * The different levels that are available for logging. Note that the level System is only there
@@ -255,14 +268,23 @@ object ActorLogger  :
 
   object Level :
     /** Type aliases to define the compile time fixed level syntactically equal to the runtime log level. */
-    type System = System.type
-    type Fatal  = Fatal.type
-    type Error  = Error.type
-    type Warn   = Warn.type
-    type Info   = Info.type
-    type Beta   = Beta.type
-    type Debug  = Debug.type
-    type Trace  = Trace.type
+    type Disable = Disable.type
+    type System  = System.type
+    type Fatal   = Fatal.type
+    type Error   = Error.type
+    type Warn    = Warn.type
+    type Info    = Info.type
+    type Beta    = Beta.type
+    type Debug   = Debug.type
+    type Trace   = Trace.type
+
+    /**
+     * Meaning: virtual level.
+     * Usage:   level to (temporarily) disable all logging
+     * Action:  none
+     * Example: use if no logger spooling is available. */
+    case object Disable extends Level :
+      inline def ordinal: Int = constValue[Ordinal[Level.Disable]]
 
     /**
      * Meaning: level for messages from the actor framework itself.
@@ -328,13 +350,18 @@ object ActorLogger  :
     case object Trace extends Level :
       inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
 
-    /** This are all available level in one list. From high to low. */
+    /** This are all operational levels in one list. From high to low. */
     val allLevels = List(System,Fatal,Error,Warn,Info,Beta,Debug,Trace)
 
     /**
      * Take a sample from all level creations. Note, the samples are taken sequentially and
      * may not represent the number of creations at one single moment in time. */
     def sample: List[(Level,Long)] = allLevels.map(level => (level,level.creations))
+
+    /**
+     * Method to find the level given a string representation to a level. Searches for the
+     * for the level ignoring the letter casing. */
+    def fromString(name: String): Option[Level] = allLevels.find(_.toString.equalsIgnoreCase(name))
 
   /**
    * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,

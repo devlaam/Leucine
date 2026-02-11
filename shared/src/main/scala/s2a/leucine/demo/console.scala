@@ -45,7 +45,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger)
    * and send to this actor itself for processing. Note that, on the JVM and Native this is a blocking service
    * so it also blocks the actor. On JS it works with a callback. Normally you should not program it this way,
    * but since we are here at the start of the demo, it does not hurt. */
-  CLI.talk("Please state the demo you want to run (ticker, clock, crawler or chatgrt): ", selfie(Console.Demo(_)))
+  CLI.talk("Please state the demo you want to run (collatz, clock, crawler or chatgrt): ", selfie(Console.Demo(_)))
 
   override protected def stopped(cause: Actor.Stop, complete: Boolean) =
     Logger.trace(Logger.AllGroups)
@@ -63,8 +63,8 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger)
   def receive(letter: Letter, sender: Sender): Unit =
     Logger.trace(Logger.AllGroups)
     letter match
-      case Console.Demo("ticker")        =>  new Ticker(false); stop();
-      case Console.Demo("ticker debug")  =>  new Ticker(true); stop();
+      case Console.Demo("collatz")       =>  new Collatz(false); stop();
+      case Console.Demo("collatz debug") =>  new Collatz(true); stop();
       case Console.Demo("clock")         =>  new Listener; stop();
       case Console.Demo("crawler")       =>  new Tree("F0",false,None); stop();
       case Console.Demo("crawler debug") =>  new Tree("F0",true,None); stop();

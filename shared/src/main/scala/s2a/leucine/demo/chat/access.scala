@@ -50,7 +50,7 @@ class Access extends RestrictActor(Access,"Access") :
       /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
       case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
       /* This cannot be reached, but the compiler is not able to verify. */
-      case (_,_) => assert(false,"Code should not come here.")
+      case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep our state manually. */

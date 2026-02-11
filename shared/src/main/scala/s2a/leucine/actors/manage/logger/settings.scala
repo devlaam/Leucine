@@ -151,13 +151,21 @@ trait ActorLoggerSettings :
    * or if the application is about to terminate. */
   def spoolInterval: FiniteDuration
 
-  /**  Define the default runtime active logging level (see ActorLogger.Level for documentation) */
+  /**
+   * Define the default runtime active logging level (see ActorLogger.Level for documentation).
+   * Although you may change the result at runtime, there are not guarantees as to when the change
+   * will become effective. Usually this for making runtime changes at the very start of the application. */
   def passLevel: Level
 
-  /** Level (equal and) above which the log event is counted as incident in the actors. */
+  /**
+   * Level (equal and) above which the log event is counted as incident in the actors.
+   * Although you may change the result at runtime, there are not guarantees as to when the change
+   * will become effective. Usually this for making runtime changes at the very start of the application. */
   def incidentLevel: Level
 
-  /** Define the default runtime active logging timing (see ActorLogger.Timing for documentation) */
+  /** Define the default runtime active logging timing (see ActorLogger.Timing for documentation).
+   * Although you may change the result at runtime, there are not guarantees as to when the change
+   * will become effective. Usually this for making runtime changes at the very start of the application. */
   def timing: Timing
 
   /**

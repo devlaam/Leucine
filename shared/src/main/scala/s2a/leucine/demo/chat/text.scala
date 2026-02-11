@@ -43,7 +43,7 @@ class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
       /* We received a the verdict from the Access actor if we may allow the user. If not, communicate this, otherwise generate new random text. */
       case (Text.User(name,allow),_: Access)         => if allow then noise ! Noise.Request(name,20,6) else println(s"User $name refused.")
       /* This cannot be reached, but the compiler is not able to verify. */
-      case (_,_) => assert(false,"Code should not come here.")
+      case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */

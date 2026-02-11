@@ -24,34 +24,28 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
+import scala.util.Random
 import scala.concurrent.duration.DurationInt
 import scala.collection.immutable.{SortedMap, SortedSet}
 import s2a.leucine.actors.*
 
-class TestHandler(name: String) :
-  Logger.trace(Logger.GroupTicker)
-
-  def handleTick(value: Int) : Unit =
-    Logger.trace(Logger.GroupTicker)
-    /* Use the Printer to send the message to the outside. */
-    Printer.default(s"tick = $value by name=$name")
-
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
  * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Ticker(debug: Boolean) extends AcceptActor(Ticker), MonitorAid(new LocalMonitor(2.seconds)), LogAid(Logger) :
+class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new LocalMonitor(2.seconds)), LogAid(Logger) :
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
+  import ActorLogger.Level
 
-  Logger.trace(Logger.GroupTicker)
+  Logger.trace(Logger.GroupCollatz)
 
-  private val testHandler = new TestHandler("Unicorn")
-  /* We allow full monitor tracing for this actor. */
+  /* Allow tracing in this actor. */
   final override def tracing = Tracing.Enabled
 
   /* We just log the fact that this actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Printer.blue(s"stopped ticker, complete=$complete")
+    Logger.trace(Logger.GroupCollatz)
+    Printer.blue("Stopped Collatz Actor")
 
   /* Define report functions for each capability */
   private def sampled(samples: List[Sample]): Unit      = samples.foreach(sample => println(s"== SAMPLE ==> ${sample.show}"))
@@ -66,53 +60,81 @@ class Ticker(debug: Boolean) extends AcceptActor(Ticker), MonitorAid(new LocalMo
   /* Only activate the monitor when we are in the debug mode. */
   probing(debug)
 
+  /* Log that the collatz has commenced its operations. */
+  Printer.blue("Started Collatz Actor")
+
+  /* Hmm, lets switch to ansi colors: */
+  Printer.switch(Printer.Device.ANSI)
+  Logger.debug(s"Switching to ANSI terminal.")
+
   /* In order to set the machinery in motion, a first tick must be send. */
   // TODO: Sending a message to yourself inside the constructor may be dangerous.
   // The JIT compiler could move it and its possible the receive method is called
   // Before the actor is completely constructed. How to prohibit
   // Check in the send method if sender==receiver and then if actor is complete?
-  this ! Ticker.Work
-
-  /* Log that the ticker has commenced its operations. */
-  Printer.blue("Ticker Actor created")
-
-  /* Hmm, lets switch to ansi colors: */
-  Printer.switch(Printer.Device.ANSI)
+  this ! Collatz.Work
 
   /* In receive we handle the incoming letters. */
   final protected def receive(letter: Letter, sender: Sender): (State => State) = (state: State) => {
-    Logger.trace(Logger.GroupTicker)
+    Logger.trace(Logger.GroupCollatz)
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match
-      case Ticker.Tick(value: Int) =>
-        /* Report that we are in the 'tick' state*/
-        testHandler.handleTick(value)
-        Printer.red(s"I got tick = $value")
-        /* Send a new letter to myself to continue the work */
-        this ! Ticker.Work
-        /* Change the state to a new one. This is obligatory. */
-        Ticker.Tock(value+1)
-      case Ticker.Tock(value: Int) =>
-        /* Report that we are in the 'tock' state*/
-        Printer.green(s"I got tock = $value")
-        /* As long as we are below 10 we continue the work, otherwise we send ourselves
+      case Collatz.Odd(current,full,odd,evens,ceil) =>
+        /* Report that we are in the 'odd' state */
+        Printer.red(s"Odd  value = $current")
+        /* As long as we are above 1 we continue the work, otherwise we send ourselves
          * the 'last letter'. Note that in this case this is not really needed, nobody
-         * else sends messages to Ticker, so the letter queue empties itself anyway, but
+         * else sends messages to Collatz, so the letter queue empties itself anyway, but
          * to actually quit the application, we need it to stop itself. */
-        if value<10 then this ! Ticker.Work else stop(Actor.Stop.Finish)
+        if current>1 then this ! Collatz.Work else
+          Printer.blue(s"the value = ${Collatz.initial.current}")
+          Printer.blue(s"all steps = $full")
+          Printer.blue(s"odd steps = $odd")
+          Printer.blue(s"max value = $ceil")
+          Printer.blue(s"max evens = $evens")
+          stop(Actor.Stop.Finish)
+        /* Calculate the next value in the Collatz sequence. */
+        val next = 3 * current + 1
+        /* Lets log the event that we find a new maximum value. */
+        if next > ceil then Logger.info(s"New max value = $next")
+        /* Demonstration of how you can dynamically adjust the log level in the actor. */
+        if next > 2000 then logSettings(level = Level.Trace)
         /* Change the state to a new one. This is obligatory. */
-        Ticker.Tick(value+1) }
+        if next % 2 == 0
+        then Collatz.Even(next,full+1,odd,1,evens,next max ceil)
+        else Collatz.Odd(next,full+1,odd+1,evens,next max ceil)
+      case Collatz.Even(current,full,odd,size,evens,ceil) =>
+        /* Report that we are in the 'even' state*/
+        Printer.green(s"Even value = $current")
+        /* When the value is even, we must always continue. */
+        this ! Collatz.Work
+        /* Calculate the next value in the Collatz sequence. */
+        val next = current / 2
+        /* Demonstration of how you can dynamically adjust the log level in the actor. */
+        if next < 1500 then logSettings(level = Level.Info)
+        /* Lets log the event that we find a new longest even value. */
+        if size > evens then Logger.info(s"New max evens = $size")
+        /* Change the state to a new one. This is obligatory. */
+        if next % 2 == 0
+        then Collatz.Even(next,full+1,odd,size+1,size max evens,ceil)
+        else Collatz.Odd(next,full+1,odd+1,size max evens,ceil) }
 
-object Ticker extends AcceptDefine :
-  Logger.trace(Logger.GroupTicker)
+object Collatz extends AcceptDefine :
+  Logger.trace(Logger.GroupCollatz)
   type Accept = Actor
-  /* The ticker only excepts one letter */
+  /* The Collatz only excepts one letter */
   sealed trait Letter extends Actor.Letter[Actor]
   case object Work extends Letter
-  /* This actor can be in two 'states' */
+  /* The actor can be in two 'states' Even or Odd. Both carry the relevant parameters:
+   *  current:  Current value in the sequence, updated on every step.
+   *  full:     Counter of all steps in the sequence.
+   *  odd:      Counter of all steps that produce an odd number in the sequence.
+   *  size:     Counter of the number of consecutive even numbers.
+   *  evens     Maximum number of consecutive even numbers so far.
+   *  ceil:     Maximum value in the sequence so far. */
   sealed trait State extends Actor.State
-  case class Tick(value: Int) extends State
-  case class Tock(value: Int) extends State
+  case class Odd(current: Int, full: Int, odd: Int, evens: Int, ceil: Int) extends State
+  case class Even(current: Int, full: Int, odd: Int, size: Int, evens: Int, ceil: Int) extends State
   /* The initial state of of a state actor must be defined. */
-  val initial: State = Ticker.Tick(0)
+  final val initial = Collatz.Odd(Random.nextInt(100)*2+1,0,0,0,0)

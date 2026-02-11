@@ -50,7 +50,7 @@ class Noise extends RestrictActor(Noise,"Noise") :
         val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
         source ! Text.Lipsum(key,result)
       /* This cannot be reached, but the compiler is not able to verify. */
-      case (_,_) => assert(false,"Code should not come here.")
+      case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */

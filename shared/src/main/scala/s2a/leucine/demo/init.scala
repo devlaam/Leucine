@@ -42,11 +42,11 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
   /* Create for every demo a separate group for logging. We shall use this only for tracing. */
   object GroupChat    extends GroupBase
   object GroupClock   extends GroupBase
-  object GroupTicker  extends GroupBase
+  object GroupCollatz extends GroupBase
   object GroupCrawler extends GroupBase
 
   /* Experiment here to see the effects of including and excluding groups. */
-  transparent inline def showGroups = ShowGroups((GroupChat,GroupClock,GroupTicker,GroupCrawler))
+  transparent inline def showGroups = ShowGroups((GroupChat,GroupClock,GroupCollatz,GroupCrawler))
 
   /* Experiment here to see the effects of filter defined on the sourcePath or actorPath */
   def sourcePathFilter(level: Level, path: String): Boolean = true
@@ -55,22 +55,38 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
   /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
   inline def directSpool = false
 
-  /**  Per default the pass level is Trace, you can define a new one by overriding this: */
-  final override val passLevel: Level = Level.Info
+  /* We want to set the used pass level at the start of the application via its arguments. But we
+   * also want the logger to be available as global object. So we must manipulate the value after
+   * construction for this demonstration code. We may therefore have a mismatch of levels at the
+   * very start, for it is uncertain when the change will be picked up. We start with "Level.Trace"
+   * so we don't miss any entries, but some Trace messages will also appear before the new level is
+   * accepted. For a demo, this is acceptable. */
+  private var level: Level = Level.Trace
+  def setLevel(level: Level): Unit = this.level = level
+
+  /** This is called to obtain the current logging level. */
+  override def passLevel: Level = level
+
 
 
 object Init :
+  import ActorLogger.Level
   Logger.trace(Logger.AllGroups)
-  /* When you arrive here, you can be certain all actors are done */
+
+  /** When you arrive here, you can be certain all actors are done */
   def complete(): Unit = println("Demo complete")
 
-  @main
-  def main(): Unit =
+  /** Entry point of the demo application. */
+  def main(args: Array[String]): Unit =
     /* Trace the main entry. Note that we may use the logger before it is started below. Starting
      * the logger only starts the spooling, log entries are always recorded. */
     Logger.trace(Logger.AllGroups)
-    /* Register the Logger and Monitor so that the ActorGuard can start and stop them. */
-    ActorGuard.register(Logger)
+    /* Set the logger level based upon arguments at startup. Without arguments, no logging,
+     * otherwise try to interpret the first argument as log level. If this fails: no logging. */
+    Logger.setLevel(args.headOption.flatMap(Level.fromString).getOrElse(Level.Disable))
+    /* Register the Logger so that the ActorGuard can start (and stop) it, if not disabled. */
+    if Logger.passLevel > Level.Disable then ActorGuard.register(Logger)
+    /* Register the Monitor so that the ActorGuard can start (and stop) it. */
     ActorGuard.register(Monitor)
     Logger.info("Main called")
     println(s"Started Actor examples on the ${actorContext.platform} platform.")

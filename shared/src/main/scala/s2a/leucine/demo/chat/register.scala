@@ -59,7 +59,7 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
           /* Remove the password from the list, so it is not issued again. */
           supply = supply.tail
       /* This cannot be reached, but the compiler is not able to verify. */
-      case (_,_) => assert(false,"Code should not come here.")
+      case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
