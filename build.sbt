@@ -21,7 +21,7 @@ val sharedSettings = Seq(
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all","-Wnonunit-statement","-Wvalue-discard"),
-  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.9.2" % Test).drop(publishMe),
+  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.9.5" % Test).drop(publishMe),
   testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
   Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
   )

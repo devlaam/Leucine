@@ -53,41 +53,39 @@ class DateTime(epochTimeInNanoSeconds: Long) :
     /* From epoch nano seconds to epochSeconds */
     private val epochSeconds: Long = epochTimeInNanoSeconds / nanosPerSec
     /* From epochSeconds to days (since 1970) */
-    private val days = epochSeconds / secsPerDay
+    private val days: Long  = epochSeconds / secsPerDay
     /* The remainder number of seconds in the day */
-    private val sod = epochSeconds % secsPerDay
+    private val sod: Long  = epochSeconds % secsPerDay
     /* The remainder number of seconds in the minute */
-    private val mod = sod % secsInHour
+    private val mod: Long  = sod % secsInHour
     /*  shift the epoch from 1970-01-01 to 0000-03-01 */
-    private val dsz = days + zeroToEpochDays
+    private val dsz: Long  = days + zeroToEpochDays
     /* compute the era from the serial date by dividing by the number of days in an 400 year era */
-    private val era = dsz / daysInEra
+    private val era: Long  = dsz / daysInEra
     /* The days left in this era */
-    private val doe = dsz % daysInEra
+    private val doe: Long  = dsz % daysInEra
     /* Find the year in this era, with all required boundary corrections. */
-    private val yoe = (doe - doe / (daysIn4Years-1) + doe / daysIn100Years - doe / (daysInEra-1)) / daysInYear
+    private val yoe: Long  = (doe - doe / (daysIn4Years-1) + doe / daysIn100Years - doe / (daysInEra-1)) / daysInYear
     /* Find the year number (still starting at 1 march). */
-    private val ynr = yoe + era * 400L
+    private val ynr: Long  = yoe + era * 400L
     /* Find the date of year by subtracting from the day-of-era the days that have occurred in all prior years of this era */
-    private val doy = (doe - (daysInYear * yoe + yoe / 4 - yoe / 100)).toInt
+    private val doy: Long  = (doe - (daysInYear * yoe + yoe / 4 - yoe / 100))
     /* Finds the zero based month part staring at march. */
-    private val mp  = ( (5 * doy + 2) / 153 )
+    private val mp: Long   = ( (5 * doy + 2) / 153 )
 
     /* Find the one based day of the month */
-    val day = (doy - (153 * mp + 2) / 5 + 1).toInt
+    val day: Int    = (doy - (153 * mp + 2) / 5 + 1).toInt
     /* Finds the one based month part staring at january. */
-    val month = (mp + (if mp < 10 then 3 else -9)).toInt
+    val month: Int  = (mp + (if mp < 10 then 3 else -9)).toInt
     /* Correct the year for the rebase from march to january. */
-    val year = (ynr + (if month <= 2 then 1 else 0)).toInt
+    val year: Int   = (ynr + (if month <= 2 then 1 else 0)).toInt
 
     /* Find hour, min and second now. */
-    val hour   = sod / secsInHour
-    val minute = mod / secsInMin
-    val second = mod % secsInMin
+    val hour: Int   = (sod / secsInHour).toInt
+    val minute: Int = (mod / secsInMin).toInt
+    val second: Int = (mod % secsInMin).toInt
 
     /* Find the parts of the remaining second. */
-    val nano  = epochTimeInNanoSeconds % nanosPerSec
-    val micro = nano  / metric3Step
-    val milli = micro / metric3Step
-
-
+    val nano: Int   = (epochTimeInNanoSeconds % nanosPerSec).toInt
+    val micro: Int  = (nano  / metric3Step).toInt
+    val milli: Int  = (micro / metric3Step).toInt
