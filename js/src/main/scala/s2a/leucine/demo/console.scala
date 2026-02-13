@@ -24,10 +24,11 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-
 import scala.scalajs.js
+import js.Dynamic.global
 
 
+/* Utility methods for the commend line interface under the Node JS */
 object CLI :
   /* NodeJS supports a simple cli. */
   private val cli = Node.createCLI()
@@ -35,3 +36,16 @@ object CLI :
   def talk(tell: String, listen: String => Unit) = cli.question(tell,listen)
   /* This cli must be closed at the end. */
   def close(): Unit = cli.close()
+
+  /* Platform independent way of obtaining the arguments passed at startup. */
+  def argsOf(passed: Array[String]): Array[String] =
+    /* Test if there was nothing passed yet and if this environment has process arguments available (node.js!) ... */
+    if passed.isEmpty && !js.isUndefined(global.process) && !js.isUndefined(global.process.argv) then
+      /* ... if so, get them. This typically returns something like:
+       * Array[/opt/local/bin/node,../leucine/js/target/scala-3.3.7/leucine-fastopt/main.js,<arg1>,<arg2>]*/
+      val argv = global.process.argv.asInstanceOf[js.Array[String]]
+      /* We only want the arguments, not the start up path and not the application path, thus */
+      argv.drop(2).toArray
+    else
+      /* ... if not, give back what we got. */
+      passed

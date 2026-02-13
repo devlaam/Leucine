@@ -53,7 +53,10 @@ private object LogLocal :
     accuEntries = Nil
     copy
 
-  /** A per thread logHolder for logs that are produced by the actors. */
+  /* A per thread logHolder for logs that are produced by the actors. Note that for JS or the
+   * context emulator this simply stores the variable on the one an only thread. This is okay,
+   * since the actor that is currently running will remove it from before it relinquishes control
+   * to the next actor. To be on the safe side, a check is implemented with an assert at fill. */
   private val threadedHolder: ThreadLocal[LogHolder] = ThreadLocal[LogHolder]()
 
   /** Places a new container (LogHolder) for logs on this thread. */

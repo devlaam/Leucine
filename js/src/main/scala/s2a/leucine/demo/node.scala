@@ -24,7 +24,6 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-
 import scala.scalajs.js
 
 

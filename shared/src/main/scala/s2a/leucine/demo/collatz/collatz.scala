@@ -99,7 +99,7 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
         /* Lets log the event that we find a new maximum value. */
         if next > ceil then Logger.info(s"New max value = $next")
         /* Demonstration of how you can dynamically adjust the log level in the actor. */
-        if next > 2000 then logSettings(level = Level.Trace)
+        if next > 4000 then logSettings(level = Level.Trace)
         /* Change the state to a new one. This is obligatory. */
         if next % 2 == 0
         then Collatz.Even(next,full+1,odd,1,evens,next max ceil)
@@ -111,8 +111,8 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
         this ! Collatz.Work
         /* Calculate the next value in the Collatz sequence. */
         val next = current / 2
-        /* Demonstration of how you can dynamically adjust the log level in the actor. */
-        if next < 1500 then logSettings(level = Level.Info)
+        /* Demonstration of how you can dynamically restore the log level in the actor. */
+        if next < 3500 then logSettings(level = Logger.passLevel)
         /* Lets log the event that we find a new longest even value. */
         if size > evens then Logger.info(s"New max evens = $size")
         /* Change the state to a new one. This is obligatory. */

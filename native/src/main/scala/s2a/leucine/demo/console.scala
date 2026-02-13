@@ -27,6 +27,7 @@ package s2a.leucine.demo
 import scala.io.StdIn
 
 
+/* Utility methods for the commend line interface for Native terminals */
 object CLI :
   /* One time conversation in the console */
   def talk(tell: String, listen: String => Unit) =
@@ -37,3 +38,5 @@ object CLI :
   /* Actually, there is nothing to close here */
   def close(): Unit = ()
 
+  /* Platform independent way of obtaining the arguments passed at startup. */
+  def argsOf(passed: Array[String]): Array[String] = passed

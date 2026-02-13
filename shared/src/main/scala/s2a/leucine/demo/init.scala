@@ -25,6 +25,7 @@ package s2a.leucine.demo
  **/
 
 import scala.concurrent.duration.DurationInt
+import scala.collection.mutable.Buffer
 import s2a.leucine.actors.*
 
 /* Note: The examples are given to illustrate how the actors could be used, and are
@@ -37,7 +38,7 @@ given actorContext: ActorContext = ActorContext.system
 /* This is our logging object to be used for all demo applications. Experiment with mixing
  * in the different LoggerSettings, or changing some settings below. */
 object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProcessing :
-  import ActorLogger.{Level, ShowGroups, GroupBase}
+  import ActorLogger.{Entry, Level, ShowGroups, GroupBase}
 
   /* Create for every demo a separate group for logging. We shall use this only for tracing. */
   object GroupChat    extends GroupBase
@@ -67,6 +68,18 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
   /** This is called to obtain the current logging level. */
   override def passLevel: Level = level
 
+  /* In this demo we want all the logging to appear at the end. So we buffer it until the
+   * application is about to close. Then it is displayed. This prohibits mixing the output
+   * of the demo with logging. */
+  private val logEntries: Buffer[String] = Buffer.empty
+
+  /* For each call to the logger, the entry is stored. */
+  override def process(entry: Entry): Unit = logEntries += entry.toString
+
+  /* Called to display all the entries, preferably at the end. */
+  def printEntries(): Unit = logEntries.foreach(println)
+
+
 
 
 object Init :
@@ -74,16 +87,20 @@ object Init :
   Logger.trace(Logger.AllGroups)
 
   /** When you arrive here, you can be certain all actors are done */
-  def complete(): Unit = println("Demo complete")
+  def complete(): Unit =
+    Logger.printEntries()
+    println("Demo complete")
 
   /** Entry point of the demo application. */
   def main(args: Array[String]): Unit =
     /* Trace the main entry. Note that we may use the logger before it is started below. Starting
      * the logger only starts the spooling, log entries are always recorded. */
     Logger.trace(Logger.AllGroups)
-    /* Set the logger level based upon arguments at startup. Without arguments, no logging,
-     * otherwise try to interpret the first argument as log level. If this fails: no logging. */
-    Logger.setLevel(args.headOption.flatMap(Level.fromString).getOrElse(Level.Disable))
+    /* Set the logger level based upon arguments at startup. Note that, due to the required platform
+     * independence, we must perform some extra magic to get the arguments. CLI.argsOf(..) takes care
+     * of that. Without arguments, no logging, otherwise try to interpret the first argument as log
+     * level. If this fails: no logging. */
+    Logger.setLevel(CLI.argsOf(args).headOption.flatMap(Level.fromString).getOrElse(Level.Disable))
     /* Register the Logger so that the ActorGuard can start (and stop) it, if not disabled. */
     if Logger.passLevel > Level.Disable then ActorGuard.register(Logger)
     /* Register the Monitor so that the ActorGuard can start (and stop) it. */

@@ -26,7 +26,6 @@ package s2a.leucine.actors
 
 import java.util.concurrent.atomic.AtomicLong
 import scala.compiletime.constValue
-import scala.annotation.nowarn
 
 /**
  * Basic interface for each custom ActorLogger. You must at least implement the last
@@ -406,36 +405,29 @@ object ActorLogger  :
     val sourcePath:  String,
     val message:     String) :
 
-    /* We know that the date methods are deprecated. Ignore that for now. */
     /** Simple formatter to show the contents of a log entry. */
-    //TODO: Use non deprecated formatters that produce UTC values for the time.
-    @nowarn
     override def toString: String =
-      import java.util.Date
-      val nanos  = timestamp - ((timestamp / 1000000000) * 1000000000)
-      val millis = nanos / 1000000
-      val date   = Date(timestamp / 1000000)
+      val time = DateTime(timestamp)
       val indexStr  = s"%${2}s".format(index)
       val levelStr  = s"%${6}s".format(level)
       val countStr  = counter.toString
-      val yearStr   = f"${date.getYear() + 1900}%04d"
-      val monthStr  = f"${date.getMonth() + 1}%02d"
-      val datumStr  = f"${date.getDate()}%02d"
-      val hoursStr  = f"${date.getHours()}%02d"
-      val minsStr   = f"${date.getMinutes()}%02d"
-      val secsStr   = f"${date.getSeconds()}%02d"
+      val yearStr   = f"${time.year}%04d"
+      val monthStr  = f"${time.month}%02d"
+      val datumStr  = f"${time.day}%02d"
+      val hoursStr  = f"${time.hour}%02d"
+      val minsStr   = f"${time.minute}%02d"
+      val secsStr   = f"${time.second}%02d"
       val source    = sourceKind.toString
       val subsecStr = timing match
         case Timing.Recent => ""
-        case Timing.Millis => f".$millis%03d"
-        case Timing.Nanos  => f".$nanos%09d"
+        case Timing.Millis => f".${time.milli}%03d"
+        case Timing.Nanos  => f".${time.nano}%09d"
       val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
       val common = s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName);"
       level match
         case Level.System => s"$common $message)"
         case Level.Trace  => s"$common actor($actorName); $source; $message"
         case _            => s"$common actor($actorName); $source($sourcePath); $message)"
-
 
   object Entry :
 

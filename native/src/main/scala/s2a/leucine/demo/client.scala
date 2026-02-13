@@ -28,7 +28,7 @@ import java.net.{Socket as JavaSocket}
 import java.io.{PrintWriter, InputStreamReader, BufferedReader}
 
 
-/** JVM platform specific implementation of the ClientSocket */
+/** Native platform specific implementation of the ClientSocket */
 class ClientSocketImplementation(javaSocket: JavaSocket) extends ClientSocket :
 
   /* Stream access to the port to be able to write data */

@@ -60,7 +60,8 @@ trait LogAid(logger: ActorLogger) extends ActorInit, ActorDefs :
    * With logSettings you can update the logging pass level and the timing of the logger. It only works if
    * setting these variables is globally allowed for. These settings are effective immediately and stretch
    * to any code that is executed from this actor. However, only call this method from the constructor or
-   * from within the message handler of the actor. Do NOT call it from outside of the actor or from a future.  */
+   * from within the message handler of the actor. Do NOT call it from outside of the actor or from a future.
+   * If an argument is missing the value of the parameter is unchanged. */
   protected def logSettings(level: Level = _level, timing: Timing = _timing): Unit =
     /* See if we are allowed to update the current values. */
     if logger.localSettings then
