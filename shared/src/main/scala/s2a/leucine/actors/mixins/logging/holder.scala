@@ -55,7 +55,7 @@ private class LogHolder(
   private var max: Long = maxStart
 
   /* Variable to keep track of the number of incidents. These are log entries which are
-   * as or more severe than the value of incidentLevel. It assumed to be a low value,
+   * as or more severe than the value of incidentLevel. It assumed to be a low number,
    * but it can never be reset during the entire lifetime of the application. */
   private var incidents: Int = 0
 
@@ -73,7 +73,7 @@ private class LogHolder(
 
   /**
    * Construct an log entry based on the given data and add a timestamp, an index,  a thread
-   * name, timing and actor path name (if available) */
+   * name, timing and actor path name (called sourcePath here). */
   private[actors] def make(level: Level, sourceKind: Kind, sourcePath: String, message: String): Entry =
     /* We count the incidents as occurred when we construct the entry and not when we add it. This
      * is because in case of direct spooling entries are not added to the holder. Make sure you

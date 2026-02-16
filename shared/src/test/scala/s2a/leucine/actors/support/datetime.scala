@@ -7,27 +7,13 @@ import utest.*
 /* Since DateTime is a completely independent of the platform, there may be no need to
  * test it on all platforms. Would also be hard, since we need a library to test on
  * Native. */
-object DateTimeJVMTest extends TestSuite :
-  import java.time.{LocalDateTime, ZoneOffset}
+object DateTimeTestNN extends TestSuite :
+  import s2a.leucine.test.DateTime as RefDateTime
 
   val maxTS = 2000000000000000000L
 
-
-  class JVMDateTime(timestamp: Long) :
-    private val seconds = timestamp / 1000000000
-    private val ldt = LocalDateTime.ofEpochSecond(seconds, 0, ZoneOffset.UTC)
-    val nano  = timestamp - (seconds * 1000000000)
-    val micro = nano  / 1000
-    val milli = micro / 1000
-    def year  = ldt.getYear
-    def month = ldt.getMonthValue
-    def day   = ldt.getDayOfMonth
-    def hour  = ldt.getHour
-    def min   = ldt.getMinute
-    def sec   = ldt.getSecond
-
   def checkDateTime(timestamp: Long) =
-    val ref = JVMDateTime(timestamp)
+    val ref = RefDateTime(timestamp)
     val tst = DateTime(timestamp)
     ref.year   ==> tst.year
     ref.month  ==> tst.month
@@ -52,6 +38,3 @@ object DateTimeJVMTest extends TestSuite :
     test("Random timestamp") - checkDateTime(Random.nextLong(maxTS))
     test("Random timestamp") - checkDateTime(Random.nextLong(maxTS))
     test("Random timestamp") - checkDateTime(Random.nextLong(maxTS))
-
-
-

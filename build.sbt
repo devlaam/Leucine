@@ -26,14 +26,23 @@ val sharedSettings = Seq(
   Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
   )
 
+// We moeten positief gaan filteren op tests per platform.
+// Of we moeten de tests die niet voor elk platform werken
+// opnemen in een apparte tak. Lastige is een beetje dat sommige
+// test voor twee platformen werken. We zouden de test objecten
+// met _JVM_JS_NAT kunnen laten eindigen. Daar is gemakkelijk op
+// te filteren en is simpel.
+
 val jvmSettings = Seq(
-  assembly / assemblyJarName := "main.jar"
+  assembly / assemblyJarName := "main.jar",
+  //Test / testOptions := Seq(Tests.Filter(_.contains("_JVM")))
   )
 
 val jsSettings = Seq(
   scalaJSUseMainModuleInitializer := true,
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
-  /* Remove test which cannot run on the JS-Emulated platform.*/
+  //Test / testOptions := Seq(Tests.Filter(_.contains("_JS")))
+  ///* Remove test which cannot run on the JS-Emulated platform.*/
   Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NJS")))
   )
 
@@ -42,7 +51,8 @@ val nativeSettings = Seq(
   //nativeMode      := "release-full"
   /* This setting is a requirement for uTest on Native */
   //nativeLinkStubs := true,
-  /* Remove test which cannot run on the Native platform.*/
+  //Test / testOptions := Seq(Tests.Filter(_.contains("_NTV")))
+  ///* Remove test which cannot run on the Native platform.*/
   Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN")))
   )
 
