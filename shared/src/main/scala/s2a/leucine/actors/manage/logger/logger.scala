@@ -484,9 +484,6 @@ object ActorLogger  :
    * this information when building your own sorted logger. */
   def sortedSpool(hold: Hold[List[Entry]], process: Entry => Unit): Unit = sort(hold).withFilter(_ != null).foreach(process)
 
-
-  // TODO: Write test software for this and other routines.
-
   /**
    * Spool method where we stitch new log entries before processing. Stitching means that if the
    * current spool session has missing entries, that part will be temporarily stored for reprocessing
@@ -497,10 +494,11 @@ object ActorLogger  :
 
     /**
      * Way to make the contents of an array visible. For development of this method.
-     * Unused now, but keep it arround a bit more, until we release. */
-    def arrayToString(array: IArray[Entry | Null]): String =
-     def convert(x: Entry | Null): Char = if x==null then '-' else 'o'
-     array.toSeq.map(convert).toString
+     * Unused now, but keep it around a bit more, until we release. */
+    @annotation.unused
+    def arrayToString(title: String, array: IArray[Entry | Null]): String =
+      def convert(x: Entry | Null): String = if x==null then "---" else f"${x.index}%03d"
+      array.map(convert).mkString(s"$title = |",",","|")
 
     /* Sort the new entries into an array. */
     val currEntries = sort(hold)
@@ -510,9 +508,9 @@ object ActorLogger  :
      * where we walk through the arrays simultaneously, starting at the most early point from both of them.
      * We first have a send phase that sends the entries to the process method for as longs as the entries
      * are continuously available in either array. The first moment an entry is missing in both, we start the
-     * merge phase. This array will therefor always start with an null entry or be empty. The index of that missing
+     * merge phase. This array will therefore always start with an null entry or be empty. The index of that missing
      * entry will be our new start. We must further build in a safety measure that the stored array does not become
-     * too long. At some time its better to disrupt the order than to blow op the memory. Also, when all actors
+     * too long. At some time its better to disrupt the order than to blow up the memory. Also, when all actors
      * are finished, we spool anything that is left, since there will be no one around to produce new logs. */
 
     /* Visualization of the processing of the two entry arrays.
@@ -548,7 +546,6 @@ object ActorLogger  :
      * Etc ....
      */
 
-
     /* Verify if the construction assumptions about the array hold. We need those values to start processing. */
     assert(lastEntries.isEmpty || lastEntries(0) == null, s"Array lastEntries must start with a null or be empty.")
     assert(currEntries.isEmpty || currEntries(0) != null, s"Array currEntries may not start with a null.")
@@ -557,17 +554,13 @@ object ActorLogger  :
     val lastEntryIndexStart = if lastEntries.isEmpty then 0 else store.start
     val currEntryIndexStart = if currEntries.isEmpty then 0 else currEntries(0).index
 
-    /* See where we must start the processing, which is the minimum of both log-index-numbers. */
-    val startIndex =
-      if      lastEntries.isEmpty then currEntryIndexStart
-      else if currEntries.isEmpty then lastEntryIndexStart
-      else                             math.min(lastEntryIndexStart,currEntryIndexStart)
+    /* We start the processing where we left of last time. If this is the first time we enter,
+     * we start at index 1, the lowest possible index value. It may happen that on the first run
+     * the first log entry is not present.  */
+    val startIndex = math.max(math.min(store.start,currEntryIndexStart),1L)
 
-    /* We stop at the highest possible log-index-number. Note this one beyond the last usable value. */
-    val endIndex   =
-      if      lastEntries.isEmpty then currEntryIndexStart+currEntries.length
-      else if currEntries.isEmpty then lastEntryIndexStart+lastEntries.length
-      else                             math.max(lastEntryIndexStart+lastEntries.length,currEntryIndexStart+currEntries.length)
+    /* We stop at the highest possible log-index-number. Note this is one beyond the last usable value. */
+    val endIndex = math.max(lastEntryIndexStart+lastEntries.length,currEntryIndexStart+currEntries.length)
 
     /* Test if a log-index number has a valid array-index for each array */
     def hasLastIndex(index: Long) = (index >= lastEntryIndexStart) && (index - lastEntryIndexStart) < lastEntries.length
@@ -592,7 +585,7 @@ object ActorLogger  :
       val hasCurr = hasCurrEntry(index)
       /* It cannot be so that both arrays have an entry on the same log-index. */
       assert(!hasLast || !hasCurr, s"Two log entries with the same index $index.")
-      /* Process the available entry (or none if there isn't any. */
+      /* Process the available entry (or none if there isn't any). */
       if hasLast then process(getLastEntry(index))
       if hasCurr then process(getCurrEntry(index))
       /* Break if we have a gap but are not completed and the merged array will not become to large. */

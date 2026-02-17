@@ -33,7 +33,7 @@ import scala.compiletime.constValue
 private trait LogHandler :
   import ActorLogger.{Entry, Level, Ordinal, ShowGroups, GroupBase}
   import Static.{Kind, kindInfo, pathInfo, callInfo}
-  import LogHolder.{ActorFilter, allPass}
+  import LogHolder.{ActorFilter, fixPass}
 
   /* FixLevel defines the logging level used at compile time. */
   type FixPassLevel <: Level
@@ -112,12 +112,12 @@ private trait LogHandler :
    * private[actors] modifier. If he does not want to see them => Ignore them. */
 
   /**
-   * Make log entry with level System, use for messages from the actor framework itself.
-   * Cannot be suppressed by setting a level value. */
+   * Make log entry with level System, use for messages from the actor framework itself. This call is only
+   * suppressed (not eliminated from the code) when FixLevel or the runtime passLevel is set to Ignore. */
   private[actors] def system(message: => String): Unit =
     if directSpool
-    then entry(false,Level.System,allPass,Static.Unknown,"",message).foreach(process)
-    else entry(true,Level.System,allPass,Static.Unknown,"",message).foreach(trySpool)
+    then entry(false,Level.System,fixPass(true),Static.Unknown,"",message).foreach(process)
+    else entry(true,Level.System,fixPass(true),Static.Unknown,"",message).foreach(trySpool)
 
   /**
    * Make log entry with level Fatal, indicates that further processing is unreliable and
