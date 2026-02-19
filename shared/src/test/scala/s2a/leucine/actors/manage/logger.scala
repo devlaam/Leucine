@@ -137,26 +137,26 @@ object ActorLoggerStichTest extends TestSuite :
   val tests = Tests :
 
     test("stichedSpool composes random hold stream into dense sorted output") :
-     (1 to 100).foreach : seed =>
-      /* Construct a list of log entries, the content is not important. */
-      val allEntries = (1 to sampleSize-1).map : nr =>
-        ActorLogger.Entry("parent.child",Level.Info,Timing.Recent,Static.Method,s"Source.$nr",s"message-$nr")
-      /* Randomize the them into a two level holder list. */
-      val holds = buildHolds(allEntries,Random(seed))
-      /* Check if there is something there */
-      holds.nonEmpty ==> true
-      /* Process the entries with a large storage, we expect a neat ordered and dense result. */
-      val (processedLarge,storeSizesLarge) = reorder(holds,sampleSize)
-      /* Process the entries with a small storage, we expect some disorder, but all the entries must be there. */
-      val (processedSmall,storeSizesSmall) = reorder(holds,sampleSize/20)
-      /* See if all entries are present and sorted for the Large one  */
-      processedLarge ==> allEntries.toSeq
-      /* See if all entries are present for the small one.  */
-      if (processedSmall.size != allEntries.size) then println(processedSmall.mkString("processedSmall = [",",","]"))
-      processedSmall.size ==> allEntries.size
-      /* See if there are no left overs: */
-      storeSizesLarge.last ==> 0
-      storeSizesSmall.last ==> 0
-      /* See if the storeSizes never exceed the maximal arraySize */
-      storeSizesLarge.foreach(size => assert(size <= sampleSize))
-      storeSizesSmall.foreach(size => assert(size <= sampleSize/20))
+      (1 to 100).foreach : seed =>
+        /* Construct a list of log entries, the content is not important. */
+        val allEntries = (1 to sampleSize-1).map : nr =>
+          ActorLogger.Entry("parent.child",Level.Info,Timing.Recent,Static.Method,s"Source.$nr",s"message-$nr")
+        /* Randomize the them into a two level holder list. */
+        val holds = buildHolds(allEntries,Random(seed))
+        /* Check if there is something there */
+        holds.nonEmpty ==> true
+        /* Process the entries with a large storage, we expect a neat ordered and dense result. */
+        val (processedLarge,storeSizesLarge) = reorder(holds,sampleSize)
+        /* Process the entries with a small storage, we expect some disorder, but all the entries must be there. */
+        val (processedSmall,storeSizesSmall) = reorder(holds,sampleSize/20)
+        /* See if all entries are present and sorted for the Large one  */
+        processedLarge ==> allEntries.toSeq
+        /* See if all entries are present for the small one.  */
+        if (processedSmall.size != allEntries.size) then println(processedSmall.mkString("processedSmall = [",",","]"))
+        processedSmall.size ==> allEntries.size
+        /* See if there are no left overs: */
+        storeSizesLarge.last ==> 0
+        storeSizesSmall.last ==> 0
+        /* See if the storeSizes never exceed the maximal arraySize */
+        storeSizesLarge.foreach(size => assert(size <= sampleSize))
+        storeSizesSmall.foreach(size => assert(size <= sampleSize/20))

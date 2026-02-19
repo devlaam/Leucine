@@ -28,7 +28,7 @@ import annotation.nowarn as nw
 
 /**
  * The AcceptActor accepts messages from any other actor, but may be not able to return an answer, if the sender was not specified.
- * It is Actor.Anonymous per default. For debugging it might be handy to still specify the sender though.
+ * which is Actor.Anonymous per default. For debugging it might be handy to still specify the sender though.
  * This simplifies the use, for not all possible return types need to be specified. It is still possible to send a message to
  * a fixed actor though, if the actor itself is known. If no name is given, an unique name is generated, but the actor is not indexed
  * to be retrieved on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
