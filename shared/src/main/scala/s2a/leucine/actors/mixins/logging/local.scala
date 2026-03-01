@@ -43,7 +43,13 @@ private object LogLocal :
   /**
    * Add some entries to the full collection. This method is synchronized since it may be called
    * from different threads. */
-  private def addToAccu(entries: List[Entry]): Unit = synchronized { accuEntries ::= entries }
+  private def addToAccu(hold: Hold[Entry]): Unit = synchronized :
+    /* Recalculate the boundaries */
+    if min > hold.min then min = hold.min
+    if max < hold.max then max = hold.max
+    /* Note that, since this all runs thread local the entries should be
+     * ordered but not necessarily directly sequential. We can add them like this. */
+    accuEntries ::= hold.entries
 
   /** Get a thread save copy of all local logs and clear the container. */
   private[actors] def retrieve(): Hold[List[Entry]] = synchronized :
@@ -76,13 +82,8 @@ private object LogLocal :
     if holder != null then
       /* ... and it has some content then ... */
       if !holder.isEmpty then
-        /* ... copy the entries to mainEntries if any ... */
-        val holds = holder.get
-        if min > holds.min then min = holds.min
-        if max < holds.max then max = holds.max
-        /* Note that, since this all runs thread local the entries should be ordered but are
-         * not necessarily directly sequential. */
-        addToAccu(holds.entries)
+        /* ... get the content and copy it to mainEntries ... */
+        addToAccu(holder.get)
         /* .. remove the content from the holder for reuse. */
         holder.clear()
       /* and remove the holder to ensure it is not re- or misused by an other actor on the thread. */
