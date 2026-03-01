@@ -103,7 +103,8 @@ transparent private trait ActorShare(prename: String) extends BareActor :
       fc.passEnv(letter,sender,name)
 
 
-  /** The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers */
+  /* The final name of this actor. It will be the name given, or a generated name for unnamed actors and workers
+   * The call also adds the actor to the guard index for predefined names. */
   final val name = register(prename)
 
 
