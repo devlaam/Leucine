@@ -33,8 +33,7 @@ class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    // TODO: Causes java.lang.AssertionError
-    //Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.GroupChat)
     (letter,sender) match
       /* If we receive this letter from an anonymous source, we interpret it as a request for a new password. */
       case (Text.Lipsum(name,password),_: Anonymous) => access ! Access.Pair(name,password)

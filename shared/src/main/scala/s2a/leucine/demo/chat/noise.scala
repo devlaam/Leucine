@@ -38,8 +38,7 @@ class Noise extends RestrictActor(Noise,"Noise") :
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    // TODO: Causes java.lang.AssertionError
-    //Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.GroupChat)
     (letter,sender) match
       /* Return a sequence of size random strings each of the same length. */
       case (Noise.Request(_,size,length), source: Register) =>

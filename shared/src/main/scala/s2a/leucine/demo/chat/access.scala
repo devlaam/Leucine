@@ -42,8 +42,7 @@ class Access extends RestrictActor(Access,"Access") :
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    // TODO: Causes java.lang.AssertionError
-    //Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.GroupChat)
     (letter,sender) match
       /* If the pair message comes from the Register actor, we store it as a new/updated user */
       case (Access.Pair(name,password),_: Register) => store += name -> password

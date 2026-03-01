@@ -37,8 +37,7 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    // TODO: Causes java.lang.AssertionError
-    //Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.GroupChat)
     (letter,sender) match
       /* In case new passwords arrive, store them in the supply */
       case (Register.Passwords(values),_: Noise) => supply = values

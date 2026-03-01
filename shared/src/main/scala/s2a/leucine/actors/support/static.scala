@@ -90,12 +90,15 @@ object Static :
     private val clsSym = enclosingClass(Symbol.spliceOwner)
 
     /**
-     * See if we are dealing with user defined parameters here. I am a bit unsure about the Implicit.
-     * But for now, lets not include them. */
+     * See if we are dealing with user defined parameters here. We take a defensive stand against
+     * any other the parameters and arguments. */
     private def isRealParam(symbol: Symbol): Boolean =
       !symbol.flags.is(Flags.Given) &&
       !symbol.flags.is(Flags.Implicit) &&
-      !symbol.flags.is(Flags.Synthetic)
+      !symbol.flags.is(Flags.Synthetic) &&
+      !symbol.isTypeParam &&
+      !symbol.isType &&
+      symbol.isTerm
 
     /** Get a list of Symbols for the parameters */
     private def getParams(symbol: Symbol): List[Symbol] = symbol.paramSymss.flatten.filter(isRealParam)
