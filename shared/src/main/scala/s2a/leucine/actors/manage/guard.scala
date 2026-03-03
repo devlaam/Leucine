@@ -27,14 +27,10 @@ package s2a.leucine.actors
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
 
-
 /**
  * This object is meant to be run in the main thread and enables you to exit the application
- * when all actors have finished. Put all the actors you create under guard by calling add
- * on them directly after creation. For families only the root actor should to be added. Note
- * that if you create actors within other actors which are not a adopted by a family you must
- * add them as well, or call watch(force = true), if you want to properly close the application
- * at termination. */
+ * when all actors have finished. All actors you create are put under guard by directly after
+ * creation. If the actor has a self defined name, it is added to the name index as well. */
 object ActorGuard :
 
   /** Collection of all actors that are relevant for keeping the thread pool alive. */
@@ -48,14 +44,23 @@ object ActorGuard :
   /* Worker instance to give all workers, not part of a family a worker name. */
   private[actors] val worker = new Worker
 
-  /** Contains all actors that require needle drop. */
+  /* Contains all actors that require needle drop. */
   private var silent: Set[Actor] = Set.empty
 
-  /** Keep the handler for unhandled messages */
+  /* Keep the handler for unhandled messages */
   private var posted: Option[Actor.Post => Unit] = None
 
-  /** Contains all services that the guard will manage. */
+  /* Contains all services that the guard will manage. */
   private var services: Set[Service] = Set.empty
+
+  /* Contains the logger if registered as a service. */
+  private var logger: LogHandler | Null = null
+
+  /** Call for internal use to send system logs to the active logger. */
+  private[actors] inline def syslog(inline level: ActorLogger.Level, message: => String): Unit =
+    /* Logging is only possible if a logger is registered. We use null here for efficient inlining
+     * of the large number of log calls in the system. */
+    if logger != null then logger.syslog(level,message)
 
   /** Add or remove an actor to the needle dropping for silence detection. */
   private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
@@ -144,8 +149,14 @@ object ActorGuard :
   /**
    * Register a service to put it under guard control. This implies that the guard will start them
    * as soon as you call watch, and stops them after all the actors have finished. In the former
-   * case start will be called with hello=true and in the latter case with goodbye=true. */
-  def register(service: Service): Unit = services += service
+   * case start will be called with hello=true and in the latter case with goodbye=true. If you
+   * register a logger, it will be set as active logger for system logs. To actually obtain system
+   * logs, they must be switched on in the configuration as well. */
+  def register(service: Service): Unit =
+    /* Add the service to the others. */
+    services += service
+    /* See if this is a service with logging capabilities, if so set it as active logger. */
+    if service.isInstanceOf[LogHandler] then logger = service.asInstanceOf[LogHandler]
 
   /**
    * Start watching for actor system completion. This uses polling to see if all actors are

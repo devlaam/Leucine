@@ -38,7 +38,7 @@ given actorContext: ActorContext = ActorContext.system
 /* This is our logging object to be used for all demo applications. Experiment with mixing
  * in the different LoggerSettings, or changing some settings below. */
 object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProcessing :
-  import ActorLogger.{Entry, Level, ShowGroups, GroupBase}
+  import ActorLogger.{Entry, Level, GroupBase}
 
   /* Create for every demo a separate group for logging. We shall use this only for tracing. */
   object GroupChat    extends GroupBase
@@ -47,14 +47,15 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
   object GroupCrawler extends GroupBase
 
   /* Experiment here to see the effects of including and excluding groups. */
-  transparent inline def showGroups = ShowGroups((GroupChat,GroupClock,GroupCollatz,GroupCrawler))
+  //transparent inline def showGroups = ShowGroups((GroupChat,GroupClock,GroupCollatz,GroupCrawler))
 
   /* Experiment here to see the effects of filter defined on the sourcePath or actorPath */
-  def sourcePathFilter(level: Level, path: String): Boolean = true
-  def actorPathFilter(level: Level, path: String): Boolean = true
+  //def sourcePathFilter(level: Level, path: String): Boolean = true
+  //def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
-  inline def directSpool = false
+  //inline def directSpool = false // dit kan ook.
+  //final val directSpool = false
 
   /* We want to set the used pass level at the start of the application via its arguments. But we
    * also want the logger to be available as global object. So we must manipulate the value after
@@ -62,11 +63,12 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
    * very start, for it is uncertain when the change will be picked up. We start with "Level.Trace"
    * so we don't miss any entries, but some Trace messages will also appear before the new level is
    * accepted. For a demo, this is acceptable. */
-  private var level: Level = Level.Trace
-  def setLevel(level: Level): Unit = this.level = level
+  //private var level: Level = Level.Trace
+  //def setLevel(level: Level): Unit = this.level = level
+  def setLevel(level: Level): Unit = ()
 
   /** This is called to obtain the current logging level. */
-  override def passLevel: Level = level
+  //override def passLevel: Level = level
 
   /* In this demo we want all the logging to appear at the end. So we buffer it until the
    * application is about to close. Then it is displayed. This prohibits mixing the output
@@ -78,8 +80,6 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
 
   /* Called to display all the entries, preferably at the end. */
   def printEntries(): Unit = logEntries.foreach(println)
-
-
 
 
 object Init :

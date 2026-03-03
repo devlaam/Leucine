@@ -56,6 +56,8 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
     context.traceln(s"TRACE $path/$phase: processPlay(reset=$reset)")
+    // TODO: Example how to log system logs.
+    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
     /* Reset the dropped needles counter (note we only call processPlay synchronized.) if
      * requested, otherwise make sure it does not exceed the silentStop value. */
     if reset then needles = 0 else needles = needles min context.silentStop

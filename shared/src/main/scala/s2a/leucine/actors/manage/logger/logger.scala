@@ -31,7 +31,7 @@ import scala.compiletime.constValue
  * Basic interface for each custom ActorLogger. You must at least implement the last
  * method of this interface and the FixLevel to get your logger running. See the
  * DefaultActorLogger object for an example. */
-trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSettings, Service :
+trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessConfig, Service :
   import ActorLogger.{Level, Entry}
   import LogHolder.{Hold, ActorFilter}
   import Static.Kind
@@ -124,7 +124,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
     buffer(false)
     /* Report that logging has started. Note that this does not imply this is the first entry,
      * only that we started spooling of the logs on a regular basis. */
-    if hello then system("Logger started.") else system("Logger restarted.")
+    ActorGuard.syslog(Level.Info, if hello then "Logger started." else "Logger restarted.")
     /* Start the logging spool timer. Most likely there are already some start up messages. In order to get
      * them into the open as quickly as possible we copy the value of hello. This is true at first start.
      * (guard makes it so) */
@@ -139,7 +139,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, ActorLoggerSe
   def stop(goodbye: Boolean): Unit =
     /* Report that logging has stopped. Usually this does imply this is the last entry since all
      * actors are inactive now. */
-    if goodbye then system("Logger stopped.") else system("Logger paused.")
+    ActorGuard.syslog(Level.Info, if goodbye then "Logger stopped." else "Logger paused.")
     /* If we are not directly spooling we should spool any remaining entries. With direct spooling there
      * are no remaining entries to spool. */
     if !directSpool then spool(goodbye)
@@ -234,17 +234,16 @@ object ActorLogger  :
    * level at compile time an eliminate unneeded code. */
   type Ordinal[L <: Level] <: Int = L match
     case Level.Disable => 0
-    case Level.System  => 1
-    case Level.Fatal   => 2
-    case Level.Error   => 3
-    case Level.Warn    => 4
-    case Level.Info    => 5
-    case Level.Beta    => 6
-    case Level.Debug   => 7
-    case Level.Trace   => 8
+    case Level.Fatal   => 1
+    case Level.Error   => 2
+    case Level.Warn    => 3
+    case Level.Info    => 4
+    case Level.Beta    => 5
+    case Level.Debug   => 6
+    case Level.Trace   => 7
 
   /**
-   * The different levels that are available for logging. Note that the level System is only there
+   * The different levels that are available for logging. Note that the level Disable is only there
    * as bottom level. Setting logging to this level effectively disables all logging, and should only
    * be used as temporary measure. Note that an actor may locally override this setting. This is what you
    * want, so you can zoom in on particular behavior. For the log level Fatal you can supply a special
@@ -253,9 +252,9 @@ object ActorLogger  :
    * between Info and Debug. Use this level where you would normally use Debug in production. You should
    * in fact not use Debug in production, but we all have been there. We leave them in during beta testing.
    * Here the level Beta comes in handy, it provides the info you need, without having the include all
-   * Debug stuff.  */
+   * Debug stuff. */
   sealed trait Level extends EnumOrder[Level] :
-    /* Each level is given a fixed ordinal number. The highest level (System) has the lowest number (0). */
+    /* Each level is given a fixed ordinal number. The highest level (Disable) has the lowest number (0). */
     inline def ordinal: Int
     /* The use of each level is counted for informational purposes. */
     private val counter: AtomicLong = AtomicLong(0)
@@ -268,7 +267,6 @@ object ActorLogger  :
   object Level :
     /** Type aliases to define the compile time fixed level syntactically equal to the runtime log level. */
     type Disable = Disable.type
-    type System  = System.type
     type Fatal   = Fatal.type
     type Error   = Error.type
     type Warn    = Warn.type
@@ -283,15 +281,8 @@ object ActorLogger  :
      * Action:  none
      * Example: use if no logger spooling is available. */
     case object Disable extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Disable]]
-
-    /**
-     * Meaning: level for messages from the actor framework itself.
-     * Usage:   for example to redirect actor trace messages to the logger
-     * Action:  depends on the message, usually only informative.
-     * Example: to focus on the logging of one or some actors in a test. */
-    case object System extends Level :
-      inline def ordinal: Int = constValue[Ordinal[Level.System]]
 
     /**
      * Meaning: indicates that further processing is unreliable and shutdown is imminent.
@@ -299,6 +290,7 @@ object ActorLogger  :
      * Action:  immediate, will require root cause investigation and system restart.
      * Example: in case of a caught "out of memory" or "null pointer exception". */
     case object Fatal extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Fatal]]
 
     /**
@@ -307,6 +299,7 @@ object ActorLogger  :
      * Action:  immediate, repair damage to data and investigation of the cause.
      * Example: in case of "disk full", unexpected absence of user profiles etc. */
     case object Error extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Error]]
 
     /**
@@ -315,6 +308,7 @@ object ActorLogger  :
      * Action:  quickly investigate the cause
      * Example: any situation that you do not expect such as missing a data field etc. */
     case object Warn extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Warn]]
 
     /**
@@ -323,6 +317,7 @@ object ActorLogger  :
      * Action:  none
      * Example: see new users, written data, new network connection, etc. */
     case object Info extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Info]]
 
     /**
@@ -331,6 +326,7 @@ object ActorLogger  :
      * Action:  none
      * Example: see new users, written data, new network connection, etc. */
     case object Beta extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Beta]]
 
     /**
@@ -339,6 +335,7 @@ object ActorLogger  :
      * Action:  debug, refactor, code, drink coffee.
      * Example: any detail you need to know to understand possible problems */
     case object Debug extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Debug]]
 
     /**
@@ -347,10 +344,11 @@ object ActorLogger  :
      * Action:  debug, refactor, code, drink coffee.
      * Example: any detail you need to know to understand possible problems */
     case object Trace extends Level :
+      /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
 
     /** This are all operational levels in one list. From high to low. */
-    val allLevels = List(System,Fatal,Error,Warn,Info,Beta,Debug,Trace)
+    val allLevels = List(Fatal,Error,Warn,Info,Beta,Debug,Trace)
 
     /**
      * Take a sample from all level creations. Note, the samples are taken sequentially and
@@ -423,11 +421,8 @@ object ActorLogger  :
         case Timing.Millis => f".${time.milli}%03d"
         case Timing.Nanos  => f".${time.nano}%09d"
       val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
-      val common = s"LOG($indexStr; $levelStr; #$countStr; $dtStr; thread($threadName);"
-      level match
-        case Level.System => s"$common $message)"
-        case Level.Trace  => s"$common actor($actorName); $source; $message"
-        case _            => s"$common actor($actorName); $source($sourcePath); $message)"
+      val common = s"LOG($indexStr; $levelStr; #$countStr; $dtStr; Thread($threadName);"
+      s"$common Actor($actorName); $source($sourcePath); $message)"
 
   object Entry :
 
@@ -468,6 +463,7 @@ object ActorLogger  :
       while inner.hasNext do
         val entry = inner.next()
         val index = (entry.index - hold.min).toInt
+        assert(index >= 0 && index < hold.width,s"Index $index out of bounds: hold = $hold")
         slots(index) = entry
     IArray.unsafeFromArray(slots)
 
@@ -492,10 +488,7 @@ object ActorLogger  :
    * We will limit the resulting array to maxArraySize. If it gets bigger, log entries are spooled anyway. */
   def stichedSpool(hold: Hold[List[Entry]], store: Store, maxArraySize: Int, completed: Boolean, process: Entry => Unit): Store =
 
-    /**
-     * Way to make the contents of an array visible. For development of this method.
-     * Unused now, but keep it around a bit more, until we release. */
-    @annotation.unused
+    /** Way to make the contents of an array visible. For development of this method.*/
     def arrayToString(title: String, array: IArray[Entry | Null]): String =
       def convert(x: Entry | Null): String = if x==null then "---" else f"${x.index}%03d"
       array.map(convert).mkString(s"$title = |",",","|")
@@ -546,9 +539,15 @@ object ActorLogger  :
      * Etc ....
      */
 
+    /** If the assert below happens to fire, we might need to know the contents of both arrays. */
+    def assertReport(message: String): String =
+      s"""${message}:
+         |  ${arrayToString("lastEntries",lastEntries)}
+         |  ${arrayToString("currEntries",currEntries)}""".stripMargin
+
     /* Verify if the construction assumptions about the array hold. We need those values to start processing. */
-    assert(lastEntries.isEmpty || lastEntries(0) == null, s"Array lastEntries must start with a null or be empty.")
-    assert(currEntries.isEmpty || currEntries(0) != null, s"Array currEntries may not start with a null.")
+    assert(lastEntries.isEmpty || lastEntries(0) == null, assertReport("Array lastEntries must start with a null or be empty"))
+    assert(currEntries.isEmpty || currEntries(0) != null, assertReport("Array currEntries may not start with a null"))
 
     /* Get for both arrays the real start index. */
     val lastEntryIndexStart = if lastEntries.isEmpty then 0 else store.start
@@ -584,7 +583,7 @@ object ActorLogger  :
       val hasLast = hasLastEntry(index)
       val hasCurr = hasCurrEntry(index)
       /* It cannot be so that both arrays have an entry on the same log-index. */
-      assert(!hasLast || !hasCurr, s"Two log entries with the same index $index.")
+      assert(!hasLast || !hasCurr, assertReport(s"Two log entries with the same index $index"))
       /* Process the available entry (or none if there isn't any). */
       if hasLast then process(getLastEntry(index))
       if hasCurr then process(getCurrEntry(index))
@@ -597,7 +596,7 @@ object ActorLogger  :
       val hasLast = hasLastEntry(index)
       val hasCurr = hasCurrEntry(index)
       /* It cannot be so that both arrays have an entry on the same log-index. */
-      assert(!hasLast || !hasCurr, s"Two log entries with the same index $index.")
+      assert(!hasLast || !hasCurr, assertReport(s"Two log entries with the same index $index"))
       /* Store what is there. */
       if hasLast then result((index - offset).toInt) = getLastEntry(index)
       if hasCurr then result((index - offset).toInt) = getCurrEntry(index)
