@@ -53,7 +53,10 @@ trait DefaultLoggerProcessing :
     store = ActorLogger.stichedSpool(retrieve(),store,10*maxLogs,completed,process)
 
   /** Simply say in the console that a fatal event occurred. */
-  def handleFatal(message: String): Unit = println(s"THERE WAS A FATAL EVENT: $message")
+  def appFatal(message: String): Unit = println(s"FATAL event in application: $message")
+
+  /** Simply say in the console that a fatal event occurred. */
+  def sysFatal(message: String): Unit = println(s"FATAL event in actor framework: $message")
 
   /** Pass all logs to the console. */
   def process(entry: Entry): Unit = println(entry)

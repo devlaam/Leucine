@@ -98,7 +98,7 @@ trait LogHandlerConfig :
    * Note that, if you construct a new actor in and other actor, the constructor code of your new actor, actually
    * runs in the constructing actor. So this may lead to missed logs if you set the filter to narrow.
    * It is a run time filter that works for all levels. However, if a fatal event appears, the special call
-   * handleFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
+   * appFatal/sysFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
    * for the entry, return false to block it. If there is no need for this functionality, just return true.
    * Implementation is obligatory, even if unused. */
   def actorPathFilter(level: Level, path: String): Boolean
@@ -123,10 +123,16 @@ trait LogHandlerConfig :
   def process(entry: Entry): Unit
 
   /**
-   * Implement a handler for the event a fatal situation occurs. Note that the implementation must be
-   * re-entrant and thread save. This method is not guaranteed to be strictly sequential. */
-  def handleFatal(message: String): Unit
+   * Implement a handler for the event a fatal situation occurs in your application. Note that the implementation
+   * must be re-entrant and thread save. This method is not guaranteed to be strictly sequential. */
+  def appFatal(message: String): Unit
 
+  /**
+   * Implement a handler for the event a fatal situation occurs in Leucine. This should not happen of course,
+   * but I have replaced the former asserts with this call, to give the application the opportunity for grant the
+   * last wishes. Note that the implementation must be re-entrant and thread save. This method is not guaranteed
+   * to be strictly sequential (although one occurrence is bad enough) */
+  def sysFatal(message: String): Unit
 
 /**
  * Configuration definitions for the Log processing. You must implement these settings

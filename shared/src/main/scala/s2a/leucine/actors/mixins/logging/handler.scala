@@ -52,7 +52,7 @@ private trait LogHandler extends LogHandlerConfig:
     inline if level.ordinal <= fixPassLevel.ordinal then
       /* If we are dealing with a Fatal event, extra steps may be needed, for the system may crash before
        * the log queue is flushed. First report that this happened. */
-      inline if level.ordinal == Level.Fatal.ordinal then handleFatal(message)
+      inline if level.ordinal == Level.Fatal.ordinal then appFatal(message)
       if sourcePathFilter(level,path) then
         /* Now, construct and feed if needed the log entry directly to the process handler or to the log queue */
         inline if directSpool
@@ -91,6 +91,7 @@ private trait LogHandler extends LogHandlerConfig:
    * time constant inlined from the user here. */
   private[actors] inline def syslog(inline level: Level, message: => String): Unit =
     if systemLogger && level <= fixPassLevel then
+      inline if level.ordinal == Level.Fatal.ordinal then sysFatal(message)
       if directSpool
       /* Due to issue https://github.com/scala/scala3/issues/25350 we must provide the full path to fixPass locally. */
       then entry(false,level,LogHolder.fixPass(true),kindInfo,getInfo(level),message).foreach(process)
