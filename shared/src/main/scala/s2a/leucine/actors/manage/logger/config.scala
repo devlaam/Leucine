@@ -31,18 +31,13 @@ import scala.concurrent.duration.FiniteDuration
  * and methods to get a working logger. This can be done by making use of one of
  * the predefined traits. */
 trait LogHandlerConfig :
-  import ActorLogger.{Level, Entry, ShowGroups}
+  import ActorLogger.{Level, Entry, ShowChannels}
 
   /**
    * The fixPassLevel defines the logging level used at compile time. Regular log statements with a lower
    * level will to removed from the code at compile time. Use this for example to eliminate info and
    * debug log messages by setting it to Level.Warn for a production release. */
   def fixPassLevel: Level
-
-  /**
-   * With systemLogger you can choose if you want Leucine to produce logs. Usually you want to switch
-   * this off, especially if your log level is Trace. */
-  def systemLogger: Boolean
 
   /**
    * directSpool can be set to true if you want to directly receive the log entries without making
@@ -68,20 +63,8 @@ trait LogHandlerConfig :
   /**
    * If you need to log confidential data, for example during testing, you can use the info and beta level
    * logs with an optional confidential message and public message. Set showConfidential to true to see the
-   * former, and to false the latter. The latter setting should be the default for a production release.  */
+   * former, and to false the latter. The latter setting should be the default for a production release. */
   def showConfidential: Boolean
-
-  /**
-   * Debug log methods can be made part of a group. When not, this setting defines if the particular
-   * call will generate a log entry for debug. Normally this is set to true, but by setting it to false, you
-   * can focus on the special group enabled debug log entries. Elimination is done at compile time. */
-  def groupDebugDefault: Boolean
-
-  /**
-   * Trace log methods can be made part of a group. When not, this setting defines if the particular
-   * call will generate a log entry for trace. Normally this is set to true, but by setting it to false, you
-   * can focus on the special group enabled trace log entries. Elimination is done at compile time. */
-  def groupTraceDefault: Boolean
 
   /**
    * Each log entry contains information about its source, objects, classes and methods. Implement this filter so
@@ -104,17 +87,17 @@ trait LogHandlerConfig :
   def actorPathFilter(level: Level, path: String): Boolean
 
   /**
-   * Implement this method with the **identical signature** to define the groups to be show in the logging which
-   * have a membership group defined. Make use of the ShowGroups class to set the groups. Implement as follows:
-   * - To pass entries for the groups (defined as objects) with names MyFirstGroup and MySecondGroup:
-   *   transparent inline def showGroups: ShowGroups((MyFirstGroup,MySecondGroup))
-   * - To pass entries for only one group:
-   *   transparent inline def showGroups: ShowGroups((MySecondGroup))
-   * - To block all self defined groups:
-   *   transparent inline def showGroups: ShowGroups(())
-   * You also use the latter syntax if the group selection is not needed. See  ShowGroups for more
-   * documentation. Implementation is obligatory, even if unused. */
-  transparent inline def showGroups: ShowGroups[?]
+   * Implement this method to define the channels to be shown in the logging which have a membership channel defined.
+   * Make use of the ShowChannels class to set the channels. Implement as follows:
+   * - To pass entries for the channels (defined as case objects) with names MyFirstChan and MySecondChan:
+   *   final val showChannels = ShowChannels((MyFirstChan,MySecondChan))
+   * - To pass entries for only one channel:
+   *   final val showChannels = ShowChannels((MyFirstChan))
+   * - To block all channels:
+   *   final val showChannels: ShowChannels(())
+   * See ShowChannels for more documentation. Implementation is obligatory, the default is:
+   * final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl)) */
+  def showChannels: ShowChannels[?]
 
   /**
    * This method is called for every log entry when the entries are spooled. Note that the implementation
@@ -190,11 +173,3 @@ trait LogProcessConfig :
    * Although you may change the result at runtime, there are not guarantees as to when the change
    * will become effective. Usually this for making runtime changes at the very start of the application. */
   def timing: Timing
-
-  /**
-   * Special purpose group that is part of all logging groups. Supply as parameter for the debug or trace call to
-   * ensure the entry passes for every setting of showGroups and GroupDebugDefault or GroupTraceDefault. */
-  final transparent inline def AllGroups = ActorLogger.AllGroups
-
-
-

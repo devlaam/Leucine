@@ -26,13 +26,14 @@ package s2a.leucine.actors
 
 import java.util.concurrent.atomic.AtomicLong
 import scala.compiletime.constValue
+import scala.annotation.implicitNotFound
 
 /**
  * Basic interface for each custom ActorLogger. You must at least implement the last
  * method of this interface and the FixLevel to get your logger running. See the
  * DefaultActorLogger object for an example. */
 trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessConfig, Service :
-  import ActorLogger.{Level, Entry}
+  import ActorLogger.{Level, Channel, Entry}
   import LogHolder.{Hold, ActorFilter}
   import Static.Kind
 
@@ -54,15 +55,15 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
    * the entry is created by the global container. Returns the constructed entry for further processing.
    * If feed is true, the entry will be directly stored on the log queue. If not, the entry will only be
    * constructed on the holder, and you are responsible for further processing. */
-  protected def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
+  protected def entry(feed: Boolean, level: Level, channel: Channel, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
     /* Try to construct the entry on the thread local container */
-    LogLocal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
+    LogLocal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message) match
       /* This was a success, return the entry */
       case Right(entry) => Some(entry)
       /* The container was there but the entry could not be made due to insufficient log level. */
       case Left(true)   => None
       /* The container was not there, we must try the global container. */
-      case Left(false)  => LogGlobal.entry(feed,level,actorFilter,sourceKind,sourcePath,message) match
+      case Left(false)  => LogGlobal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message) match
         /* This was a success, return the entry */
         case Right(entry) => Some(entry)
         /* The entry could not be made due to insufficient log level or absent global logger. */
@@ -157,41 +158,102 @@ object ActorLogger  :
   import Static.Kind
 
   /**
-   * Base trait for defining your groups for debug/trace logging selection. Make your custom groups like this:
-   *  object MyFirstGroup extends GroupBase
-   *  object MySecondGroup extends GroupBase
+   * Base trait for defining your custom channels for debug/trace logging selection. Make then like this:
+   *  case object MyFirstChan extends Channel
+   *  case object MySecondChan extends Channel
    * etc. */
-  trait GroupBase
+  trait Channel
 
-  /** Special group with the property that it fits all groups you manually define. */
-  object AllGroups extends GroupBase
+  /** Object Channel contains all predefined channels. */
+  object Channel :
+    /** Special channel that always passes the check.  */
+    case object Pass extends Channel
+
+    /** Channel where all system logs of the levels Error,Warn and Info are published */
+    case object SysPrd extends Channel
+
+    /** Channel where all system logs of the levels Beta,Debug and Trace are published */
+    case object SysDvl extends Channel
+
+    /** Channel where all application logs of the levels Error,Warn and Info are published */
+    case object AppPrd extends Channel
+
+    /** Channel where all application logs of the levels Beta,Debug and Trace are published */
+    case object AppDvl extends Channel
+
 
   /**
-   * Definer class so that you can which groups are to be visible at logging. Use is described at the
-   * showGroups method in the ActorLogger trait. Note that, since there is no proper syntax for a tuple
-   * with zero or one element yet, we interpret the ShowGroups(()) as ShowGroups with a zero element
-   * tuple as parameter and ShowGroups((MyGroup)) as a ShowGroups(Tuple1(MyGroup)). */
-  class ShowGroups[Groups <: Tuple | GroupBase | Unit](groups: Groups):
+   * We want to define tuples of any arity in the same manner, but up to know there is no possibility
+   * to do so. See the discussion on (with my contributions):
+   * Scala Users Form: https://contributors.scala-lang.org/t/syntax-for-type-tuple-with-one-element/6974
+   * Thus for now we define the generalized tuple this way so you can write (a,b) for tuples
+   * with two elements, (a) for a tuple with one element, where the brackets are in fact ignored,
+   * and () for a tuple without elements, which is in fact of type Unit. */
+  type GTuple[G] = Tuple | G | Unit
+
+  /** This defines a generalized tuple with homogeneous elements of type Base */
+  type HTuple[Base, T <: GTuple[Base]] <: Boolean = T match
+    case Unit       => true
+    case Channel    => true
+    case EmptyTuple => true
+    case h *: t => h match
+      case Base  => HTuple[Base,t]
+      case _     => false
+
+  /** This type helps to enforce homogeneous elements for our tuple, with a proper error notification. */
+  @implicitNotFound("ShowChannels contains an element that is not a subtype of Channel in ${T} ")
+  type ChannelTuple[T <: GTuple[Channel]] = HTuple[Channel,T] =:= true
+
+  /**
+   * Helper class so that you can define which channels are to be visible at logging. Use is described at the
+   * showChannels method in the ActorLogger trait. Note that, since there is no proper syntax for a tuple
+   * with zero or one element yet, we interpret the ShowChannels(()) as ShowChannels with a zero element
+   * tuple as parameter and ShowChannels((MyChan)) as a ShowGroups(Tuple1(MyChan)). This enables consistent
+   * definition of the used channels. */
+  class ShowChannels[Channels <: GTuple[Channel] : ChannelTuple](channels: Channels):
 
     /* Extract the type from the class parameter. */
-    final private type GroupMembers =
-      Groups match
-        /* The user meant an empty tuple. */
-        case Unit      => Nothing
-        /* The user meant tuple with one element. */
-        case GroupBase => groups.type
-        /* Make a union of the types for this tuple. */
-        case Tuple     => Tuple.Union[Groups]
+    final private type ChannelMembers = Channels match
+      /* The user meant an empty tuple. */
+      case Unit    => Nothing
+      /* The user meant tuple with one element. */
+      case Channel => channels.type
+      /* Make a union of the types for this tuple. */
+      case Tuple   => Tuple.Union[Channels]
 
-    /* Compile time test to see if the group here is element of the groups in this collection. */
-    transparent inline def contains[Group <: GroupBase](group: Group): Boolean =
-      inline group match
-        /* Here, the group is a member */
-        case _ : GroupMembers   => true
-        /* Here, we always accept the AllGroups group independent from the collection groups. */
-        case _ : AllGroups.type => true
-        /* Any other group is rejected. */
-        case _                  => false
+    /* Compile time test to see if the channel here is element of the channels in this collection. */
+    private[actors] transparent inline def contains[CH <: Channel](channel: CH): Boolean = inline channel match
+      /* See if the channel is in the list */
+      case _ : ChannelMembers    => true
+      /* Here, we always accept the Pass channel. */
+      case _ : Channel.Pass.type => true
+      /* Any other channel is rejected. */
+      case _                     => false
+
+    /* Make a list from the channels inside this tuple. */
+    private def mkList(channels: Tuple): List[Channel] = channels match
+      /* There are no more elements, we are done */
+      case _: EmptyTuple        => Nil
+      /* Extract the first element from the list, add to result. */
+      case (x: Channel) *: tail => x :: mkList(tail)
+      /* All other typed elements are ignored
+       * (should not happen due to the type enforcement) */
+      case _ *: tail            => mkList(tail)
+
+    /* Transform the channels tuple into a list for runtime comparison. */
+    private val list: List[Channel] = channels match
+      /* The user meant an empty tuple. */
+      case _ : Unit    => Nil
+      /* If there is only one element, construct the list manually. */
+      case x : Channel => List(x)
+      /* Make a union of the types for this tuple. */
+      case x : Tuple   => mkList(x)
+
+    /* Predefined check on the presence of SysPrd to make this fast at runtime. */
+    private[actors] val hasSysPrd = list.contains(Channel.SysPrd)
+
+    /* Predefined check on the presence of SysDvl to make this fast at runtime. */
+    private[actors] val hasSysDvl = list.contains(Channel.SysDvl)
 
   /* Type to store Entries in Arrays. Arrays are initialized with null's. It is inefficient
    * to reinitialize them with a special Nil Entry since these stay all within Leucine.
@@ -264,6 +326,7 @@ object ActorLogger  :
     private[ActorLogger] def creations: Long = counter.get
 
 
+  /** Object Level contains all predefined levels. */
   object Level :
     /** Type aliases to define the compile time fixed level syntactically equal to the runtime log level. */
     type Disable = Disable.type
@@ -382,12 +445,13 @@ object ActorLogger  :
   /**
    * The log entry itself.
    * index:      strictly monotonous and dense index for all log entries starting at 1.
-   * level:      the log level of this entry, one of (System,Fatal,Error,Warn,Info,Beta,Debug,Trace)
-   * timing:     the log timing granularity (second/millisecond/nanosecond)
+   * level:      the log level of this entry, one of (System,Fatal,Error,Warn,Info,Beta,Debug,Trace).
+   * timing:     the log timing granularity (second/millisecond/nanosecond).
    * timestamp:  number of nanoseconds starting from the Unix Epoch (granularity maybe less)
+   * channel:    name of the channel the log is published in.
    * threadName: name of the thread the log was made in.
-   * actorName:  name of the actor the log was made in (empty if outside the actor framework)
-   * className:  full name of the enclosing class the log was made in
+   * actorName:  name of the actor the log was made in (empty if outside the actor framework).
+   * className:  full name of the enclosing class the log was made in.
    * message:    the log message from the developer.
    * It is not possible to create instances directly from the class definition since they will not be
    * accounted for. Use the factory methods to that end. */
@@ -397,6 +461,7 @@ object ActorLogger  :
     val counter:     Long,
     val timing:      Timing,
     val timestamp:   Long,
+    val channel:     Channel,
     val threadName:  String,
     val actorName:   String,
     val sourceKind:  Kind,
@@ -421,9 +486,9 @@ object ActorLogger  :
         case Timing.Millis => f".${time.milli}%03d"
         case Timing.Nanos  => f".${time.nano}%09d"
       val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
-      val common = s"LOG($indexStr; $levelStr; #$countStr; $dtStr; Thread($threadName);"
-      s"$common Actor($actorName); $source($sourcePath); $message)"
+      s"LOG($indexStr; $levelStr; #$countStr; $dtStr; Channel($channel); Thread($threadName) Actor($actorName); $source($sourcePath); $message)"
 
+  /** Object Entry contains the factory methods for Entry and the thread save counter.*/
   object Entry :
 
     /* Logs entries are indexed with strict order. This counter is used to order all entries when spooled.
@@ -441,12 +506,12 @@ object ActorLogger  :
      * Construct an log entry based on the given data and add a timestamp, an index,  a thread name, timing and
      * actor path name (if available). Every entry that is created gets a new unique index number, and the level
      * at which it is created also increases a use counter. */
-    def apply(path: String, level: Level, timing: Timing, sourceKind: Kind, sourcePath: String, message: String): Entry =
+    def apply(path: String, level: Level, timing: Timing, channel: Channel, sourceKind: Kind, sourcePath: String, message: String): Entry =
       val counter    = level.created()
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
-      new Entry(index,level,counter,timing,timeStamp,threadName,path,sourceKind,sourcePath,message)
+      new Entry(index,level,counter,timing,timeStamp,channel,threadName,path,sourceKind,sourcePath,message)
 
 
   /**
@@ -609,4 +674,3 @@ object ActorLogger  :
     val result    = mergePass(sendIndex,sendIndex,new Array[NEntry]((endIndex-sendIndex).toInt))
     /* Return the merged array for the next spool run. */
     Store(sendIndex,IArray.unsafeFromArray(result))
-

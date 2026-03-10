@@ -31,7 +31,7 @@ package s2a.leucine.actors
  * futures started from within an actor. It can even be on an actor, if that actor does not have logging
  * enabled. All actions are thread save, but of course require synchronization. */
 private class LogGlobal(logHolder: LogHolder) :
-  import ActorLogger.{Level, Entry}
+  import ActorLogger.{Level, Channel, Entry}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter}
 
@@ -51,11 +51,11 @@ private class LogGlobal(logHolder: LogHolder) :
    * level may not be sufficient for action, then return Left(true) to indicate the situation has been dealt
    * with. If feed is true, the entry will be directly stored on the log queue. Return the required entry
    * instance packed in right. */
-  private[actors] def entry(feed: Boolean, level: Level, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
+  private[actors] def entry(feed: Boolean, level: Level, channel: Channel, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
     if !logHolder.pass(level,actorFilter) then Left(true) else
       /* Construct the entry on the holder. Note that, due to the fact that this instruction is outside
        * the synchronization protection below, entries can be placed in any order in the holder. */
-      val entry = logHolder.make(level,kind,path,message)
+      val entry = logHolder.make(level,channel,kind,path,message)
       /* Add the entry to the log queue if requested to do so. */
       if feed then synchronized { logHolder.add(entry) }
       /* Construct the entry on the holder. */

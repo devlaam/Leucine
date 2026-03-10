@@ -33,12 +33,12 @@ import s2a.leucine.actors.*
  * we define it to be a worker */
 private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger) :
   import Auxiliary.toUnit
-  Logger.trace(Logger.AllGroups)
+  Logger.trace()
   Logger.info("Console started.")
 
   /* Send a letter to yourself */
   def selfie(letter: String => Console.Letter): String => Unit =
-    Logger.trace(Logger.AllGroups)
+    Logger.trace()
     message => this ! letter(message.trim)
 
   /* The welcome message. You may choose your demo. As soon as you type the answer, a message is constructed
@@ -48,20 +48,20 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger)
   CLI.talk("Please state the demo you want to run (collatz, clock, crawler or chatgrt): ", selfie(Console.Demo(_)))
 
   override protected def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.trace(Logger.AllGroups)
+    Logger.trace()
     /* CIS must be closed, otherwise the application cannot terminate. */
     CLI.close()
 
   /* Completing this console. Note that the demo may still run. */
   def stop(goodbye: String = ""): Unit =
-    Logger.trace(Logger.AllGroups)
+    Logger.trace()
     if !goodbye.isEmpty then println(goodbye)
     /* If the user made a choice, this actor is no longer required. */
     stop(Actor.Stop.Direct)
 
   /* Start the demo of choice but staring its corresponding actor. */
   def receive(letter: Letter, sender: Sender): Unit =
-    Logger.trace(Logger.AllGroups)
+    Logger.trace()
     letter match
       case Console.Demo("collatz")       =>  new Collatz(false); stop();
       case Console.Demo("collatz debug") =>  new Collatz(true); stop();
@@ -76,7 +76,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger)
 
 
 object Console extends AcceptDefine, Stateless :
-  Logger.trace(Logger.AllGroups)
+  Logger.trace()
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
   sealed trait Letter extends Actor.Letter[Actor]
   case class Demo(text: String) extends Letter

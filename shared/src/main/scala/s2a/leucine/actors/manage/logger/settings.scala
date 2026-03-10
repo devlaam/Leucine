@@ -30,7 +30,7 @@ import scala.concurrent.duration.DurationInt
  * Implementing the settings yourself is best done by copying one of the predefined
  * settings and changing the values to your liking. In order to preserve the types
  * needed for compile time folding of the inlined coded it is best to make use of
- * 'final val' of 'transparent inline def' for your definitions.
+ * 'final val' or 'transparent inline def' for your definitions.
  * See also the discussion on the Scala Users Forum.
  * Compiler Bug: https://github.com/scala/scala3/issues/25206
  * Discussion:   https://users.scala-lang.org/t/unclear-java-lang-abstractmethoderror/12204 */
@@ -39,13 +39,11 @@ import scala.concurrent.duration.DurationInt
  * Default logger settings you may use for your application in production.
  * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
 trait ProductionLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowGroups}
+  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Info to for a realistic information load. */
   final val fixPassLevel = Level.Info
-
-  /* With systemLogger you can choose if you want Leucine to produce logs. */
-  final val systemLogger = false
 
   /** Set directSpool to false to ensure all logs pass the thread local entry collectors. */
   final val directSpool = false
@@ -59,20 +57,14 @@ trait ProductionLoggerSettings :
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Setting not relevant when no debug information is passed. */
-  final val groupDebugDefault = false
-
-  /** Setting not relevant when no trace information is passed. */
-  final val groupTraceDefault = false
-
   /** Do not filter of the source path, so return true. */
   final def sourcePathFilter(level: Level, path: String): Boolean = true
 
   /** Do not filter of the actor path, so return true. */
   final def actorPathFilter(level: Level, path: String): Boolean = true
 
-  /** Make no use of grouping logs. */
-  final transparent inline def showGroups = ShowGroups(())
+  /** Show only the default channels. */
+  final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
   /** During production we do not closely follow the log production. */
   final val maxLogs = 100
@@ -98,13 +90,11 @@ trait ProductionLoggerSettings :
  * Default logger settings you may use for your application during beta testing production.
  * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
 trait BetaTestLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowGroups}
+  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
   final val fixPassLevel = Level.Beta
-
-  /* No need to see the Leucine system logs. */
-  final val systemLogger = false
 
   /** Set directSpool to false to ensure all logs pass the thread local entry collectors. */
   final val directSpool = false
@@ -118,20 +108,14 @@ trait BetaTestLoggerSettings :
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Setting not relevant when no debug information is passed. */
-  final val groupDebugDefault = false
-
-  /** Setting not relevant when no trace information is passed. */
-  final val groupTraceDefault = false
-
   /** Do not filter of the source path, so return true. */
   final def sourcePathFilter(level: Level, path: String): Boolean = true
 
   /** Do not filter of the actor path, so return true. */
   final def actorPathFilter(level: Level, path: String): Boolean = true
 
-  /** Make no use of grouping logs. */
-  final transparent inline def showGroups = ShowGroups(())
+  /** Show only the default channels. */
+  final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
   /** During beta testing we do not closely follow the log production. */
   final val maxLogs = 100
@@ -156,13 +140,11 @@ trait BetaTestLoggerSettings :
  * Default logger settings you may use for your application during development production.
  * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
 trait DevelopmentLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowGroups}
+  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
   final val fixPassLevel = Level.Trace
-
-  /* For regular development there is no need to see the Leucine logs. */
-  final val systemLogger = false
 
   /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
   final val directSpool = false
@@ -176,20 +158,14 @@ trait DevelopmentLoggerSettings :
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Set groupDebugDefault to true to show all logs at debug level that are not member of a group. */
-  final val groupDebugDefault = true
-
-  /** Set groupTraceDefault to true to show all logs at trace level that are not member of a group. */
-  final val groupTraceDefault = true
-
   /** Do not filter of the source path, so return true. */
   final def sourcePathFilter(level: Level, path: String): Boolean = true
 
   /** Do not filter of the source path, so return true. */
   final def actorPathFilter(level: Level, path: String): Boolean = true
 
-  /** Make no use of grouping logs. */
-  final transparent inline def showGroups = ShowGroups(())
+  /** Show only the default channels. */
+  final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
   /** Set the number of maxLogs low, so we have responsive logging. */
   final val maxLogs = 10

@@ -37,17 +37,61 @@ given actorContext: ActorContext = ActorContext.system
 
 /* This is our logging object to be used for all demo applications. Experiment with mixing
  * in the different LoggerSettings, or changing some settings below. */
-object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProcessing :
-  import ActorLogger.{Entry, Level, GroupBase}
+object Logger extends ActorLogger, DefaultLoggerProcessing :
+  import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel}
 
-  /* Create for every demo a separate group for logging. We shall use this only for tracing. */
-  object GroupChat    extends GroupBase
-  object GroupClock   extends GroupBase
-  object GroupCollatz extends GroupBase
-  object GroupCrawler extends GroupBase
+  /* Create for every demo a separate channel for logging. We shall use this only for tracing. */
+  case object GroupChat    extends Channel
+  case object GroupClock   extends Channel
+  case object GroupCollatz extends Channel
+  case object GroupCrawler extends Channel
 
-  /* Experiment here to see the effects of including and excluding groups. */
-  //transparent inline def showGroups = ShowGroups((GroupChat,GroupClock,GroupCollatz,GroupCrawler))
+
+  /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
+  final val fixPassLevel = Level.Trace
+
+  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
+  final val directSpool = false
+
+  /** Set fullPath to true to obtain full info on object/class/method names. */
+  final val fullPath = true
+
+  /** Set fullParameters to true so we see for each trace the parameters used in the call. */
+  final val fullParameters = true
+
+  /** Set showConfidential to true to see usernames and passwords in the logs. */
+  final val showConfidential = true
+
+  /** Do not filter of the source path, so return true. */
+  final def sourcePathFilter(level: Level, path: String): Boolean = true
+
+  /** Do not filter of the source path, so return true. */
+  final def actorPathFilter(level: Level, path: String): Boolean = true
+
+  /* Experiment here to see the effects of including and excluding channels. */
+  //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, "Channel"))
+  //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, GroupCrawler))
+  final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, GroupCollatz ))
+  //final val showChannels = ShowChannels((Channel.SysPrd))
+  //final val showChannels = ShowChannels(())
+
+  /** Set the number of maxLogs low, so we have responsive logging. */
+  final val maxLogs = 10
+
+  /** Set the time between spools low, so we have responsive logging. */
+  final val spoolInterval = 5.seconds
+
+  /** Set timing to Nanos to have accurate log entries. */
+  final val timing = Timing.Nanos
+
+  /** Set default logging level to trace to see all logs during development. */
+  final val passLevel = Level.Trace
+
+  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
+  final val incidentLevel = Level.Warn
+
+  /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
+  final val localSettings = true
 
   /* Experiment here to see the effects of filter defined on the sourcePath or actorPath */
   //def sourcePathFilter(level: Level, path: String): Boolean = true
@@ -84,7 +128,7 @@ object Logger extends ActorLogger, DevelopmentLoggerSettings, DefaultLoggerProce
 
 object Init :
   import ActorLogger.Level
-  Logger.trace(Logger.AllGroups)
+  Logger.trace()
 
   /** When you arrive here, you can be certain all actors are done */
   def complete(): Unit =
@@ -95,7 +139,7 @@ object Init :
   def main(args: Array[String]): Unit =
     /* Trace the main entry. Note that we may use the logger before it is started below. Starting
      * the logger only starts the spooling, log entries are always recorded. */
-    Logger.trace(Logger.AllGroups)
+    Logger.trace()
     /* Set the logger level based upon arguments at startup. Note that, due to the required platform
      * independence, we must perform some extra magic to get the arguments. CLI.argsOf(..) takes care
      * of that. Without arguments, no logging, otherwise try to interpret the first argument as log
