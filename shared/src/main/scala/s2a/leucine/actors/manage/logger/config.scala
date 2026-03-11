@@ -89,12 +89,16 @@ trait LogHandlerConfig :
   /**
    * Implement this method to define the channels to be shown in the logging which have a membership channel defined.
    * Make use of the ShowChannels class to set the channels. Implement as follows:
+   * - To pass entries for the standard channels (SysPrd, SysDvl, AppPrd, AppDvl), or any subset:
+   *   final val showChannels = ShowChannels((SysPrd, SysDvl, AppPrd, AppDvl))
    * - To pass entries for the channels (defined as case objects) with names MyFirstChan and MySecondChan:
    *   final val showChannels = ShowChannels((MyFirstChan,MySecondChan))
-   * - To pass entries for only one channel:
-   *   final val showChannels = ShowChannels((MyFirstChan))
-   * - To block all channels:
-   *   final val showChannels: ShowChannels(())
+   * - To pass entries for only one channel, for example AppDvl:
+   *   final val showChannels = ShowChannels((AppPrd))
+   * - To pass all entries user logs independent of the used channel:
+   *   final val showChannels = ShowChannels((Pass))
+   * - To block all channels (except entries in the Pass channel):
+   *   final val showChannels = ShowChannels(())
    * See ShowChannels for more documentation. Implementation is obligatory, the default is:
    * final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl)) */
   def showChannels: ShowChannels[?]

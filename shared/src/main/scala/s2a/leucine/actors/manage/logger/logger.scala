@@ -212,32 +212,37 @@ object ActorLogger  :
    * definition of the used channels. */
   class ShowChannels[Channels <: GTuple[Channel] : ChannelTuple](channels: Channels):
 
+    /* Local alias */
+    private type Pass = Channel.Pass.type
+
     /* Extract the type from the class parameter. */
     final private type ChannelMembers = Channels match
-      /* The user meant an empty tuple. */
+      /* The user meant an empty tuple, so we refuse any call by passing Nothing which always blocks. */
       case Unit    => Nothing
-      /* The user meant tuple with one element. */
+      /* The user meant a tuple with one element, if it is the right one, we may pass this call. */
       case Channel => channels.type
-      /* Make a union of the types for this tuple. */
+      /* For Pass we allow for all user logs, so we pass Channel, which always fits any call.*/
+      case Pass    => Channel
+      /* Make a union of the types for this tuple, so it is tested if the call fits. */
       case Tuple   => Tuple.Union[Channels]
 
-    /* Compile time test to see if the channel here is element of the channels in this collection. */
+    /* Compile time test to see if the channel is an element of the channels in this collection. */
     private[actors] transparent inline def contains[CH <: Channel](channel: CH): Boolean = inline channel match
-      /* See if the channel is in the list */
-      case _ : ChannelMembers    => true
-      /* Here, we always accept the Pass channel. */
-      case _ : Channel.Pass.type => true
+      /* We always accept the Pass channel, even if there are no channels defined. */
+      case _ : Pass           => true
+      /* See if the channel is in the list, or is allowed for other reasons. */
+      case _ : ChannelMembers => true
       /* Any other channel is rejected. */
-      case _                     => false
+      case _                  => false
 
     /* Make a list from the channels inside this tuple. */
     private def mkList(channels: Tuple): List[Channel] = channels match
       /* There are no more elements, we are done */
-      case _: EmptyTuple        => Nil
-      /* Extract the first element from the list, add to result. */
+      case _ : EmptyTuple       => Nil
+      /* Extract the first element from the list, add to result (order is not relevant). */
       case (x: Channel) *: tail => x :: mkList(tail)
       /* All other typed elements are ignored
-       * (should not happen due to the type enforcement) */
+       * (should not happen due to the type enforcement on the class arguments) */
       case _ *: tail            => mkList(tail)
 
     /* Transform the channels tuple into a list for runtime comparison. */
@@ -246,7 +251,7 @@ object ActorLogger  :
       case _ : Unit    => Nil
       /* If there is only one element, construct the list manually. */
       case x : Channel => List(x)
-      /* Make a union of the types for this tuple. */
+      /* Make a union of the elements for this tuple. */
       case x : Tuple   => mkList(x)
 
     /* Predefined check on the presence of SysPrd to make this fast at runtime. */

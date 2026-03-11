@@ -66,7 +66,7 @@ private trait LogHandler extends LogHandlerConfig:
      * system logs. There is no way to generate a stable type path in case we do not know what the top
      * level logger object, defined by the application builder, is. The circumvent this problem we generate
      * all possible required data at compile time. Its not nice, but it does not make the system slower,
-     * just more bulky. */
+     * just a little more bulky. */
     inline if level.ordinal == Level.Trace.ordinal
     then
       /* For tracing we might need one of the following callInfo strings. */
@@ -94,7 +94,8 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make system log entry, use for messages from the actor framework itself. Although the call cannot be
    * removed from the code at compile time, it is still inlined to ensure it generates the correct context
-   * information. The logic test to see if logging is required is fast. */
+   * information. The logic test to see if logging is required is fast. The call publishes the message in
+   * in the channel Pass, SysPrd or SysDvl depending on the level. */
   private[actors] inline def syslog(inline level: Level, message: => String): Unit =
     if level <= fixPassLevel then
       inline if level.ordinal == Level.Fatal.ordinal then sysFatal(message)
@@ -107,29 +108,32 @@ private trait LogHandler extends LogHandlerConfig:
         else entry(true,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message).foreach(trySpool)
 
   /**
-   * Make log entry with level Fatal, indicates that further processing is unreliable and
-   * shutdown is imminent. This call is eliminated from the code when FixLevel is set to System. */
+   * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent.
+   * This call is only eliminated from the code when fixLevel is set to Ignore. The call publishes the message
+   * in the channel Pass, so is cannot be stopped with ShowChannels(()). */
   inline def fatal(message: => String): Unit =
     feed(Level.Fatal,Channel.Pass,kindInfo,pathInfo(fullPath),message)
 
   /**
-   * Make log entry with level Error, indicate severe disturbances in process handling, but system
+   * Make log entry with level Error, indicating severe disturbances in process handling, but system
    * can continue with other tasks. This call is eliminated from the code when not needed on a
-   * best effort approach. */
+   * best effort approach. The call publishes the message in the channel AppPrd. */
   inline def error(message: => String): Unit =
     inline if showChannels.contains(Channel.AppPrd) then
       feed(Level.Error,Channel.AppPrd,kindInfo,pathInfo(fullPath),message)
 
   /**
-   * Make log entry with level Warn, indication that something is out of the ordinary, but processing
-   * can continue. This call is eliminated from the code when not needed on a best effort approach. */
+   * Make log entry with level Warn, indicating that something is out of the ordinary, but processing
+   * can continue. This call is eliminated from the code when not needed on a best effort approach. The
+   * call publishes the message in the channel AppPrd. */
   inline def warn(message: => String): Unit  =
     inline if showChannels.contains(Channel.AppPrd) then
       feed(Level.Warn,Channel.AppPrd,kindInfo,pathInfo(fullPath),message)
 
   /**
-   * Make log entry with level Info, to keep the user informed about the systems whereabouts.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Make log entry with level Info, to keep the user informed about the systems whereabouts. This call is
+   * eliminated from the code when not needed on a best effort approach. The call publishes the message in
+   * the channel AppPrd. */
   inline def info(message: => String): Unit  =
     inline if showChannels.contains(Channel.AppPrd) then
       feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),message)
@@ -137,10 +141,10 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make log entry with level Info, to keep the user informed about the systems whereabouts.
    * Use this call to log sensitive information like usernames and passwords. During testing, with
-   * ShowConfidential set to true, the confidentialMessage is used for logging. At production, set
-   * ShowConfidential to false. Now the publicMessage is passed to the logger. The reference to
+   * showConfidential set to true, the confidentialMessage is used for logging. At production, set
+   * showConfidential to false. Now the publicMessage is passed to the logger. The reference to
    * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
-   * when not needed on a best effort approach. */
+   * when not needed on a best effort approach. The call publishes the message in the channel AppPrd. */
   inline def info(confidentialMesssage: => String, publicMessage: => String): Unit  =
     inline if showChannels.contains(Channel.AppPrd) then
       inline if showConfidential
@@ -150,8 +154,10 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make log entry with level Beta, to keep the developer informed about the systems whereabouts.
    * Promote debug messages that are important during beta testing to the level Beta. That way they
-   * can easily be eliminated by setting the FixPassLevel/passLevel to Info for production code.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * can easily be eliminated by setting the fixPassLevel/passLevel to Info for production code, but
+   * still been seen during Beta testing, without the clutter of all the other debug logging. This call
+   * is eliminated from the code when not needed on a best effort approach. The call publishes the message
+   * in the channel AppDvl. */
   inline def beta(message: => String): Unit  =
     inline if showChannels.contains(Channel.AppDvl) then
       feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),message)
@@ -159,12 +165,13 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make log entry with level Beta, to keep the developer informed about the systems whereabouts.
    * Promote debug messages that are important during beta testing to the level Beta. That way they
-   * can easily be eliminated by setting the FixPassLevel/passLevel to Info for production code.
+   * can easily be eliminated by setting the FixPassLevel/passLevel to Info for production code, but
+   * still been seen during Beta testing, without the clutter of all the other debug logging.
    * Use this call to log sensitive information like usernames and passwords. During testing, with
    * ShowConfidential set to true, the confidentialMessage is used for logging. At production, set
    * ShowConfidential to false. Now the publicMessage is passed to the logger. The reference to
    * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
-   * when not needed on a best effort approach. */
+   * when not needed on a best effort approach. The call publishes the message in the channel AppDvl. */
   inline def beta(confidentialMesssage: => String, publicMessage: => String): Unit  =
     inline if showChannels.contains(Channel.AppDvl) then
       inline if showConfidential
@@ -173,7 +180,8 @@ private trait LogHandler extends LogHandlerConfig:
 
   /**
    * Make log entry with level Debug, to communicate internals of the system for diagnostic purposes.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * This call is eliminated from the code when not needed on a best effort approach. The call publishes
+   * the message in the channel AppDvl. */
   inline def debug(message: => String): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
       feed(Level.Debug,Channel.AppDvl,kindInfo,pathInfo(fullPath),message)
@@ -188,44 +196,52 @@ private trait LogHandler extends LogHandlerConfig:
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if fullParameters
+   * is set to true. You typically put this call as first statement after a class, object or method
+   * definition. This call is eliminated from the code when not needed on a best effort approach.
+   * The call publishes the message in the channel AppDvl. */
   inline def trace(): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
       feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,fullParameters),"")
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed.
-   * With the possibility to enter extra information in the form of a message.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if fullParameters
+   * is set to true. You typically put this call as first statement after a class, object or method
+   * definition. With the possibility to enter extra information in the form of a message. This call is
+   * eliminated from the code when not needed on a best effort approach.  The call publishes the message
+   * in the channel AppDvl. */
   inline def trace(message: => String): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
       feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,fullParameters),message)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed. Override
-   * the global setting FullParameters with the parameter withParameters to investigate a special case.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if withParameters
+   * is set to true, this overriding the global setting fullParameters, to investigate a special case.
+   * You typically put this call as  first statement after a class, object or method definition. This call is eliminated from the code when not needed on a best
+   * effort approach.  The call publishes the message in the channel AppDvl. */
   inline def trace(withParameters: Boolean): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
       feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,withParameters),"")
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed. Override
-   * the global setting FullParameters with the parameter withParameters to investigate a special case.
-   * With the possibility to enter extra information in the form of a message.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if withParameters
+   * is set to true, this overriding the global setting fullParameters, to investigate a special case.
+   * You typically put this call as  first statement after a class, object or method definition.
+   * With the possibility to enter extra information in the form of a message. This call is eliminated
+   * from the code when not needed on a best effort approach.  The call publishes the message in the
+   * channel AppDvl. */
   inline def trace(withParameters: Boolean, message: => String): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
       feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,withParameters),message)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed.
-   * Log entry is only made when the channel in the parameter is activated via showChannels.
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if fullParameters
+   * is set to true. You typically put this call as first statement after a class, object or method
+   * definition. Log entry is only made when the channel in the parameter is activated via showChannels.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[CH <: Channel](channel: CH): Unit =
     inline if showChannels.contains(channel) then
@@ -233,19 +249,21 @@ private trait LogHandler extends LogHandlerConfig:
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed.
-   * Log entry is only made when the channel in the parameter is activated via showChannels.
-   * With the possibility to enter extra information in the form of a message.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if fullParameters
+   * is set to true. You typically put this call as first statement after a class, object or method
+   * definition. Log entry is only made when the channel in the parameter is activated via showChannels.
+   * With the possibility to enter extra information in the form of a message. This call is eliminated
+   * from the code when not needed on a best effort approach. */
   inline def trace[CH <: Channel](channel: CH, message: => String): Unit =
     inline if showChannels.contains(channel) then
       feed(Level.Trace,channel,kindInfo,callInfo(fullPath,fullParameters),message)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed.
-   * Log entry is only made when the channel in the parameter is activated via showChannels. Override the
-   * global setting FullParameters with the parameter withParameters to investigate a special case.
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if withParameters
+   * is set to true, this overriding the global setting fullParameters, to investigate a special case.
+   * You typically put this call as first statement after a class, object or method definition.
+   * Log entry is only made when the channel in the parameter is activated via showChannels.
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[CH <: Channel](channel: CH, withParameters: Boolean): Unit =
     inline if showChannels.contains(channel) then
@@ -253,11 +271,12 @@ private trait LogHandler extends LogHandlerConfig:
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
-   * Call extracts the Object/Class/Method path, and full parameters with arguments if needed.
-   * Log entry is only made when the channel in the parameter is activated via showChannels. Override the
-   * global setting FullParameters with the parameter withParameters to investigate a special case.
-   * With the possibility to enter extra information in the form of a message.
-   * This call is eliminated from the code when not needed on a best effort approach. */
+   * Call extracts the Object/Class/Method path, and full parameters with arguments if withParameters
+   * is set to true, this overriding the global setting fullParameters, to investigate a special case.
+   * You typically put this call as first statement after a class, object or method definition. Log entry
+   * is only made when the channel in the parameter is activated via showChannels. With the possibility
+   * to enter extra information in the form of a message. This call is eliminated from the code when
+   * not needed on a best effort approach. */
   inline def trace[CH <: Channel](channel: CH, withParameters: Boolean, message: => String ): Unit =
     inline if showChannels.contains(channel) then
       feed(Level.Trace,channel,kindInfo,callInfo(fullPath,withParameters),message)
