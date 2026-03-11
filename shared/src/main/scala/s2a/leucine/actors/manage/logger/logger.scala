@@ -219,12 +219,16 @@ object ActorLogger  :
     final private type ChannelMembers = Channels match
       /* The user meant an empty tuple, so we refuse any call by passing Nothing which always blocks. */
       case Unit    => Nothing
-      /* The user meant a tuple with one element, if it is the right one, we may pass this call. */
-      case Channel => channels.type
       /* For Pass we allow for all user logs, so we pass Channel, which always fits any call.*/
       case Pass    => Channel
-      /* Make a union of the types for this tuple, so it is tested if the call fits. */
-      case Tuple   => Tuple.Union[Channels]
+      /* The user meant a tuple with one element, if it is the right one, we may pass this call. */
+      case Channel => channels.type
+      /* If this is a Tuple, we must test for the presence of a Pass by making an intersection. */
+      case Tuple   => Tuple.Union[Channels] & Pass match
+        /* If this fits Pass, and we must pass any call. */
+        case Pass => Channel
+        /* Otherwise we return just the union for further testing. */
+        case _    => Tuple.Union[Channels]
 
     /* Compile time test to see if the channel is an element of the channels in this collection. */
     private[actors] transparent inline def contains[CH <: Channel](channel: CH): Boolean = inline channel match
@@ -235,30 +239,22 @@ object ActorLogger  :
       /* Any other channel is rejected. */
       case _                  => false
 
-    /* Make a list from the channels inside this tuple. */
-    private def mkList(channels: Tuple): List[Channel] = channels match
-      /* There are no more elements, we are done */
-      case _ : EmptyTuple       => Nil
-      /* Extract the first element from the list, add to result (order is not relevant). */
-      case (x: Channel) *: tail => x :: mkList(tail)
-      /* All other typed elements are ignored
-       * (should not happen due to the type enforcement on the class arguments) */
-      case _ *: tail            => mkList(tail)
-
-    /* Transform the channels tuple into a list for runtime comparison. */
-    private val list: List[Channel] = channels match
+    /** Do a runtime test on the presence of this channel. */
+    private def member(channel: Channel): Boolean = channels match
       /* The user meant an empty tuple. */
-      case _ : Unit    => Nil
-      /* If there is only one element, construct the list manually. */
-      case x : Channel => List(x)
-      /* Make a union of the elements for this tuple. */
-      case x : Tuple   => mkList(x)
+      case _ : Unit       => false
+      /* If there is only one element, test this one element. */
+      case ch : Channel   => ch == channel
+      /* If there is a tuple, test each element. */
+      case tuple : Tuple  => tuple.toArray.contains(channel)
+      /* Any other situation (which should not appear) is rejected. */
+      case _              => false
 
     /* Predefined check on the presence of SysPrd to make this fast at runtime. */
-    private[actors] val hasSysPrd = list.contains(Channel.SysPrd)
+    private[actors] val hasSysPrd = member(Channel.SysPrd)
 
     /* Predefined check on the presence of SysDvl to make this fast at runtime. */
-    private[actors] val hasSysDvl = list.contains(Channel.SysDvl)
+    private[actors] val hasSysDvl = member(Channel.SysDvl)
 
   /* Type to store Entries in Arrays. Arrays are initialized with null's. It is inefficient
    * to reinitialize them with a special Nil Entry since these stay all within Leucine.

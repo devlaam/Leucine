@@ -37,9 +37,6 @@ import scala.concurrent.duration.FiniteDuration
  * outstanding tasks or log the actor message sends for debugging purposes */
 trait ActorContext extends PlatformContext with ExecutionContext :
 
-  /** Helper method for tracing while debugging. Wrap your debug lines in traceln() */
-  def traceln(s: => String): Unit
-
   /** The prefix used in actor names for actors that are workers */
   def workerPrefix: String
 

@@ -54,7 +54,7 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final val directSpool = false
 
   /** Set fullPath to true to obtain full info on object/class/method names. */
-  final val fullPath = true
+  final val fullPath = false
 
   /** Set fullParameters to true so we see for each trace the parameters used in the call. */
   final val fullParameters = true
@@ -70,9 +70,9 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
 
   /* Experiment here to see the effects of including and excluding channels. */
   //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, "Channel"))
-  //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, GroupCrawler))
-  final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, GroupCollatz ))
-  //final val showChannels = ShowChannels((Channel.SysPrd))
+  //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, GroupCollatz))
+  //final val showChannels = ShowChannels(Channel.SysPrd)
+  final val showChannels = ShowChannels((Channel.SysPrd, Channel.Pass))
   //final val showChannels = ShowChannels(())
 
   /** Set the number of maxLogs low, so we have responsive logging. */

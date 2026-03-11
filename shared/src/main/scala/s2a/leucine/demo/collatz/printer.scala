@@ -72,10 +72,10 @@ object Printer extends AcceptDefine, Stateless:
       case Device.HTML  => s"<span style=\"color:${xml};\">${text}</span>"
 
   /* This are the colors the printer is able to handle. */
-  object Red     extends Colour { def format(device: Device, text: String): String = sub(device,text,31,"red") }
-  object Blue    extends Colour { def format(device: Device, text: String): String = sub(device,text,34,"blue") }
-  object Green   extends Colour { def format(device: Device, text: String): String = sub(device,text,32,"green") }
-  object Default extends Colour { def format(device: Device, text: String): String = text}
+  case object Red     extends Colour { def format(device: Device, text: String): String = sub(device,text,31,"red") }
+  case object Blue    extends Colour { def format(device: Device, text: String): String = sub(device,text,34,"blue") }
+  case object Green   extends Colour { def format(device: Device, text: String): String = sub(device,text,32,"green") }
+  case object Default extends Colour { def format(device: Device, text: String): String = text}
 
   /* Make this class sealed so that the compile can check at the receiver method if
    * we were complete in the implementation of all message types */

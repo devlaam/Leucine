@@ -33,6 +33,15 @@ import scala.quoted.{Quotes, Expr}
 object Static :
 
   /**
+   * Strip the path from argument. Example: "s2a.leucine.actors.BareActor$Envelope@30c9240b"
+   * is transformed to "BareActor$Envelope" */
+  private def strip(argument: String): String =
+    val at   = argument.indexOf('@')
+    val end  = if at >= 0 then at else argument.length
+    val last = argument.lastIndexOf('.', end - 1)
+    if last >= 0 then argument.substring(last + 1, end) else argument.substring(0, end)
+
+  /**
    * A framework private manner to communicate the kind of enclosure for the log entry.
    * The log call can be enclosed in an Method, Class or Object. Reported is the enclosure
    * first encountered in the tree. */
@@ -53,7 +62,7 @@ object Static :
     import q.reflect.Symbol
     if      symbol == Symbol.noSymbol then symbol
     else if symbol.isClassDef         then symbol
-    else enclosingClass(symbol.owner)
+    else                                   enclosingClass(symbol.owner)
 
   /**
    * Helper method: walk "up" the ownership chain to find the nearest enclosing DefDef definition symbol.
@@ -61,15 +70,14 @@ object Static :
    * we found it. Otherwise, recurse to the owner for the enclosing definition. */
   private def enclosingDef(using q: Quotes)(symbol: q.reflect.Symbol): q.reflect.Symbol =
     import q.reflect.Symbol
-    if symbol == Symbol.noSymbol then symbol
-    else if symbol.isDefDef then symbol
-    else enclosingDef(symbol.owner)
+    if      symbol == Symbol.noSymbol then symbol
+    else if symbol.isDefDef           then symbol
+    else                                   enclosingDef(symbol.owner)
 
 
   /**
    * Helper method: try to find the value of an Expression. It can be true, false or something else.
-   * In the latter situation we report a compiler error. This should not happen within Leucine.
-   */
+   * In the latter situation we report a compiler error. This should not happen within Leucine. */
   private def boolValue(boolExpr: Expr[Boolean], boolName: String)(using q: Quotes): Boolean =
     import q.reflect.report
     boolExpr.value match
@@ -86,8 +94,8 @@ object Static :
     import q.reflect.{Symbol, Ref, Flags}
 
     /* Obtain the enclosing symbols by walking up the tree. Can fail. */
-    private val defSym = enclosingDef(Symbol.spliceOwner)
-    private val clsSym = enclosingClass(Symbol.spliceOwner)
+    private val defSym: Symbol = enclosingDef(Symbol.spliceOwner)
+    private val clsSym: Symbol = enclosingClass(Symbol.spliceOwner)
 
     /**
      * See if we are dealing with user defined parameters here. We take a defensive stand against
@@ -110,10 +118,10 @@ object Static :
      * fullParams = true:   MyClass.myMethod(name="Klaas",age=42)
      * fullParams = false:  MyClass.myMethod(..) */
     private def getArgExpr(fullParams: Boolean, symbols: List[Symbol]):  Expr[List[String]] =
-      def extract(symbol: Symbol) =
+      def extract(symbol: Symbol): Expr[String] =
         val symbolRef = Expr(symbol.name + "=")
         val symbolVal = Ref(symbol).asExprOf[Any]
-        '{ $symbolRef + $symbolVal.toString }
+        if fullPath then '{ $symbolRef + $symbolVal.toString } else '{ $symbolRef + strip($symbolVal.toString) }
       val args = if fullParams then symbols.map(extract) else List(Expr("." * symbols.size))
       Expr.ofList(args)
 
@@ -144,7 +152,7 @@ object Static :
       else                  Unknown
 
     /** Obtain the className if we are in a class of the enclosure. */
-    val className  =
+    val className: String  =
       if      !hasClass then unKnown
       else if fullPath  then clsSym.fullName.stripSuffix("$")
       else                   clsSym.name.stripSuffix("$")
@@ -152,7 +160,7 @@ object Static :
     /**
      * Obtain the method name if we have a method. Don't ask for this if you already know you are inside
      * an constructor initializer, for it will return "init" */
-    val defName = if hasMethod then defSym.name else unKnown
+    val defName: String = if hasMethod then defSym.name else unKnown
 
     /** Request the arguments of the class parameters, with name and value if fullParams = true. */
     def classArguments(fullParams: Boolean): Expr[List[String]]  = getArgExpr(fullParams,getParams(clsSym.primaryConstructor))
@@ -182,10 +190,10 @@ object Static :
 
     /* Test and obtain the value of the boolean parameter: fullPathName.
      * Generates a compiler error if the value cannot be determined at compile time. */
-    val full = boolValue(fullPathName,"fullPathName")
+    val full: Boolean = boolValue(fullPathName,"fullPathName")
 
     /* Obtain information about the enclosing structure. */
-    val info = Info(full)
+    val info: Info = Info(full)
 
     /* Choose the correct response for each kind of enclosure */
     info.kind match
@@ -214,14 +222,14 @@ object Static :
 
     /* Test and obtain the value of the boolean parameter: fullPathName.
      * Generates a compiler error if the value cannot be determined at compile time. */
-    val fullPath  = boolValue(fullPathName,"fullPathName")
+    val fullPath: Boolean  = boolValue(fullPathName,"fullPathName")
 
     /* Test and obtain the value of the boolean parameter: fullParamContent.
      * Generates a compiler error if the value cannot be determined at compile time. */
-    val fullParam = boolValue(fullParamContent,"fullParamContent")
+    val fullParam: Boolean = boolValue(fullParamContent,"fullParamContent")
 
     /* Obtain information about the enclosing structure. */
-    val info = Info(fullPath)
+    val info: Info = Info(fullPath)
 
     /* Choose the correct response for each kind of enclosure */
     info.kind match
