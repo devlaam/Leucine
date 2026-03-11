@@ -28,10 +28,12 @@ package s2a.leucine.actors
 private transparent trait ProcessActor(using context: ActorContext) extends StatusActor :
   import BareActor.Phase
   import Actor.{Mail,Post}
+  import ActorGuard.syslog
+  import ActorLogger.Level
 
   /** Triggers the processLoop into execution, depending on the phase. */
   private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     phase = phase match
       /* If this is the very first trigger, called from the constructor. */
       case Phase.Start  => processInit(); Phase.Play
@@ -48,14 +50,14 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
 
   /** Contains the instructions to startup the actor */
   private[actors] def processInit(): Unit =
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     /* Process startup code in an other thread. This must be done from the processLoop for
      * otherwise the started() call may be superseded by the first letter. */
     context.deferred(processLoop(true))
 
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     /* Reset the dropped needles counter (note we only call processPlay synchronized.) if
      * requested, otherwise make sure it does not exceed the silentStop value. */
     if reset then needles = 0 else needles = needles min context.silentStop
@@ -67,7 +69,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
    * will advance to the next envelope.  */
   private[actors] def processEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase letter=${envelope.letter} sender=${envelope.sender.path}")
+    syslog(Level.Trace,s"$path/$phase letter=${envelope.letter} sender=${envelope.sender.path}")
     /* Start measuring the time passed in the user environment, and trace when requested */
     monitorEnter(envelope)
     /* User code is protected by an exception guard.*/
@@ -88,7 +90,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
    * Primary process loop. As soon as there are any letters, this loop runs
    * until all the letters are processed and the queues are exhausted. */
   private[actors] def processLoop(init: Boolean): Unit =
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     /* If we come here for the first time we must execute the started() call back */
     if init then deliverStarted()
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
@@ -124,7 +126,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
    * letters that could not be completed due to a forced stop. If finish is true
    * the stop was not forced, but the current queue was allowed to be completed. */
   private[actors] def processStop(dropped: List[Env[?]], finish: Boolean): Unit = synchronized {
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     /* Stop all scheduled timers. */
     eventsCancel()
     /* Stop/finish the family tree recursively. */
@@ -144,7 +146,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     /* Call the stop event handler of this actor, if implemented. */
     deliverStopped(stopper,complete)
     /* We must abandon after the stopped has called, so that we call all stopped in a family in
@@ -160,7 +162,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
 
   /** After work from the processLoop. Dropped contains the letters that could not be completed. */
   private[actors] def processExit(dropped: List[Env[?]]): Unit = synchronized {
-    ActorGuard.syslog(ActorLogger.Level.Trace,s"$path/$phase")
+    syslog(Level.Trace,s"$path/$phase")
     /* There are regular (core) tasks that handle some enveloped message. There can stem from the
      * the mailbox, the stash or the event queue. These are all handled in normal operation and when
      * we are finishing, the event queue is ignored. So we first calculate these coreFinishTasks */
