@@ -39,12 +39,13 @@ given actorContext: ActorContext = ActorContext.system
  * in the different LoggerSettings, or changing some settings below. */
 object Logger extends ActorLogger, DefaultLoggerProcessing :
   import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel}
+  import ActorLogger.Channel.{Pass, SysPrd, SysDvl, AppPrd, AppDvl}
 
   /* Create for every demo a separate channel for logging. We shall use this only for tracing. */
-  case object GroupChat    extends Channel
-  case object GroupClock   extends Channel
-  case object GroupCollatz extends Channel
-  case object GroupCrawler extends Channel
+  case object Chat    extends Channel
+  case object Clock   extends Channel
+  case object Collatz extends Channel
+  case object Crawler extends Channel
 
 
   /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
@@ -69,11 +70,11 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final def actorPathFilter(level: Level, path: String): Boolean = true
 
   /* Experiment here to see the effects of including and excluding channels. */
-  //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, "Channel"))
-  //final val showChannels = ShowChannels((Channel.SysPrd, Channel.AppPrd, Channel.AppDvl, GroupCollatz))
-  //final val showChannels = ShowChannels(Channel.SysPrd)
-  final val showChannels = ShowChannels((Channel.SysPrd, Channel.Pass))
-  //final val showChannels = ShowChannels(())
+  //final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl, "Channel")) //Does not compile (which is correct)
+  //final val showChannels = ShowChannels((SysPrd, Collatz))
+  //final val showChannels = ShowChannels(SysPrd)
+  //final val showChannels = ShowChannels((SysPrd, Pass))
+  final val showChannels = ShowChannels(())
 
   /** Set the number of maxLogs low, so we have responsive logging. */
   final val maxLogs = 10

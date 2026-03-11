@@ -38,7 +38,7 @@ import s2a.leucine.actors.*
  * simply ignoring the children. But less is more. */
 class Provider(protected val socket: ClientSocket, protected val parent: Listener) extends SelectActor(Provider,!#), TimingAid, LogAid(Logger), FamilyLeaf[Listener] :
   import Auxiliary.toUnit
-  Logger.trace(Logger.GroupClock)
+  Logger.trace(Logger.Clock)
 
   Logger.info(s"Provider Constructed, local=${socket.localPort}, remote=${socket.remotePort}")
   /* Send to the client that we are connected. The path is the full name of this actor. */
@@ -49,7 +49,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
 
   /* Handle the messages, which is only the posted letter in this case. */
   final protected def receive(letter: Letter, sender: Sender): Unit =
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     letter match
       case Provider.Send =>
         val datetime = new Date().toString
@@ -61,12 +61,12 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
 
   /* If this actor is stopped, we must close the connection. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     println(s"Provider $path stopped.")
     socket.close()
 
 object Provider extends SelectDefine, Stateless:
-  Logger.trace(Logger.GroupClock)
+  Logger.trace(Logger.Clock)
   type Accept = Provider
   sealed trait Letter extends Actor.Letter[Accept]
   case object Send extends Letter

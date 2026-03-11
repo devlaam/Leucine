@@ -29,7 +29,7 @@ import s2a.leucine.actors.*
 
 /** Service that keeps a list of new passwords to be handed out. Starts empty */
 class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Register") :
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
   println("Register Actor Started.")
 
   /* Supply of new passwords */
@@ -37,7 +37,7 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.Chat)
     (letter,sender) match
       /* In case new passwords arrive, store them in the supply */
       case (Register.Passwords(values),_: Noise) => supply = values
@@ -63,7 +63,7 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
 
 /** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
 object Register extends RestrictDefine, Stateless :
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
 
   /* We only accept letters from the Noise actor or from an anonymous source. */
   type Accept = Noise | Anonymous

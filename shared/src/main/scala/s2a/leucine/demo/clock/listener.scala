@@ -38,7 +38,7 @@ import s2a.leucine.actors.*
  * root of the family. Direct children of this actor may receive letters of the type Provider.Letter. */
 class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger), FamilyRoot() :
   import Auxiliary.toUnit
-  Logger.trace(Logger.GroupClock)
+  Logger.trace(Logger.Clock)
 
   /* Time this demo will last. */
   private val runtime = 60.seconds
@@ -59,14 +59,14 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger)
    * it uses less resources compared to i/o polling by 'expect'. Anytime a new connection
    * arrives we send a letter to ourselves with the connection enclosed. */
   private val useCallback = serverSocket.onConnect(socket =>
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     Logger.debug("Callback called.")
     send(Listener.Connect(socket),Actor.Anonymous).toUnit )
 
   /* See if there anyone knocking on the door. We need this if there is no callback
    * function on the platform available. */
   private def connect: Option[Listener.Letter] =
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     /* Test if we have a request for a connection. */
     serverSocket.request()
     /* This may result in an error, if ... */
@@ -99,7 +99,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger)
 
   /* Handle all incoming letters. */
   final protected def receive(letter: Letter, sender: Sender): Unit =
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     letter match
       /* The new connection will come in as a letter. */
       case Listener.Connect(socket) =>
@@ -118,11 +118,11 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger)
         stop(Actor.Stop.Direct)
 
   final protected override def except(letter: Listener.Letter, sender: Sender, cause: Exception, size: Int): Unit =
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     Logger.warn(s"Exception Occurred: ${cause.getMessage()}")
 
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.trace(Logger.GroupClock)
+    Logger.trace(Logger.Clock)
     println("Listener stopped")
     /* Decently close this socket. */
     serverSocket.close()
@@ -130,7 +130,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger)
 
 /* This is the natural location to define all the letters the actor may receive. */
 object Listener extends SelectDefine, Stateless :
-  Logger.trace(Logger.GroupClock)
+  Logger.trace(Logger.Clock)
   type Accept = Listener | Anonymous
   /* Base type of all Listener Letters, sealed because that enables the compiler to see
    * if we handled them all. */

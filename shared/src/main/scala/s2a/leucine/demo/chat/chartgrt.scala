@@ -29,7 +29,7 @@ import s2a.leucine.actors.*
 
 /* Main entry point for the ChatGRT demo. */
 object Chatgrt :
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
 
   /* We must provide a default sender. */
   given Actor.Anonymous = Actor.Anonymous
@@ -48,7 +48,7 @@ object Chatgrt :
 
   /* Stop this demo */
   def stop(): Unit =
-    Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.Chat)
     /* Tell all actors to stop directly */
     List(noise,access,register,text).foreach(_.stop(Actor.Stop.Direct))
     /* Tell the user we did stop the actors. */
@@ -56,12 +56,12 @@ object Chatgrt :
 
   /* Method to get input from the user. With CLI thus may block (JVM/Native) */
   def request(action: String => Unit): Unit =
-    Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.Chat)
     CLI.talk("ChatGRT ready, your command: ", action)
 
   /* Analyze the user input (from Console) to see what must be done. */
   def process(cmd: String): Unit =
-    Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.Chat)
     cmd.split(" ") match
       /* The user request for a new account */
       case Array("signup",name)    => register ! Register.Request(name)

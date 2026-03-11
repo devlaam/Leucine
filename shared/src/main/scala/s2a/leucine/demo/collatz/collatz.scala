@@ -37,14 +37,14 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
   import MonitorAid.{Sample, Trace, Tracing}
   import ActorLogger.Level
 
-  Logger.trace(Logger.GroupCollatz)
+  Logger.trace(Logger.Collatz)
 
   /* Allow tracing in this actor. */
   final override def tracing = Tracing.Enabled
 
   /* We just log the fact that this actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     Printer.blue("Stopped Collatz Actor")
 
   /* Define report functions for each capability */
@@ -76,7 +76,7 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
 
   /* In receive we handle the incoming letters. */
   final protected def receive(letter: Letter, sender: Sender): (State => State) = (state: State) => {
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     /* In this example, we do not care about the letters that much, but more
      * about the state. */
     state match
@@ -121,7 +121,7 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
         else Collatz.Odd(next,full+1,odd+1,size max evens,ceil) }
 
 object Collatz extends AcceptDefine :
-  Logger.trace(Logger.GroupCollatz)
+  Logger.trace(Logger.Collatz)
   type Accept = Actor
   /* The Collatz only excepts one letter */
   sealed trait Letter extends Actor.Letter[Actor]

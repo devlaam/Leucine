@@ -29,11 +29,11 @@ import s2a.leucine.actors.*
 
 class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
   println("Text Actor Started.")
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.Chat)
     (letter,sender) match
       /* If we receive this letter from an anonymous source, we interpret it as a request for a new password. */
       case (Text.Lipsum(name,password),_: Anonymous) => access ! Access.Pair(name,password)
@@ -47,7 +47,7 @@ class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */
 object Text extends RestrictDefine, Stateless :
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
 
   /* We only accept letters from the Noise or Access actors or from an anonymous source. */
   type Accept = Access | Noise | Anonymous

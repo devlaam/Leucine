@@ -32,16 +32,16 @@ import s2a.leucine.actors.*
  * The root of the actor structure has no parent, therefore the parent is optional in this case. */
 class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends AcceptActor(Tree,name), FamilyTree[Tree], TimingAid, MonitorAid(Monitor), LogAid(Logger) :
   import Auxiliary.toUnit
-  Logger.trace(Logger.GroupCrawler)
+  Logger.trace(Logger.Crawler)
 
   /* Write the results of this actor to the console. */
   private def write(kind: String) =
-    Logger.trace(Logger.GroupCrawler)
+    Logger.trace(Logger.Crawler)
     println(s"$kind $path")
 
   /* Show when the actor stops. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.trace(Logger.GroupCrawler)
+    Logger.trace(Logger.Crawler)
     /* This is written for all actors. */
     write(s"stop:$cause")
     /* This is executed when the root actor stops, which is at the end. */
@@ -49,7 +49,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
 
   /* New children must be created with their parent as parameter. */
   private def newChild(i: Int) =
-    Logger.trace(Logger.GroupCrawler)
+    Logger.trace(Logger.Crawler)
     Tree(s"F$i",debug,Some(this))
 
   /* Variable to see if all child actors have reported back that their
@@ -58,7 +58,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
 
   /* Start the work in this crawler, two wide and three deep. */
   if parent.isEmpty then
-    Logger.trace(Logger.GroupCrawler)
+    Logger.trace(Logger.Crawler)
     this ! Tree.Create(2,3)
     this ! Tree.Forward
     /* Show the internals of the actor after some time */
@@ -71,7 +71,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
 
   /* Handle the incoming letters. */
   final protected def receive(letter: Letter, sender: Sender): Unit =
-    Logger.trace(Logger.GroupCrawler)
+    Logger.trace(Logger.Crawler)
     letter match
       /* This message creates <width> new children for this actor. */
       case Tree.Create(width,level) =>
@@ -105,7 +105,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
 
 
 object Tree extends AcceptDefine, Stateless :
-  Logger.trace(Logger.GroupCrawler)
+  Logger.trace(Logger.Crawler)
   sealed trait Letter extends Actor.Letter[Actor]
   /* Message to create the tree structure. The maximal number of levels
    * is given by depth, the number of actors created in each level given

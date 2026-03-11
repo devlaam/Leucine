@@ -30,7 +30,7 @@ import s2a.leucine.actors.*
 
 /** This is your ideal white noise char string generator. */
 class Noise extends RestrictActor(Noise,"Noise") :
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
   println("Noise Actor Started.")
 
   /* Constructs a string with 'length' random chars. */
@@ -38,7 +38,7 @@ class Noise extends RestrictActor(Noise,"Noise") :
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
-    Logger.trace(Logger.GroupChat)
+    Logger.trace(Logger.Chat)
     (letter,sender) match
       /* Return a sequence of size random strings each of the same length. */
       case (Noise.Request(_,size,length), source: Register) =>
@@ -54,7 +54,7 @@ class Noise extends RestrictActor(Noise,"Noise") :
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */
 object Noise extends RestrictDefine, Stateless :
-  Logger.trace(Logger.GroupChat)
+  Logger.trace(Logger.Chat)
 
   /* Only the Access and Text actors may request for random content. */
   type Accept = Register | Text

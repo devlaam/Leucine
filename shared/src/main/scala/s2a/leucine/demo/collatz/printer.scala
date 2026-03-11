@@ -32,14 +32,14 @@ import s2a.leucine.actors.*
  * care from which actor the message is originating. */
 private class Printer extends AcceptActor(Printer,"printer") :
   import Printer.*
-  Logger.trace(Logger.GroupCollatz)
+  Logger.trace(Logger.Collatz)
 
   /* Device to which the messages are printed. Can be changed by during runtime. */
   private var device: Device = Device.XML
 
   /* Report that this printer has been disabled. */
   final protected override def stopped(cause: Actor.Stop, complete: Boolean) =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     println("Stopped Printer Actor")
 
   /* Report that this printer has started. */
@@ -47,7 +47,7 @@ private class Printer extends AcceptActor(Printer,"printer") :
 
   /* Receive method that handles the incoming printer and control messages. */
   final protected def receive(letter: Letter, sender: Sender): Unit =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     letter match
       case Message(colour,text)  => println(colour.format(device,text))
       case Switch(device)        => this.device = device
@@ -55,7 +55,7 @@ private class Printer extends AcceptActor(Printer,"printer") :
 
 object Printer extends AcceptDefine, Stateless:
   import Auxiliary.toUnit
-  Logger.trace(Logger.GroupCollatz)
+  Logger.trace(Logger.Collatz)
 
   /* These are the devices the printer is able to handle. */
   enum Device :
@@ -99,25 +99,25 @@ object Printer extends AcceptDefine, Stateless:
 
   /** Colour to report important information, to be addressed by the administrator. */
   def red(text: => String): Unit =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     printer.send(Message(Red,text)).toUnit
 
   /** Colour to report important information, to be addressed by the operator. */
   def blue(text: => String): Unit =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     printer.send(Message(Blue,text)).toUnit
 
   /** Colour to report regular use. */
   def green(text: => String): Unit =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     printer.send(Message(Green,text)).toUnit
 
   /** Colour to report all other less important stuff. */
   def default(text: => String): Unit =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     printer.send(Message(Default,text)).toUnit
 
   /** Change the record colour */
   def switch(device: Device): Unit =
-    Logger.trace(Logger.GroupCollatz)
+    Logger.trace(Logger.Collatz)
     printer.send(Switch(device)).toUnit
