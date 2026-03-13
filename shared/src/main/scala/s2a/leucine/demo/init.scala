@@ -58,7 +58,7 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final val fullPath = false
 
   /** Set fullParameters to true so we see for each trace the parameters used in the call. */
-  final val fullParameters = true
+  final val fullParameters = false
 
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
@@ -70,11 +70,12 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final def actorPathFilter(level: Level, path: String): Boolean = true
 
   /* Experiment here to see the effects of including and excluding channels. */
-  //final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl, "Channel")) //Does not compile (which is correct)
+  final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
+  //final val showChannels = ShowChannels((SysPrd, AppPrd, "AppDvl")) //Does not compile (which is correct)
   //final val showChannels = ShowChannels((SysPrd, Collatz))
   //final val showChannels = ShowChannels(SysPrd)
   //final val showChannels = ShowChannels((SysPrd, Pass))
-  final val showChannels = ShowChannels(())
+  //final val showChannels = ShowChannels(())
 
   /** Set the number of maxLogs low, so we have responsive logging. */
   final val maxLogs = 10
@@ -86,7 +87,7 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final val timing = Timing.Nanos
 
   /** Set default logging level to trace to see all logs during development. */
-  final val passLevel = Level.Trace
+  //final val passLevel = Level.Trace
 
   /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn
@@ -94,37 +95,30 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
   final val localSettings = true
 
-  /* Experiment here to see the effects of filter defined on the sourcePath or actorPath */
-  //def sourcePathFilter(level: Level, path: String): Boolean = true
-  //def actorPathFilter(level: Level, path: String): Boolean = true
-
-  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
-  //inline def directSpool = false // dit kan ook.
-  //final val directSpool = false
-
   /* We want to set the used pass level at the start of the application via its arguments. But we
    * also want the logger to be available as global object. So we must manipulate the value after
    * construction for this demonstration code. We may therefore have a mismatch of levels at the
    * very start, for it is uncertain when the change will be picked up. We start with "Level.Trace"
    * so we don't miss any entries, but some Trace messages will also appear before the new level is
    * accepted. For a demo, this is acceptable. */
-  //private var level: Level = Level.Trace
-  //def setLevel(level: Level): Unit = this.level = level
-  def setLevel(level: Level): Unit = ()
+  private var level: Level = Level.Trace
+  def setLevel(level: Level): Unit = this.level = level
 
   /** This is called to obtain the current logging level. */
-  //override def passLevel: Level = level
+  final override def passLevel: Level = level
 
   /* In this demo we want all the logging to appear at the end. So we buffer it until the
    * application is about to close. Then it is displayed. This prohibits mixing the output
    * of the demo with logging. */
-  private val logEntries: Buffer[String] = Buffer.empty
+  private val logEntries: Buffer[Entry] = Buffer.empty
 
   /* For each call to the logger, the entry is stored. */
-  override def process(entry: Entry): Unit = logEntries += entry.toString
+  override def process(entry: Entry): Unit = logEntries += entry
 
-  /* Called to display all the entries, preferably at the end. */
-  def printEntries(): Unit = logEntries.foreach(println)
+  /* Called to display all the entries, preferably at the end. Since we do this at the end we have the
+   * possibility to filter out the unwanted entries that were cause by the runtime setting of the level.
+   * usually this is not needed of course, but this is an illustration of post processing entries. */
+  def printEntries(): Unit = logEntries.filter(_.level <= level).foreach(println)
 
 
 object Init :

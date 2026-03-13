@@ -213,7 +213,7 @@ object ActorLogger  :
   class ShowChannels[Channels <: GTuple[Channel] : ChannelTuple](channels: Channels):
 
     /* Local alias */
-    private type Pass = Channel.Pass.type
+    private type Pass  = Channel.Pass.type
 
     /* Extract the type from the class parameter. */
     final private type ChannelMembers = Channels match
@@ -223,12 +223,12 @@ object ActorLogger  :
       case Pass    => Channel
       /* The user meant a tuple with one element, if it is the right one, we may pass this call. */
       case Channel => channels.type
-      /* If this is a Tuple, we must test for the presence of a Pass by making an intersection. */
-      case Tuple   => Tuple.Union[Channels] & Pass match
-        /* If this fits Pass, and we must pass any call. */
-        case Pass => Channel
+      /* If this is a Tuple, we must test for the presence of a Pass by testing if it is a subtype of the Union */
+      case Tuple   => Pass match
+        /* If this fits, we must pass any call. */
+        case Tuple.Union[Channels] => Channel
         /* Otherwise we return just the union for further testing. */
-        case _    => Tuple.Union[Channels]
+        case _                     => Tuple.Union[Channels]
 
     /* Compile time test to see if the channel is an element of the channels in this collection. */
     private[actors] transparent inline def contains[CH <: Channel](channel: CH): Boolean = inline channel match
