@@ -68,6 +68,7 @@ abstract class ContextImplementation extends PlatformContext :
 
   /** Plan a new task on the current Execution Context, which is run after some delay. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable =
+    /* We only accept new schedules tasks when the system is still running all executors. */
     if active then
       /* Try to schedule the task. Note that even though we test for active,
        * this still may race against a shutdown request in between. */
@@ -95,7 +96,9 @@ abstract class ContextImplementation extends PlatformContext :
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
    * it arrives it may produce an result of some type. This result is subsequently passed to the
-   * digestible process. As longs as there is no result yet, the attempt should produce None */
+   * digestible process. As longs as there is no result yet, the attempt should produce None.
+   * The attempt as well as the digest from digestible are both executed on the scheduledExecutor
+   * and should finish asap. Should not to any work. Typically use this to send a letter.  */
   def await[M](digestible: Digestible[M], attempt: => Option[M]): Cancellable =
     /* Proactively test if we should start the construction of the Awaitable at all. */
     if active then
@@ -168,21 +171,25 @@ object ContextImplementation :
   def platform = PlatformContext.Platform.JVM
 
 
-  /* Class which continuously retries an attempt until it succeeds or is cancelled. The doAttempt
+  /**
+   * Class which continuously retries an attempt until it succeeds or is cancelled. The doAttempt
    * by name reference should return true if it succeeded and false otherwise. The delay between
-   * each attempt should be in ms. The attempt itself should not block. */
+   * each attempt should be in ms. The parameter mayAttempt should return true as long as we
+   * are allowed to perform an attempt. The attempt itself should not block. */
   private class Awaitable(doAttempt: => Boolean, mayAttempt: => Boolean, delay: FiniteDuration, scheduler: ScheduledExecutorService) extends Cancellable :
 
     /* Allows prohibiting this awaitable to reschedule itself. Needs to
-     * be volatile since  the cancel request can come from anywhere. */
+     * be volatile since the cancel request can come from anywhere. */
     @volatile private var continue = true
 
     /* Call to schedule a new task in the future. */
     private def schedule(c: Callable[Unit]): ScheduledFuture[Unit] = scheduler.schedule[Unit](c,delay.toMillis,TimeUnit.MILLISECONDS)
 
     /* Holding variable for the current active scheduled task. The RejectedExecutionException
-     * that may occur here is catched in its factory method. */
-    private var sf: ScheduledFuture[Unit] = schedule(callable)
+     * that may occur here is catched in its factory method. This is also volatile to be sure
+     * a call to cancel(), which may originate from an other thread, always see the latest
+     * future present. */
+    @volatile private var sf: ScheduledFuture[Unit] = schedule(callable)
 
     /* Construct a new callable with an embedded call. */
     private def callable: Callable[Unit] = new Callable[Unit] :
@@ -190,7 +197,9 @@ object ContextImplementation :
        * if this allowed by mayAttempt, which should be false if no work is allowed in the
        * main executor anymore. */
       def call() =
-        /* See if we may continue. The order here is important due to short circuiting.  */
+        /* See if we may continue. The order here is important due to short circuiting. If
+         * continue was already false there is nothing to do. Otherwise see if we still are
+         * allowed to do an attempt. If so do the actual attempt and see if we are done. */
         continue = continue && mayAttempt && !doAttempt
         /* If so (yes, there can be a race since the permission may be revoked in the
          * meantime, but that will at be cost one timeout at maximum or the task may

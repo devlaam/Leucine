@@ -1,7 +1,6 @@
 package s2a.leucine.actors
 
 
-import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.DurationInt
 import scala.annotation.unused
 import utest.*
