@@ -64,7 +64,7 @@ private transparent trait StatusActor extends UserActor :
   private[actors] var needles: Int = 0
 
   /** See the current activity state of this actor */
-  def activity: Activity = synchronized {
+  def activity: Activity = synchronized :
     /* In very rare case it may come to pass that the activity is probed by the guard before the
      * object construction is completed. In that case the phase value has not yet been initialized.
      * We report the activity as Running because construction will very soon be completed. */
@@ -75,4 +75,4 @@ private transparent trait StatusActor extends UserActor :
        * case the actor may be halted by the guard. */
       then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
       /* If the actor is not active anymore, termination can be complete or not. */
-      else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping }
+      else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping

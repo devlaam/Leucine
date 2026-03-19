@@ -60,19 +60,23 @@ abstract class ContextEmulation extends PlatformContext :
   private def hasFirstTimer: Boolean = synchronized { !timers.isEmpty && (timers.head._1 < passedTime) }
 
   /** Execute the first timer task that is due. */
-  private def execFirstTimer(): Unit = synchronized {
-    val (time,task) = timers.head
-    timers = timers - time
-    task }.call()
+  private def execFirstTimer(): Unit =
+    def nextTask: Callable[Unit] =
+      val (time,task) = timers.head
+      timers = timers - time
+      task
+    synchronized(nextTask).call()
 
   /** See if there is a task to be executed (FIFO order). */
   private def hasFirstTask: Boolean = synchronized(!tasks.isEmpty)
 
-  /** Execute the first timer task that is due. */
-  private def execFirstTask(): Unit = synchronized {
-    val (task,rest) = tasks.dequeue
-    tasks = rest
-    task }.run()
+  /** Execute the task from the queue that is due. */
+  private def execFirstTask(): Unit =
+    def nextTask: Runnable =
+      val (task,rest) = tasks.dequeue
+      tasks = rest
+      task
+    synchronized(nextTask).run()
 
   /* See if there is any attempt that must be tested. */
   private def hasAttempts: Boolean = synchronized(!attempts.isEmpty)
@@ -160,13 +164,13 @@ abstract class ContextEmulation extends PlatformContext :
   /**
    * Test if this is the first time if we enter the loop. Simultaneously clears the first use flag.
    * Returns true if the mainLoop is already initiated (running), and false otherwise. */
-  private def initiated: Boolean = synchronized {
+  private def initiated: Boolean = synchronized :
     /* If continue is true, the mainLoop is running, return true ... */
     if continue then true else
       /* ... otherwise make continue true and ... */
       continue = true
       /* ... return false in order to start the mainLoop. */
-      false }
+      false
 
   /**
    * Application starts active. Once this is set to false, the planned tasks and timers
@@ -192,7 +196,7 @@ abstract class ContextEmulation extends PlatformContext :
   def enqueue(runnable: Runnable): Unit = execute(runnable)
 
   /** Plan a new task on the current Execution Context, which is run after some delay. */
-  def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable = synchronized {
+  def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable = synchronized :
     if _active then
       var time = passedTime + delay.toNanos
       /* There may already be a time with this exact delay, so we plan it a few nano seconds later. */
@@ -201,7 +205,7 @@ abstract class ContextEmulation extends PlatformContext :
       timers = timers + (time -> callable)
       /* Construct an object that enables the user to retract the action. */
       new Cancellable { def cancel() = timers = timers - time  }
-    else Cancellable.empty }
+    else Cancellable.empty
 
   /**
    * Place a task on the Execution Context which is executed after some event arrives. When
@@ -221,9 +225,9 @@ abstract class ContextEmulation extends PlatformContext :
    * Perform a shutdown request. With force=false, the shutdown will be effective if all threads have completed
    * there current tasks. With force=true the current execution is interrupted. In any case, no new tasks
    * will be accepted. Once you have called shutdown, it is no longer possible to restart the main loop. */
-  def shutdown(force: Boolean): Unit = synchronized {
+  def shutdown(force: Boolean): Unit = synchronized :
     _active = false
-    if force then continue = false }
+    if force then continue = false
 
   /** This method makes the thread loop ready for reuse after termination. Only for internal use when testing. */
   private[s2a] def revive(): Unit =  _active = true

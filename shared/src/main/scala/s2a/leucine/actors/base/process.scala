@@ -32,7 +32,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
   import ActorLogger.Level
 
   /** Triggers the processLoop into execution, depending on the phase. */
-  private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized {
+  private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized :
     syslog(Level.Trace,s"$path/$phase")
     phase = phase match
       /* If this is the very first trigger, called from the constructor. */
@@ -46,7 +46,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
       /* We are already stopping and do not except triggers. Do nothing */
       case Phase.Stop   => Phase.Stop
       /* When we are done, we are done. */
-      case Phase.Done   => Phase.Done }
+      case Phase.Done   => Phase.Done
 
   /** Contains the instructions to startup the actor */
   private[actors] def processInit(): Unit =
@@ -127,7 +127,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
    * Call processStop to terminate the processLoop. Dropped should contain the
    * letters that could not be completed due to a forced stop. If finish is true
    * the stop was not forced, but the current queue was allowed to be completed. */
-  private[actors] def processStop(dropped: List[Env[?]], finish: Boolean): Unit = synchronized {
+  private[actors] def processStop(dropped: List[Env[?]], finish: Boolean): Unit = synchronized :
     syslog(Level.Trace,s"$path/$phase")
     /* Stop all scheduled timers. */
     eventsCancel()
@@ -144,7 +144,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* If we have no family or no children any more we may directly terminate, otherwise
      * we must wait until the last child has terminated. Pass the information about remaining
      * messages. */
-    if familySize == 0 then context.deferred(processTerminate(remain.isEmpty)) else familyTerminate(remain.isEmpty) }
+    if familySize == 0 then context.deferred(processTerminate(remain.isEmpty)) else familyTerminate(remain.isEmpty)
 
   /** Last goodbyes of this actor. */
   private[actors] def processTerminate(complete: Boolean): Unit =
@@ -163,7 +163,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     synchronized { phase = Phase.Done }
 
   /** After work from the processLoop. Dropped contains the letters that could not be completed. */
-  private[actors] def processExit(dropped: List[Env[?]]): Unit = synchronized {
+  private[actors] def processExit(dropped: List[Env[?]]): Unit = synchronized :
     syslog(Level.Trace,s"$path/$phase")
     /* There are regular (core) tasks that handle some enveloped message. There can stem from the
      * the mailbox, the stash or the event queue. These are all handled in normal operation and when
@@ -192,4 +192,4 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
       /* If we got an external stop request, make an end to this. */
       case Phase.Stop   => processStop(dropped,false); Phase.Stop
       /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
-      case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop"); Phase.Done }
+      case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop"); Phase.Done

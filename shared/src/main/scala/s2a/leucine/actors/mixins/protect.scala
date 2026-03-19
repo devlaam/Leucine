@@ -47,16 +47,17 @@ trait ProtectAid extends ActorInit, ActorDefs :
   private var alarms: Int = 0
 
   /** Test the current mailbox size for the high water mark. */
-  private[actors] override def protectRaise(size: Int): Unit = synchronized {
+  private[actors] override def protectRaise(size: Int): Unit = synchronized :
     /* We only need to raise an alarm if we did not already do so and if the size exceeds the limit. */
-    if (alarm == Alarm.Idle) && (size >= protectLevel) then alarm = Alarm.Raised }
+    if (alarm == Alarm.Idle) && (size >= protectLevel) then alarm = Alarm.Raised
 
   /** See if we must issue an alarm and do so only if an alarm was raised before. */
   private[actors] override def protectCheck(): Unit =
-    val call = synchronized { alarm match
+    val call = synchronized :
+      alarm match
       case Alarm.Idle    => false
       case Alarm.Raised  => alarm = Alarm.Issued; true
-      case Alarm.Issued  => false }
+      case Alarm.Issued  => false
     if call then
       /* We issue the alarm, increase the counter */
       alarms = alarms + 1
@@ -68,10 +69,11 @@ trait ProtectAid extends ActorInit, ActorDefs :
    * See if we must reset an alarm and do so only if an alarm was issued before.
    * A raised but not yet issued alarm is cleared. */
   private[actors] override def protectReset(): Unit =
-    val call = synchronized { alarm match
+    val call = synchronized :
+      alarm match
       case Alarm.Idle    => false
       case Alarm.Raised  => alarm = Alarm.Idle; false
-      case Alarm.Issued  => alarm = Alarm.Idle; true }
+      case Alarm.Issued  => alarm = Alarm.Idle; true
     if call then protectAlarm(false,alarms)
 
   /** See if an alarm was raised of issued. If neither is the case this returns true. */

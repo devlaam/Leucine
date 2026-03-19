@@ -33,9 +33,9 @@ class Worker :
   private var _counter: Long = 0L
 
   /** Increase the value and get a copy. */
-  private def inc: Long = synchronized {
+  private def inc: Long = synchronized :
     _counter = _counter + 1
-    _counter }
+    _counter
 
   /** Get the number of worker names generated. Local copy, may be outdated. */
   def size: Long = _counter

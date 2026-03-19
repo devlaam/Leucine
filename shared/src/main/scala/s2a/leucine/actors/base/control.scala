@@ -37,8 +37,8 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
    * the actor is assumed to be silent. */
   private[actors] def dropNeedle(root: Boolean): Unit =
     syslog(Level.Trace,s"$path/$phase")
-    /* Dropping needles only makes sense when we are active. */
-    val passOn =  synchronized { activity.active && (
+    /* Drop the needle for this layer and pass on to the children if needed. */
+    def dropAndPassOn: Boolean =
       /* See if we are not double booked. This is the case when this actor is requested to
        * stop on Silent and one of its ancestors is as well. In that case we remove this booking
        * and ignore the signal. */
@@ -67,12 +67,13 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
         /* Pass the signal on. */
         true
       /* In the other cases there is nothing to do or pass. */
-      else false )}
-    /* Pass the needle on to the children, since the stop request considers the whole tree.
-     * Note: this must be done outside the synchronization to prevent possible deadlocks. This
-     * may imply we miss an actor that was newly registered. That is no problem. A silent stop
-     * comes eventually. */
-    if passOn then familyDropNeedle()
+      else false
+    /* Dropping needles only makes sense when we are active. Then drop the needle for this
+     * Actor if needed and see if we need to pass on the request to the family.
+     * Note: passing on must be done outside the synchronization to prevent possible deadlocks.
+     * This may imply we miss an actor that was newly registered. That is no problem. A silent
+     * stop comes eventually. */
+    if synchronized { activity.active && dropAndPassOn } then familyDropNeedle()
 
   /**
    * A letter is send to this actor directly by an other actor. Returns if the letter was accepted
@@ -80,7 +81,7 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
    * A letter is accepted if the actor is still active and if there is room in the mailbox to store it. */
   final private[actors] def sendEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Boolean =
     syslog(Level.Trace,s"$path/$phase, letter=${envelope.letter}, sender=${envelope.sender.path}")
-    val mail = synchronized {
+    val mail = synchronized :
       /* A letter is only accepted as long as we are active and the mailbox is not too full. */
       val mail = Actor.Mail(!phase.active, mailbox.size >= maxMailboxSize)
       /* Trace if we have to, we accepted or refused the letter processing */
@@ -94,7 +95,7 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
         /* ... trigger the processLoop, so execution starts, if currently in Pause. */
         processTrigger(true)
       /* Get the result outside. */
-      mail }
+      mail
     /* Report this message as refused (must be outside the synchronized environment) when
      * we do not accept the message. Let the caller know if we accepted as well. */
     if mail == Actor.Mail.Received then true else { ActorGuard.fail(Actor.Post(mail,path,envelope.letter,envelope.sender)); false }
@@ -103,7 +104,7 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
   /**
    * Stop this actor asap, but complete the running letter if finish is true. This is an internal call
    * which does not change the stopper value, which holds the primary user action to stop the actor */
-  private[actors] def stopWith(finish: Boolean): Unit = synchronized {
+  private[actors] def stopWith(finish: Boolean): Unit = synchronized :
     syslog(Level.Trace,s"$path/$phase")
     phase = phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
@@ -118,7 +119,7 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
       /* Repeated call to stop has no effect. */
       case Phase.Stop   => Phase.Stop
       /* When we are done, we are done. */
-      case Phase.Done   => Phase.Done }
+      case Phase.Done   => Phase.Done
 
   /**
    * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
@@ -135,7 +136,8 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
      * This is important for the user can call stop from different threads an the parent actor sometimes
      * tries to stop the child twice. The second time will be ignored. Furthermore, the stop level cannot
      * be increased in most cases. */
-    synchronized { stopper = value match
+    synchronized :
+      stopper = value match
       /* A request to stop the actor right now is always honored, unless the actor is already stopping.
        * It is allowed to overwrite a Stop.Finish here to accelerate the stopping process. */
       case Stop.Direct  if (stopper >  Stop.Direct) && (phase < Phase.Stop)   => stopWith(false); Stop.Direct
@@ -165,4 +167,4 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
       /* In all other cases (only Final) reset the stopper. */
       case Stop.Never   if (stopper >  Stop.Silent) && (phase < Phase.Finish) => Stop.Never
       /* In all other situations the call cannot be honored and nothing is changed. */
-      case _            => stopper }
+      case _            => stopper

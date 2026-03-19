@@ -63,8 +63,8 @@ object ActorGuard :
     if logger != null then logger.syslog(level,message)
 
   /** Add or remove an actor to the needle dropping for silence detection. */
-  private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized {
-    if active then silent += actor else silent -= actor }
+  private[actors] def dropNeedles(active: Boolean, actor: Actor): Unit = synchronized :
+    if active then silent += actor else silent -= actor
 
   /**
    * See if all the actors that are running have completed. We do not put synchronized
@@ -112,20 +112,20 @@ object ActorGuard :
     /* We had some problems with null names here due to a design flaw regarding the
      * order of object construction. These should be gone now. Lets verify for a while. */
     assert(rename.name != null, "uninitialized name in ActorGuard|add")
-    synchronized {
+    synchronized :
       /* Put it in the index if required. */
       if rename.inIndex then index += rename.name -> actor
       /* Always add it to the base collection of (running) actors. */
-      actors += actor }
+      actors += actor
 
   /** Removes an actor from the list, and index. Call when the actor is terminated. */
-  private[actors] def remove(actor: Actor): Unit = synchronized {
+  private[actors] def remove(actor: Actor): Unit = synchronized :
     /* Try to remove the name. In some situations this is called when it cannot be a member. This is okay. */
     index -= actor.name
     /* Remove the actor for needle dropping */
     silent -= actor
     /* Remove the actor from the primary collection. */
-    actors -= actor }
+    actors -= actor
 
   /** Call fail on every letter that could not be processed somehow. */
   private[actors] def fail(post: Actor.Post): Unit = posted.foreach(_(post))

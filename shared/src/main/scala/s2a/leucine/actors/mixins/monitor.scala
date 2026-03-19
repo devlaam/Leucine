@@ -114,7 +114,7 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
   /**
    * Increase the correct accumulator field with the time spend in there. With flip, you
    * you can switch between InPlay or InPause mode. */
-  private def threadTimeIncrement(flip: Boolean): Long = timingGuard.synchronized {
+  private def threadTimeIncrement(flip: Boolean): Long = timingGuard.synchronized :
     /* Get the current system time*/
     val time = System.nanoTime
     /* Calculate the time increment since last call and add it to the correct accumulator. */
@@ -122,12 +122,12 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
     /* Determine if we are still in Play mode or not. */
     threadInPlay = threadInPlay ^ flip
     /* Return the time stamp for further use (to limit the number of calls to System.nanoTime). */
-    time }
+    time
 
   /** Method to do the actual probing of the actor if enabled for this actor. */
   private[actors] protected def probe(): Unit = if enabled then
     /* Take the samples in a synchronized way. */
-    val (samples,traces) = synchronized {
+    val (samples,traces) = synchronized :
       /* Do the actual probing work on all mixins and the bare actor trait. */
       val samples = List(probeBare(),probeStash(),probeTiming(),probeFamily(),probeProtect(), probeLogs()).flatten
       /* Get the traces gathered from this actor */
@@ -135,7 +135,7 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
       /* Clean the trace storage */
       this.traces = Nil
       /* Communicate the result outside the synchronized environment */
-      (samples,traces) }
+      (samples,traces)
     /* Store the collected samples in the monitor storage */
     monitor.setSamples(path,samples)
     /* Store the posts in the monitor storage */
@@ -215,11 +215,11 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
    * process load. */
   protected def processLoad(alltime: Boolean): Double =
     /* Synchronized copying of the accumulator fields, to be sure they are correct and this is quick. */
-    val (threadPlayTime,threadPauseTime) = timingGuard.synchronized {
+    val (threadPlayTime,threadPauseTime) = timingGuard.synchronized :
       /* Correct the accumulator fields up to now, but only is the actor has not been stopped yet. */
       if actorStopMoment == 0 then threadTimeIncrement(false).toUnit
        /* Make a thread save copy of the two accumulator fields for further calculations. */
-      (this.threadPlayTime,this.threadPauseTime) }
+      (this.threadPlayTime,this.threadPauseTime)
     /* Calculate the increase since last time or take the whole value in case we want the all time value. */
     val threadPlayInc   = if alltime then threadPlayTime  else threadPlayTime  - threadPlayProbe
     val threadPauseInc  = if alltime then threadPauseTime else threadPauseTime - threadPauseProbe
@@ -249,6 +249,7 @@ object MonitorAid :
 
   /* All trace entries are counted, so you can see none is failing. */
   private var _tracer: Int = 0
+  // TODO: Replace by AtomicInteger
   private def tracer: Int = synchronized { _tracer += 1; _tracer }
 
   enum Action :

@@ -65,11 +65,12 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
      * eventsCancel() and handle cannot interfere. But it is possible that the call() was made before
      * the cancel but the handle afterwards. In that situation cancel() did miss its effect.
      * So we may only proceed if the anchor is still present. */
-    def handle() = synchronized { if anchors.contains(event.anchor) then
-      events.enqueue(event)
-      val _ = anchors.remove(event.anchor)
-      /* The process may be in pause, so we must tickle it. Events are a core process.*/
-      processTrigger(true) }
+    def handle() = synchronized :
+      if anchors.contains(event.anchor) then
+        events.enqueue(event)
+        val _ = anchors.remove(event.anchor)
+        /* The process may be in pause, so we must tickle it. Events are a core process.*/
+        processTrigger(true)
     new Callable[Unit] { def call(): Unit = handle() }
 
   /**
@@ -77,11 +78,11 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * constructs a new event for the events queue and calls trigger in order to start the loop if
    * needed. */
   private def digestible[Sender >: This <: Accept](anchor: Object): Digestible[MyLetter[Sender]] =
-    def handle(letter: MyLetter[Sender]) = synchronized {
+    def handle(letter: MyLetter[Sender]) = synchronized :
       events.enqueue(TimingAid.Event[Accept,This,Sender,MyLetter](anchor,letter))
       val _ = anchors.remove(anchor)
       /* The process may be in pause, so we must tickle it. Events are a core process.*/
-      processTrigger(true) }
+      processTrigger(true)
     new Digestible[MyLetter[Sender]] { def digest(letter: MyLetter[Sender]): Unit = handle(letter) }
 
   /** See if there could be events present.  */
@@ -91,17 +92,17 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   private[actors] override def eventsPresent: Boolean = synchronized { !events.isEmpty }
 
   /** Remove all posted letters. */
-  private[actors] override def eventsCancel(): Unit = synchronized {
+  private[actors] override def eventsCancel(): Unit = synchronized :
     anchors.values.foreach(_.cancel())
     anchors.clear()
-    events.clear() }
+    events.clear()
 
   /** Obtain a single event from the event queue, get the letter and put it in an envelope. */
-  private[actors] override def eventsDequeue(tail: List[Env[?]]): List[Env[?]] = synchronized {
+  private[actors] override def eventsDequeue(tail: List[Env[?]]): List[Env[?]] = synchronized :
     val event = events.dequeue.map(event => pack(event.letter,this))
     if       tail.isEmpty  then event
     else if  event.isEmpty then tail
-    else                        event.head :: tail }
+    else                        event.head :: tail
 
   /**
    * A letter is send to myself after the delay. If there is already a letter posted under this
@@ -109,25 +110,25 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * timer has already expired during execution of this letter. If the actor was asked to finish,
    * the letter will NOT be posted AND the original letter is removed as well, if present.
    * Returns true if the post was accepted, false otherwise. */
-  protected def post[Sender >: This <: Accept](letter: MyLetter[Sender], delay: FiniteDuration, anchor: Object = this): Boolean = synchronized {
+  protected def post[Sender >: This <: Accept](letter: MyLetter[Sender], delay: FiniteDuration, anchor: Object = this): Boolean = synchronized :
     /* First remove a post that may be out there. */
     clearTiming(anchor)
     /* If we are not active, we may not accept this post. Otherwise ... */
     if !activity.active then false else
       /* ... schedule a new timer and add it to the anchors map. */
       anchors.addOne(anchor -> context.schedule(callable(TimingAid.Event[Accept,This,Sender,MyLetter](anchor,letter)),delay))
-      true }
+      true
 
   /**
    * Stop a scheduled letter, after clearTiming() it is guaranteed that no letters will arrive on this
    * anchor, even if the timer has already expired during execution of this letter. */
-  protected def clearTiming(anchor: Object = this): Unit = synchronized {
+  protected def clearTiming(anchor: Object = this): Unit = synchronized :
     /* We are going to cancel the timer and remove the event. This must be synchronized
      * with the execution of the callable when the timer expires. So that we are sure that the timer
      * is or cancelled of has expired and put its event on the events queue. Thus, call
      * cancel on the timer and remove. It can be that the event was already scheduled so that the anchor
      * is already gone. In that case the remove returns none. If so remove the event from the events queue. */
-    anchors.remove(anchor).map(_.cancel()).getOrElse(events.remove(_.anchor == anchor)) }
+    anchors.remove(anchor).map(_.cancel()).getOrElse(events.remove(_.anchor == anchor))
 
   /** Stop all timers and make sure no delayed letters arrive any more */
   protected def clearAllTiming(): Unit = eventsCancel()
@@ -141,14 +142,14 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
    * fulfill should produce None asap. It will be probed somewhat later once more. If the actor
    * was asked to finish, the request will be ignored AND any former timer/expectation on
    * this anchor is cleared as well, if present. Returns if the expectation was accepted. */
-  protected def expect[Sender >: This <: Accept](fulfill: => Option[MyLetter[Sender]], anchor: Object = this): Boolean = synchronized {
+  protected def expect[Sender >: This <: Accept](fulfill: => Option[MyLetter[Sender]], anchor: Object = this): Boolean = synchronized :
     /* First remove prior anchor use. */
     clearTiming(anchor)
     /* If we are not active, we may not accept this expectation. Otherwise ... */
     if !activity.active then false else
     /* ... schedule a new expectation and add it to the anchors map. */
       anchors.addOne(anchor -> context.await(digestible(anchor),fulfill))
-      true }
+      true
 
   /* Called to count this trait */
   private[actors] override def initCount: Int = super.initCount + 1

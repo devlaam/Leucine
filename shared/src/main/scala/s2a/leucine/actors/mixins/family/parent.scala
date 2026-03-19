@@ -97,9 +97,9 @@ transparent private trait FamilyParent extends  ActorDefs :
    * cleaned from the bottom up. Afterwards, the actors are removed from the children's
    * map, by there own doing. So it may take a little while before there references are
    * removed. */
-  private[actors] override def familyStop(finish: Boolean): Unit = synchronized {
+  private[actors] override def familyStop(finish: Boolean): Unit = synchronized :
     val stop = if finish then Actor.Stop.Finish else Actor.Stop.Direct
-    _children.foreach(_.stop(stop)) }
+    _children.foreach(_.stop(stop))
 
   /**
    * Called when this actor still has children (_children guaranteed to be non empty). Defers
@@ -114,12 +114,12 @@ transparent private trait FamilyParent extends  ActorDefs :
      * free worker name is generated. In these situations the actor is not put in the
      * index. But, if an actor under the prename already exists, its index entry overwritten. */
     val rename = Auxiliary.rename(prename,child,worker,context.workerPrefix)
-    synchronized {
+    synchronized :
       /* All children are added. */
       _children += child
       /* If required add it to the index. If the name already exists, overwrite the entry.
        * There is nothing we can realistically do to save the  day. */
-      if rename.inIndex then _index += rename.name -> child }
+      if rename.inIndex then _index += rename.name -> child
     rename.name
 
   /**
@@ -129,7 +129,7 @@ transparent private trait FamilyParent extends  ActorDefs :
    * so the parent may stop, but will be disposed off only after the child has stopped as well.
    * A manual call to reject while active also issues a callback 'abandoned' with the children's
    * name later on.  */
-  private[actors] def reject(child: ChildActor, keep: Boolean): Boolean = synchronized {
+  private[actors] def reject(child: ChildActor, keep: Boolean): Boolean = synchronized :
     /* Test if the child is even present. The user may also call this and misspell the name. */
     if !_children.contains(child) then false else
       /* Remove the child from the list and index */
@@ -146,7 +146,7 @@ transparent private trait FamilyParent extends  ActorDefs :
            * tickle may be needed in case the mailbox is empty so the callbacks are still handled.
            * This is no core process however. */
           if activity.active then { removed = child.name :: removed ; processTrigger(false) }
-      true }
+      true
 
   /** See if there are any children removed that we did not yet report. */
   private[actors] override def familyRemoved: Boolean = synchronized { !removed.isEmpty }
@@ -156,10 +156,10 @@ transparent private trait FamilyParent extends  ActorDefs :
     /* Get the removed names and clear the list. Note that the order of the callbacks is
      * reversed to the order of removal, but since the addition of the names to the removed
      * children list can be any, there is no rationale for reversing this list. */
-    val (report,barren) = synchronized {
+    val (report,barren) = synchronized :
       val result = removed
       removed = Nil
-      (result,_children.isEmpty && (stopper == Actor.Stop.Barren)) }
+      (result,_children.isEmpty && (stopper == Actor.Stop.Barren))
     report.foreach(abandoned)
     if barren then stopWith(true)
 
