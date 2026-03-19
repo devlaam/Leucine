@@ -9,10 +9,6 @@ import utest.*
 
 import s2a.control.{Buffer, Deferred}
 
-val cnt = AtomicInteger(100)
-def printnr(str: String) = println(s"${cnt.getAndIncrement}: $str")
-
-
 /** Special Settings for this test */
 trait TestLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels}
@@ -44,9 +40,7 @@ trait TestLoggerProcessing(level: ActorLogger.Level, buffer: Buffer[String]) :
   def retrieve(): Hold[List[Entry]]
   def spool(@unused completed: Boolean): Unit =
     spoolGuard.synchronized :
-      printnr(s"Starting Spooling ${buffer.show}, completed=$completed")
       ActorLogger.simpleSpool(retrieve(),process)
-      printnr(s"Stopped Spooling ${buffer.show}")
 
   final val passLevel: Level = level
   def process(entry: Entry): Unit = buffer.writeln(entry.message)
@@ -55,12 +49,6 @@ trait TestLoggerProcessing(level: ActorLogger.Level, buffer: Buffer[String]) :
 
   final def sourcePathFilter(level: Level, path: String): Boolean = true
   final def actorPathFilter(level: Level, path: String): Boolean = true
-
-  def markedDone(done: () => Unit): Unit =
-    printnr(s"Starting done ${buffer.show}")
-    done()
-    printnr(s"Stopped done ${buffer.show}")
-
 
 object ActorLoggerTest extends TestSuite :
   import ActorLogger.Level
@@ -85,9 +73,9 @@ object ActorLoggerTest extends TestSuite :
   abstract class BaseWriter[Logger <: BaseLogger](name: String, writeln: String => Unit, done: () => Unit, logger: Logger) extends AcceptActor(Writer,name), LogAid(logger) :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       logger.stop(true)
-      printnr(s"Calling markedDone on $name")
-      // We moeten zorgen dat done echt als laatste komt, na de logger.stop, er is geen guard.
-      context.sequential(logger.markedDone(done))
+      /* The call to done MUST be after after the spooling in logger.stop. The most easy way to
+       * achieve this is to push the task to the same executor as the spool. */
+      context.sequential(done())
     override protected def except(letter: MyLetter[Accept], sender: Sender, cause: Exception, size: Int) = writeln(s"except(${cause.getMessage()},$size)")
     inline def process(letter: Writer.Letter): Unit = letter match
       case  Writer.Fatal   => logger.fatal(s"fatal($name)")
@@ -145,66 +133,33 @@ object ActorLoggerTest extends TestSuite :
 
     test("send a all log messages on fatal/trace level.") :
       val buffer = Buffer[String]("fatal/trace")
-      def call: List[String] =
-        printnr(s"Starting deferred call")
-        val result = buffer.readlns
-        printnr(s"Stopped deferred call result=$result")
-        result
-      def comp(result: Set[String])(list: List[String]): Unit =
-        val set = list.toSet
-        printnr(s"Starting compare ${buffer.show}, result=$result, set=$set")
-        list.toSet ==> result
-        printnr(s"Stopped compare ${buffer.show}")
-      val deferred = Deferred(call)
+      val deferred = Deferred(buffer.readlns)
       val logger = FatalLogger(Level.Trace,buffer)
       val writer = FatalWriter("fatal/trace",buffer.writeln,deferred.done,logger)
       logger.start(true)
       sendAllMessages(writer)
       deferred.await()
-      //deferred.compare(_.tail.toSet ==> Set("FATAL","fatal"))
-      deferred.compare(comp(Set("FATAL(FATAL/TRACE)","fatal(fatal/trace)")))
+      deferred.compare(_.toSet ==> Set("FATAL(FATAL/TRACE)","fatal(fatal/trace)"))
 
     test("send a all log messages on error/trace level.") :
       val buffer = Buffer[String]("error/trace")
-      def call: List[String] =
-        printnr(s"Starting deferred call")
-        val result = buffer.readlns
-        printnr(s"Stopped deferred call result=$result")
-        result
-      def comp(result: Set[String])(list: => List[String]): Unit =
-        val set = list.toSet
-        printnr(s"Starting compare ${buffer.show}, result=$result, set=$set")
-        list.toSet ==> result
-        printnr(s"Stopped compare ${buffer.show}")
-      val deferred = Deferred(call)
+      val deferred = Deferred(buffer.readlns)
       val logger = ErrorLogger(Level.Trace,buffer)
       val writer = ErrorWriter("error/trace",buffer.writeln,deferred.done,logger)
       logger.start(true)
       sendAllMessages(writer)
       deferred.await()
-      //deferred.compare(_.tail.toSet ==> Set("FATAL","error","fatal"))
-      deferred.compare(comp(Set("FATAL(ERROR/TRACE)","error(error/trace)","fatal(error/trace)")))
+      deferred.compare(_.toSet ==> Set("FATAL(ERROR/TRACE)","error(error/trace)","fatal(error/trace)"))
 
     test("send a all log messages on error/fatal level.") :
       val buffer = Buffer[String]("error/fatal")
-      def call: List[String] =
-        printnr(s"Starting deferred call")
-        val result = buffer.readlns
-        printnr(s"Stopped deferred call result=$result")
-        result
-      def comp(result: Set[String])(list: List[String]): Unit =
-        val set = list.toSet
-        printnr(s"Starting compare ${buffer.show}, result=$result, set=$set")
-        set ==> result
-        printnr(s"Stopped compare ${buffer.show}")
-      val deferred = Deferred(call)
+      val deferred = Deferred(buffer.readlns)
       val logger = ErrorLogger(Level.Fatal,buffer)
       val writer = ErrorWriter("error/fatal",buffer.writeln,deferred.done,logger)
       logger.start(true)
       sendAllMessages(writer)
       deferred.await()
-      //deferred.compare(_.tail.toSet ==> Set("FATAL","fatal"))
-      deferred.compare(comp(Set("FATAL(ERROR/FATAL)","fatal(error/fatal)")))
+      deferred.compare(_.toSet ==> Set("FATAL(ERROR/FATAL)","fatal(error/fatal)"))
 
     test("send a all log messages on warn/trace level.") :
       val buffer = Buffer[String]("warn/trace")
@@ -258,12 +213,11 @@ object ActorLoggerTest extends TestSuite :
 
     test("send a all log messages on beta/warn level.") :
       val buffer = Buffer[String]("beta/warn")
-      buffer.writeln("beta/warn")
       val deferred = Deferred(buffer.readlns)
       val logger = BetaLogger(Level.Warn,buffer)
       val writer = BetaWriter("beta/warn",buffer.writeln,deferred.done,logger)
       logger.start(true)
       sendAllMessages(writer)
       deferred.await()
-      deferred.compare(_.tail.toSet ==> Set("FATAL(BETA/WARN)","warn(beta/warn)","error(beta/warn)","fatal(beta/warn)"))
+      deferred.compare(_.toSet ==> Set("FATAL(BETA/WARN)","warn(beta/warn)","error(beta/warn)","fatal(beta/warn)"))
 
