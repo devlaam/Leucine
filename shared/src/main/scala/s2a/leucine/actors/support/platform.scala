@@ -27,7 +27,8 @@ package s2a.leucine.actors
 import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 
-
+//TODO: most of these methods are not user methods. Make them private[actors].
+// or can we just make the whole class private? Does that help??
 /** Used to construct the actor context with platform depended methods. */
 trait PlatformContext:
 
@@ -52,8 +53,15 @@ trait PlatformContext:
    * all have been completed.  */
   def terminated: Boolean
 
-  /** Execute a new task on the current Execution Context in the future */
+  /**
+   * Execute a new task on the current Execution Context in the future. Meant for regular
+   * and intensive workload from actors and actor workers. */
   def execute(runnable: Runnable): Unit
+
+  /**
+   * Execute a new task on a single threaded executor for strict sequential execution.
+   * Meant for light work that requires sequential handling (like loggers). */
+  def enqueue(runnable: Runnable): Unit
 
   /**
    * Plan a new task on the current Execution Context, which is run after some delay.

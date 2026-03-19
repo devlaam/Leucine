@@ -61,6 +61,11 @@ trait ActorContext extends PlatformContext with ExecutionContext :
     val runnable = new Runnable { def run(): Unit = action }
     execute(runnable)
 
+  /** Execute an action later on the ActorContext in a sequential (FIFO) manner.  */
+  private[actors] def sequential(action: => Unit): Unit =
+    val runnable = new Runnable { def run(): Unit = action }
+    enqueue(runnable)
+
   /** Delayed task to be executed on the ActorContext. */
   def delayed(task: => Unit, time: FiniteDuration): Cancellable =
     val callable = new Callable[Unit] { def call() = task }

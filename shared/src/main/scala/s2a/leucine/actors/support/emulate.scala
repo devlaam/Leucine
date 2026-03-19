@@ -188,6 +188,9 @@ abstract class ContextEmulation extends PlatformContext :
   /** Execute a new task on the current Execution Context directly */
   def execute(runnable: Runnable): Unit = if _active then synchronized { tasks = tasks.enqueue(runnable) }
 
+  /** Enqueue a new task on the special single threaded executor. */
+  def enqueue(runnable: Runnable): Unit = execute(runnable)
+
   /** Plan a new task on the current Execution Context, which is run after some delay. */
   def schedule(callable: Callable[Unit], delay: FiniteDuration): Cancellable = synchronized {
     if _active then
