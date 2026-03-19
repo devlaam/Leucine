@@ -54,7 +54,7 @@ object HolderTest extends TestSuite :
 
 object LogHolderTest extends TestSuite :
 
-  import ActorLogger.{Level, Timing}
+  import ActorLogger.{Level, Timing, Channel}
   import LogHolder.{Hold, fixPass}
 
   val tests = Tests :
@@ -66,8 +66,8 @@ object LogHolderTest extends TestSuite :
 
     test("make creates entries and counts incidents") :
       val logHolder = new LogHolder("parent.child",() => Level.Trace,Level.Warn,() => Timing.Millis)
-      val incident  = logHolder.make(Level.Error,Static.Method,"/main/myclass/method1","Troubles")
-      val regular   = logHolder.make(Level.Info,Static.Class,"/main/myclass/method2","All is fine")
+      val incident  = logHolder.make(Level.Error,Channel.Pass,Static.Method,"/main/myclass/method1","Troubles")
+      val regular   = logHolder.make(Level.Info,Channel.Pass,Static.Class,"/main/myclass/method2","All is fine")
       /* See if there is just one incident. */
       logHolder.getIncidents ==> 1
       /* Test the entry contents for construction errors. */
@@ -113,11 +113,11 @@ object LogHolderTest extends TestSuite :
 
     test("get returns hold bounds and clear resets holder") :
       val logHolder = new LogHolder("parent.child",() => Level.Trace,Level.Warn,() => Timing.Recent)
-      val entry1 = logHolder.make(Level.Warn,Static.Object,"classA.objectA","first")
-      val entry2 = logHolder.make(Level.Info,Static.Class,"classA.classB","second")
-      val entry3 = logHolder.make(Level.Trace,Static.Method,"classA.methodC","third")
-      val entry4 = logHolder.make(Level.Error,Static.Class,"classA.classC","forth")
-      val entry5 = logHolder.make(Level.Beta,Static.Object,"classA.objectB","fifth")
+      val entry1 = logHolder.make(Level.Warn,Channel.Pass,Static.Object,"classA.objectA","first")
+      val entry2 = logHolder.make(Level.Info,Channel.Pass,Static.Class,"classA.classB","second")
+      val entry3 = logHolder.make(Level.Trace,Channel.Pass,Static.Method,"classA.methodC","third")
+      val entry4 = logHolder.make(Level.Error,Channel.Pass,Static.Class,"classA.classC","forth")
+      val entry5 = logHolder.make(Level.Beta,Channel.Pass,Static.Object,"classA.objectB","fifth")
       /* Add a few entries*/
       logHolder.add(entry1)
       logHolder.add(entry2)

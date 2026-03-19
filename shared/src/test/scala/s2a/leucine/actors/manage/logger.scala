@@ -9,7 +9,7 @@ import utest.*
 object ActorLoggerSortTest extends TestSuite :
 
   import LogHolder.Hold
-  import ActorLogger.{Level, Entry, Timing}
+  import ActorLogger.{Level, Entry, Timing, Channel}
 
   val tests = Tests :
 
@@ -22,7 +22,7 @@ object ActorLoggerSortTest extends TestSuite :
       val groups = Array.fill[List[ActorLogger.Entry]](groupCount)(Nil)
       /* Method to add an entries on the second level in a random group. nr is just a counter to keep them apart. */
       def fillGroup(nr: Int): Entry =
-        val entry = ActorLogger.Entry("parent.child",Level.Info,Timing.Recent,Static.Class,s"Class$nr",s"msg-$nr")
+        val entry = ActorLogger.Entry("parent.child",Level.Info,Timing.Recent,Channel.Pass,Static.Class,s"Class$nr",s"msg-$nr")
         val group = Random.nextInt(groups.length)
         groups(group) = entry :: groups(group)
         entry
@@ -53,8 +53,8 @@ object ActorLoggerSortTest extends TestSuite :
       sorted.forall(_ == null) ==> true
 
     test("ActorLogger.sort ignores empty inner lists between populated lists") :
-      val first  = ActorLogger.Entry("parent.child",Level.Warn,Timing.Recent,Static.Class,"ClassA","first")
-      val second = ActorLogger.Entry("parent.child",Level.Warn,Timing.Recent,Static.Class,"ClassB","second")
+      val first  = ActorLogger.Entry("parent.child",Level.Warn,Timing.Recent,Channel.Pass,Static.Class,"ClassA","first")
+      val second = ActorLogger.Entry("parent.child",Level.Warn,Timing.Recent,Channel.Pass,Static.Class,"ClassB","second")
       val min = math.min(first.index,second.index)
       val max = math.max(first.index,second.index)
       val hold = Hold[List[ActorLogger.Entry]](min,List(List(second),Nil,List(first),Nil),max)
@@ -65,7 +65,7 @@ object ActorLoggerSortTest extends TestSuite :
 
 object ActorLoggerStichTest extends TestSuite :
 
-  import ActorLogger.{Entry, Level, Timing}
+  import ActorLogger.{Entry, Level, Timing, Channel}
   import LogHolder.{Hold, Store}
 
   /**
@@ -140,7 +140,7 @@ object ActorLoggerStichTest extends TestSuite :
       (1 to 100).foreach : seed =>
         /* Construct a list of log entries, the content is not important. */
         val allEntries = (1 to sampleSize-1).map : nr =>
-          ActorLogger.Entry("parent.child",Level.Info,Timing.Recent,Static.Method,s"Source.$nr",s"message-$nr")
+          ActorLogger.Entry("parent.child",Level.Info,Timing.Recent,Channel.Pass,Static.Method,s"Source.$nr",s"message-$nr")
         /* Randomize the them into a two level holder list. */
         val holds = buildHolds(allEntries,Random(seed))
         /* Check if there is something there */
