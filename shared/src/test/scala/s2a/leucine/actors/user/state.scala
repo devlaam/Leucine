@@ -34,7 +34,7 @@ object StateActorTest extends TestSuite :
   given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     val expect = List("0:0:30","0:2:10","0:18:50","6:29:12")
     test("changing state"){
       val deferred = Deferred(buffer.readlns)

@@ -22,7 +22,7 @@ trait ProtectAidTest(using ac: ActorContext) :
      case class Knock(i: Int) extends Letter
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("overflow mailbox"){
       val deferred = Deferred(buffer.readlns,timeout=100.millis)
       val digest = new Digest(buffer.writeln,deferred.done)

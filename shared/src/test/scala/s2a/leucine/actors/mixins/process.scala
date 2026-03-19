@@ -39,7 +39,7 @@ trait ProcessAidRestrictTest(using ac: ActorContext) :
   given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, mix by pausing."){
       val expect = List("0","2","4","6","7","8","*9")
       val deferred = Deferred(buffer.readlns)
@@ -84,7 +84,7 @@ trait ProcessAidSelectTest(using ac: ActorContext) :
   given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, mix by pausing."){
       val expect = List("0","2","4","6","7","8","*9")
       val deferred = Deferred(buffer.readlns)
@@ -128,7 +128,7 @@ trait ProcessAidAcceptTest(using ac: ActorContext) :
   given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, mix by pausing."){
       val expect = List("0","2","4","6","7","8","*9")
       val deferred = Deferred(buffer.readlns)
@@ -173,7 +173,7 @@ trait ProcessAidWideTest(using ac: ActorContext) :
   given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, mix by pausing."){
       val expect = List("0","2","4","6","7","8","*9")
       val deferred = Deferred(buffer.readlns)

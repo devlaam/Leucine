@@ -30,7 +30,7 @@ trait StashAidTest(using ac: ActorContext) :
   given Actor.Anonymous = Actor.Anonymous
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, mix by pausing."){
       val expect = List(List(24,23,22,21,20,18,16,15,14,13,12,10,8,7,6,5,4,2,19,17,11,9,3,1).toString,"stop:true")
       val deferred = Deferred(buffer.readlns)

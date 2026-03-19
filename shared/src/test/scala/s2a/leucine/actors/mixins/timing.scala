@@ -62,7 +62,7 @@ trait TimingAidTest(using ac: ActorContext) :
 
   val tests = Tests {
     import Auxiliary.toUnit
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("clock with multiple timers for dump()"){
       val deferred = Deferred(buffer.readlns)
       val clock = new Clock(true,buffer.writeln,deferred.done)

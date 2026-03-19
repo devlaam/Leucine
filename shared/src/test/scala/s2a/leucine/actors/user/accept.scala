@@ -27,7 +27,7 @@ object AcceptActorTest extends TestSuite :
     case object Except extends Letter
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, stop at the end"){
       val deferred = Deferred(buffer.readlns)
       val writer = new Writer("A",buffer.writeln,deferred.done)

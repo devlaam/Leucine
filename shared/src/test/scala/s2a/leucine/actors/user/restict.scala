@@ -79,7 +79,7 @@ object RestrictActorTest extends TestSuite :
     val expect = Set("*JMSJMS6", "*MJSMJS6", "*JSMJSM6", "*MSJMSJ6", "*SMJSMJ6", "*SJMSJM6")
     given Actor.Anonymous = Actor.Anonymous
     test("sending looped letters"){
-      val buffer = Buffer[String]
+      val buffer = Buffer[String]()
       val deferred = Deferred(buffer.readlns,6)
       val joni = Joni(buffer.writeln,deferred.done)
       val mary = Mary(buffer.writeln,deferred.done)

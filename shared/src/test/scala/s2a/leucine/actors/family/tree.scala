@@ -76,7 +76,7 @@ object TestMethods :
 object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
   import TestMethods.*
   given Actor.Anonymous = Actor.Anonymous
-  val buffer = Buffer[String]
+  val buffer = Buffer[String]()
   val width = 3
   val level = 4
   val deferred = Deferred(buffer.readlns)
@@ -105,7 +105,7 @@ object TreeActorTestFinish extends TestSuite, ActorTreeSupply :
 object TreeActorTestFree extends TestSuite, ActorTreeSupply :
   import TestMethods.*
   given Actor.Anonymous = Actor.Anonymous
-  val buffer = Buffer[String]
+  val buffer = Buffer[String]()
   val width = 3
   val level = 4
   val deferred = Deferred(buffer.readlns)
@@ -134,7 +134,7 @@ object TreeActorChildStops extends TestSuite, ActorTreeSupply :
 
   import TestMethods.*
   given Actor.Anonymous = Actor.Anonymous
-  val buffer = Buffer[String]
+  val buffer = Buffer[String]()
   val width = 5
   val level = 1 // fixed value
   val deferred = Deferred(buffer.readlns)

@@ -26,7 +26,7 @@ trait SiblingCommon :
                    "s1-MF-m2","d3-MF-m2","d1-MF-m2","d2-MF-m2","d1-MF-m3","d3-MF-m3","s3-MF-m2","s2-MF-m2","d2-MF-m3","s2-MF-m3","s3-MF-m3","s1-MF-m3")
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     val deferred = Deferred(buffer.readlns)
     writeln = buffer.writeln
     done = Some(deferred.done)

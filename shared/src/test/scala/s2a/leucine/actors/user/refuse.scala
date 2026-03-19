@@ -39,7 +39,7 @@ object RefuseActorTest extends TestSuite :
         stop(Actor.Stop.Finish)
 
   val tests = Tests {
-    val buffer = Buffer[String]
+    val buffer = Buffer[String]()
     test("sending letters, stop at the end"){
       val deferred = Deferred(buffer.readlns)
       val writer = Writer("A",buffer.writeln,deferred.done)
