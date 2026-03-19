@@ -50,6 +50,13 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
    * level objects are lazy, so we have the correct values here, this works) */
   private object LogGlobal extends LogGlobal(LogHolder("",() => passLevel,incidentLevel, () => timing))
 
+  /* Contains the logHolder for the actors with local logHolders. (non top level objects are lazy,
+   * so we have the correct values here, this works) */
+  private object LogLocal extends LogLocal()
+
+  /** The local logger is required in the actor logging for manipulation. */
+  private[actors] def local: LogLocal = LogLocal
+
   /**
    * Make a new log entry of the current thread, if that thread has an active local container. If not,
    * the entry is created by the global container. Returns the constructed entry for further processing.
@@ -107,7 +114,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
      * on the context. Even when called manually this is the right thing to do, since we do not know
      * the origin of this call. There is however no need if we are direct spooling since then there
      * will be no entries available. */
-    if !directSpool then context.deferred(spool(false))
+    if !directSpool then context.sequential(spool(false))
 
   /**
    * Start the logger. You must call this at least once, the logger does not start spooling automatically.
@@ -143,7 +150,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
     ActorGuard.syslog(Level.Info, if goodbye then "Logger stopped." else "Logger paused.")
     /* If we are not directly spooling we should spool any remaining entries. With direct spooling there
      * are no remaining entries to spool. */
-    if !directSpool then spool(goodbye)
+    if !directSpool then context.sequential(spool(goodbye))
     /* Stop the spooling timer. Try to prohibit the last queue event if we are only pausing. */
     timer.stop(!goodbye)
     /* Enable buffering if we are not at the last take. */
@@ -542,16 +549,17 @@ object ActorLogger  :
    * due to the asynchronicity of the logging mechanism. This method is periodically called by
    * the Actor Guard to transfer the log items to the user defined logging system. You may override
    * this method if you want to handle the entries in bulk yourself. Completed will be true on
-   * the very last call to spool. The application will terminate soon after. You may want to use
-   * this information when building your own sorted logger. */
+   * the very last call to spool containing entries. The application will terminate soon after.
+   * You may want to use this information when building your own sorted logger. */
   def sortedSpool(hold: Hold[List[Entry]], process: Entry => Unit): Unit = sort(hold).withFilter(_ != null).foreach(process)
 
   /**
    * Spool method where we stitch new log entries before processing. Stitching means that if the
    * current spool session has missing entries, that part will be temporarily stored for reprocessing
-   * in the next run of spool. That way we obtain strict ordering with respect of the log index, at
-   * the cost of a slight delay of processing. When complete is true all remaining logs will be spooled.
-   * We will limit the resulting array to maxArraySize. If it gets bigger, log entries are spooled anyway. */
+   * in the next run of spool. That way we obtain strict ordering with respect of the log index, at the
+   * cost of a slight delay of processing. When complete is true all remaining logs will be spooled. We
+   * will limit the temporary storage array to maxArraySize. If it gets bigger, log entries are spooled
+   * anyway (and the strict order may be broken). */
   def stichedSpool(hold: Hold[List[Entry]], store: Store, maxArraySize: Int, completed: Boolean, process: Entry => Unit): Store =
 
     /** Way to make the contents of an array visible. For development of this method.*/

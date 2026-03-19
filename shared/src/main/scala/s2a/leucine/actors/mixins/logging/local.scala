@@ -29,7 +29,7 @@ import java.lang.ThreadLocal
 /**
  * This object gives access to the thread local logHolders and accumulates its entries
  * and boundary values. To be used next to LogGlobal. */
-private object LogLocal :
+private class LogLocal() :
   import ActorLogger.{Level, Channel, Entry}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter, minStart, maxStart}

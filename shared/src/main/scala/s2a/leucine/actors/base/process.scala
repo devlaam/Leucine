@@ -104,6 +104,8 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* Loop through all envelopes. We try to process as many as we can within this time slice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
+      // TODO: if processEnvelope throws an error, there will be a lot of unfinished work.
+      // Effectively, the system will be unusable. Can.should we try to recover with try .. finally?
       processEnvelope(envs.head)
       /* When done, see if we must augment the list with more important envelopes. If there are no
        * events possible then there is no need to synchronize. The stash is always filled within the

@@ -72,12 +72,12 @@ trait LogAid(logger: ActorLogger) extends ActorInit, ActorDefs :
   /**
    * Method to be called just before are the actor is scheduled on a new thread for execution, but
    * before its message queue is processed. It installs a new logHolder that collects all log entries. */
-  private[actors] override def logInit(): Unit = LogLocal.fill(holder)
+  private[actors] override def logInit(): Unit = logger.local.fill(holder)
 
   /**
    * Method to be called directly after the message queue is emptied. All acquired log entries will be
    * moved to a central location and the logHolder is emptied and removed from the thread. */
-  private[actors] override def logExit(): Unit = LogLocal.empty()
+  private[actors] override def logExit(): Unit = logger.local.empty()
 
   /** Take a snapshot of the internals of this actor. */
   private[actors] override def probeLogs(): Option[MonitorAid.Logs] = Some(MonitorAid.Logs(holder.getIncidents))

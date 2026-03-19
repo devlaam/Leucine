@@ -151,7 +151,8 @@ object ActorGuard :
    * as soon as you call watch, and stops them after all the actors have finished. In the former
    * case start will be called with hello=true and in the latter case with goodbye=true. If you
    * register a logger, it will be set as active logger for system logs. To actually obtain system
-   * logs, they must be switched on in the configuration as well. */
+   * logs, they must be switched on in the configuration as well. You may register multiple loggers
+   * but only the last one will be used as system logger. Usually, an application has one logger only. */
   def register(service: Service): Unit =
     /* Add the service to the others. */
     services += service

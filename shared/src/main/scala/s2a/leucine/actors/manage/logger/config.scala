@@ -104,21 +104,22 @@ trait LogHandlerConfig :
   def showChannels: ShowChannels[?]
 
   /**
-   * This method is called for every log entry when the entries are spooled. Note that the implementation
-   * must be re-entrant and thread save. If you correctly implemented spool() you may expect strict
-   * sequential access to process, but each access can originate from an other thread. */
+   * This method is called for every log entry when the entries are spooled. It is best if the implementation
+   * is re-entrant and thread save. However, if you correctly implemented spool() you may expect strict
+   * sequential access to process, from one special thread. */
   def process(entry: Entry): Unit
 
   /**
    * Implement a handler for the event a fatal situation occurs in your application. Note that the implementation
-   * must be re-entrant and thread save. This method is not guaranteed to be strictly sequential. */
+   * must be re-entrant and thread save. This method is not guaranteed to be strictly sequential, and can originate
+   * from any thread. */
   def appFatal(message: String): Unit
 
   /**
    * Implement a handler for the event a fatal situation occurs in Leucine. This should not happen of course,
    * but I have replaced the former asserts with this call, to give the application the opportunity for grant the
    * last wishes. Note that the implementation must be re-entrant and thread save. This method is not guaranteed
-   * to be strictly sequential (although one occurrence is bad enough) */
+   * to be strictly sequential, and can originate from any thread. (although one occurrence is bad enough) */
   def sysFatal(message: String): Unit
 
 /**
@@ -132,10 +133,12 @@ trait LogProcessConfig :
    * This must be implemented with a method that spools the log entries to the process method.
    * The log entries can be obtained with a call to retrieve(). See the different examples for
    * possible implementations. Spool is called by Leucine on a regular basis to offload the log
-   * entries from the actor framework to you logging framework. The parameter completed will be
-   * true upon the very last call. Note that your implementation must be protected against
+   * entries from the actor framework to your logging framework. The parameter completed will be
+   * true upon the very last call containing items, as long as you do not log new items after
+   * the call Logger.stop(true). It is best if your implementation is protected against
    * concurrent entry. This is because each call with uses retrieve which provides each log entry
-   * only once. Concurrent entry will not fail, but most likely mixes up the order in weird ways.*/
+   * only once. Concurrent entry will not fail, but most likely mixes up the order in weird ways.
+   * All calls to spool originate from the same thread. */
   def spool(completed: Boolean): Unit
 
   /**
