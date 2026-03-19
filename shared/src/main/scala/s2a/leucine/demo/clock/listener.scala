@@ -50,7 +50,7 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger)
   private val expectationAnchor = new Object
 
   /* Make sure this server ends after 60 seconds. It is just for testing. */
-  val _ = post(Listener.Terminated,runtime,terminationAnchor)
+  post(Listener.Terminated,runtime,terminationAnchor).toUnit
 
   /* First create the generalized serverSocket. This should not fail. */
   private val serverSocket: ServerSocket = new ServerSocketImplementation

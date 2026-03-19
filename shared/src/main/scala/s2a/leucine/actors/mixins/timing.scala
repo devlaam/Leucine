@@ -42,6 +42,8 @@ private trait TimingDefs extends BareDefs :
  * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
 trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   this: BareActor =>
+  import Auxiliary.toUnit
+
   /** Guarantee that Accept is at least able to send a message to itself. */
   type Accept >: this.type <: Actor
   /** All methods here only take messages to itself, so the self type is in fact a lower bound. */
@@ -68,7 +70,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
     def handle() = synchronized :
       if anchors.contains(event.anchor) then
         events.enqueue(event)
-        val _ = anchors.remove(event.anchor)
+        anchors.remove(event.anchor).toUnit
         /* The process may be in pause, so we must tickle it. Events are a core process.*/
         processTrigger(true)
     new Callable[Unit] { def call(): Unit = handle() }
@@ -80,7 +82,7 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   private def digestible[Sender >: This <: Accept](anchor: Object): Digestible[MyLetter[Sender]] =
     def handle(letter: MyLetter[Sender]) = synchronized :
       events.enqueue(TimingAid.Event[Accept,This,Sender,MyLetter](anchor,letter))
-      val _ = anchors.remove(anchor)
+      anchors.remove(anchor).toUnit
       /* The process may be in pause, so we must tickle it. Events are a core process.*/
       processTrigger(true)
     new Digestible[MyLetter[Sender]] { def digest(letter: MyLetter[Sender]): Unit = handle(letter) }

@@ -37,6 +37,8 @@ package s2a.leucine.actors
  * Supply !# as name to define this a worker actor. There is no need for the (companion) object which contains the necessary
  * type aliases, for there are none. */
 abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefine: Define = RefuseStateless, prename: String = "")(using val context: ActorContext) extends BareActor, ActorShare(prename):
+  import Auxiliary.toUnit
+
   /* We only want to be able to send messages to myself. */
   type Accept = this.type
   type Common = this.type
@@ -56,7 +58,7 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
     /* Let the letter be processed */
     val processed = process(loops)
     /* Post a work message for the next process run. */
-    val _ = sendEnvelope(work)
+    sendEnvelope(work).toUnit
     /* Increase the loop counter */
     loops = loops + 1
     /* The state remains unchanged, if we work stateless, otherwise compute the new state.
@@ -96,7 +98,7 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
   protected def except(cause: Exception, size: Int): Unit = ()
 
   /* Start the work in this actor. */
-  val _ = sendEnvelope(work)
+  sendEnvelope(work).toUnit
 
 
 

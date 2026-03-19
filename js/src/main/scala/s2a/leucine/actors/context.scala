@@ -119,6 +119,7 @@ abstract class ContextImplementation extends PlatformContext :
 
 
 object ContextImplementation :
+  import Auxiliary.toUnit
 
   /** Returns the platform that is currently running, here Java Script. */
   def platform = PlatformContext.Platform.JS
@@ -165,6 +166,6 @@ object ContextImplementation :
 
   /** Real sleeps are not possible on JS, so we cheat with a timer. */
   private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
-    val _ = timers.setTimeout(delay)(loop)
+    timers.setTimeout(delay)(loop).toUnit
     false
 

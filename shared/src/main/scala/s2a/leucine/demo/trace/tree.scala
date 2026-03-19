@@ -62,7 +62,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
     this ! Tree.Create(2,3)
     this ! Tree.Forward
     /* Show the internals of the actor after some time */
-    val _ = post(Tree.Report,6.seconds)
+    post(Tree.Report,6.seconds).toUnit
     /* Stop this actor tree when nothing is happening any more. */
     stop(Actor.Stop.Silent)
 

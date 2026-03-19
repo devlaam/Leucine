@@ -45,7 +45,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
   socket.writeln(s"Provider $path Connected.")
 
   /* Send a message after two seconds. */
-  val _ = post(Provider.Send,2.seconds)
+  post(Provider.Send,2.seconds).toUnit
 
   /* Handle the messages, which is only the posted letter in this case. */
   final protected def receive(letter: Letter, sender: Sender): Unit =
