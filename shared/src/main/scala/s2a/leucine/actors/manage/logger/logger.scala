@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
 import scala.compiletime.constValue
 import scala.annotation.implicitNotFound
@@ -268,21 +269,18 @@ object ActorLogger  :
    * So we allow for Null here and make sure these never reach the end user of Leucine. */
   private type NEntry = Entry | Null
 
-  /* Fixed conversion factor to go from milliseconds to nanoseconds. */
-  private inline val millisToNanos = 1000000
-
   /* If we make use of logging we want to know the moment the application started. This
    * does not need to be at the nanosecond exact, but it must be some stable point around the start.
    * The start is obtained in both nanosecond and millisecond accuracy, so we can combine both timers
    * into one.  */
   private val startNanos: Long  = System.nanoTime
-  private val startMillis: Long = System.currentTimeMillis() * millisToNanos
+  private val startMillis: Long = System.currentTimeMillis() * DateTime.millisToNanos
 
   /** Keeps a timestamp of the last allTerminated poll in milliseconds */
   private val lastRecent: AtomicLong = AtomicLong(startMillis)
 
   /** Thread update the lastRecent timer with the current value */
-  private[actors] def updateRecent(): Unit = lastRecent.set(System.currentTimeMillis() * millisToNanos)
+  private[actors] def updateRecent(): Unit = lastRecent.set(System.currentTimeMillis() * DateTime.millisToNanos)
 
   /**
    * Get a timestamp for the current time in nano seconds from the application start.
@@ -291,7 +289,7 @@ object ActorLogger  :
    * accuracy. From there a reconstruction is made with the passed time in nano seconds. */
   private[actors] def getTimeStamp(timing: Timing): Long = timing match
     case Timing.Recent  => lastRecent.get
-    case Timing.Millis  => System.currentTimeMillis() * millisToNanos
+    case Timing.Millis  => System.currentTimeMillis() * DateTime.millisToNanos
     case Timing.Nanos   => startMillis + (System.nanoTime - startNanos)
 
   /* Unfortunately it is not possible to properly inline Scala enums and eliminate code with that.
@@ -326,11 +324,19 @@ object ActorLogger  :
   sealed trait Level extends EnumOrder[Level] :
     /* Each level is given a fixed ordinal number. The highest level (Disable) has the lowest number (0). */
     inline def ordinal: Int
+    /* Names & Priorities used in other logging frameworks */
+    def juName: String
+    def l4jName: String
+    def lbName: String
+    def juPrio: Int
+    def l4jPrio: Int
+    def lbPrio: Int
+
     /* The use of each level is counted for informational purposes. */
     private val counter: AtomicLong = AtomicLong(0)
     /* Increment the counter by one in a thread safe manner */
     private[ActorLogger] def created(): Long = counter.incrementAndGet()
-    /* Obtain the current counter value and set it to zero afterwards in a thread safe manner */
+    /* Obtain the current counter value */
     private[ActorLogger] def creations: Long = counter.get
 
 
@@ -354,6 +360,13 @@ object ActorLogger  :
     case object Disable extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Disable]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "OFF"
+      def l4jName: String = "OFF"
+      def lbName: String  = "OFF"
+      def juPrio: Int  = 1100
+      def l4jPrio: Int = 0
+      def lbPrio: Int  = Integer.MAX_VALUE
 
     /**
      * Meaning: indicates that further processing is unreliable and shutdown is imminent.
@@ -363,6 +376,13 @@ object ActorLogger  :
     case object Fatal extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Fatal]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "SEVERE"
+      def l4jName: String = "FATAL"
+      def lbName: String  = "ERROR"
+      def juPrio: Int  = 1000
+      def l4jPrio: Int = 100
+      def lbPrio: Int  = 40000
 
     /**
      * Meaning: severe disturbances in process handling, but system can continue with other tasks.
@@ -372,6 +392,13 @@ object ActorLogger  :
     case object Error extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Error]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "SEVERE"
+      def l4jName: String = "ERROR"
+      def lbName: String  = "ERROR"
+      def juPrio: Int  = 1000
+      def l4jPrio: Int = 200
+      def lbPrio: Int  = 40000
 
     /**
      * Meaning: indication that something is out of the ordinary, but processing can continue.
@@ -381,6 +408,13 @@ object ActorLogger  :
     case object Warn extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Warn]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "WARNING"
+      def l4jName: String = "WARN"
+      def lbName: String  = "WARN"
+      def juPrio: Int  = 900
+      def l4jPrio: Int = 300
+      def lbPrio: Int  = 30000
 
     /**
      * Meaning: to keep the user informed about the systems whereabouts
@@ -390,6 +424,13 @@ object ActorLogger  :
     case object Info extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Info]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "INFO"
+      def l4jName: String = "INFO"
+      def lbName: String  = "INFO"
+      def juPrio: Int  = 800
+      def l4jPrio: Int = 400
+      def lbPrio: Int  = 20000
 
     /**
      * Meaning: to keep the developer informed about the systems whereabouts
@@ -399,6 +440,13 @@ object ActorLogger  :
     case object Beta extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Beta]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "FINE"
+      def l4jName: String = "BETA"
+      def lbName: String  = "DEBUG"
+      def juPrio: Int  = 500
+      def l4jPrio: Int = 450
+      def lbPrio: Int  = 10000
 
     /**
      * Meaning: to communicate internals of the system for diagnostic purposes.
@@ -408,6 +456,13 @@ object ActorLogger  :
     case object Debug extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Debug]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "FINER"
+      def l4jName: String = "DEBUG"
+      def lbName: String  = "DEBUG"
+      def juPrio: Int  = 400
+      def l4jPrio: Int = 500
+      def lbPrio: Int  = 10000
 
     /**
      * Meaning: to follow the flow of the code for diagnostic purposes.
@@ -417,6 +472,13 @@ object ActorLogger  :
     case object Trace extends Level :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
+      /* Names & Priorities used in other logging frameworks */
+      def juName: String  = "FINEST"
+      def l4jName: String = "TRACE"
+      def lbName: String  = "TRACE"
+      def juPrio: Int  = 300
+      def l4jPrio: Int = 600
+      def lbPrio: Int  = 5000
 
     /** This are all operational levels in one list. From high to low. */
     val allLevels = List(Fatal,Error,Warn,Info,Beta,Debug,Trace)
@@ -475,6 +537,23 @@ object ActorLogger  :
     val sourceKind:  Kind,
     val sourcePath:  String,
     val message:     String) :
+
+    /* Return the timestamp as an java Instant. */
+    def getInstant: Instant = DateTime.toInstant(timestamp)
+
+    /* Return the auxiliary fields for external loggers. */
+    def getFields: Map[String,String] = Map(
+      "index"      -> index.toString,
+      "level"      -> level.toString,
+      "counter"    -> counter.toString,
+      "timing"     -> timing.toString,
+      "timestamp"  -> timestamp.toString,
+      "channel"    -> channel.toString,
+      "thread"     -> threadName,
+      "actor"      -> actorName,
+      "kind"       -> sourceKind.toString,
+      "path"       -> sourcePath,
+      "message"    -> message)
 
     /** Simple formatter to show the contents of a log entry. */
     override def toString: String =
