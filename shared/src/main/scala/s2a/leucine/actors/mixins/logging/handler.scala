@@ -47,8 +47,7 @@ private trait LogHandler extends LogHandlerConfig:
   inline private[actors] def feed(inline level: Level, inline channel: Channel, inline kind: Kind, inline path: String, inline message: String): Unit =
     /* See if the current fixed level surpassed the level of this entry, if not, we are done. If this
      * method is called from the fixed level methods or with a compile time constant in in the variable
-     * log methods code will be eliminated when not reachable. We do not use 'inline if' here because
-     * we want to allow for variable level use as well. Inline should work automagically if possible */
+     * log methods code will be eliminated when not reachable. */
     inline if level.ordinal <= fixPassLevel.ordinal then
       /* If we are dealing with a Fatal event, extra steps may be needed, for the system may crash before
        * the log queue is flushed. First report that this happened. */

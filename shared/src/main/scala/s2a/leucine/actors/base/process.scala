@@ -79,10 +79,11 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
       /* stashEnqueue checks if there was a stash request for this message. If so it is enqueued. */
       stashEnqueue(envelope)
     catch
-      /* Normal exceptions may be handled by the user or ignored. They are counted as well. */
+      /* Normal exceptions may be handled by the user or ignored. They are counted as well. Errors and
+       * other throwables are ignored. The user must deal with them before we arrive here if needed.
+       * See for more information:
+       * https://contributors.scala-lang.org/t/nonfatal-and-controlthrowable-changed-in-stdlib/6049/5*/
       case exception: Exception => excepts += 1; state = deliverException(envelope,state,exception,excepts)
-      /* Runtime (and other) errors bubble up. */
-      case error: Error         => throw error
     /* Make sure the clock is stopped, and trace when requested */
     finally monitorExit(envelope)
 

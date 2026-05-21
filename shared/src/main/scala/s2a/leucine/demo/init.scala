@@ -105,7 +105,7 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   def setLevel(level: Level): Unit = this.level = level
 
   /** This is called to obtain the current logging level. */
-  final override def passLevel: Level = level
+  final def passLevel: Level = level
 
   /* In this demo we want all the logging to appear at the end. So we buffer it until the
    * application is about to close. Then it is displayed. This prohibits mixing the output
@@ -113,12 +113,13 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   private val logEntries: Buffer[Entry] = Buffer.empty
 
   /* For each call to the logger, the entry is stored. */
-  override def process(entry: Entry): Unit = logEntries += entry
+  final override def process(entry: Entry): Unit = logEntries += entry
 
   /* Called to display all the entries, preferably at the end. Since we do this at the end we have the
    * possibility to filter out the unwanted entries that were cause by the runtime setting of the level.
    * usually this is not needed of course, but this is an illustration of post processing entries. */
   def printEntries(): Unit = logEntries.filter(_.level <= level).foreach(println)
+
 
 
 object Init :
