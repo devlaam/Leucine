@@ -37,7 +37,9 @@ import scala.concurrent.duration.DurationInt
 
 /**
  * Default logger settings you may use for your application in production.
- * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
+ * It contains reasonable defaults for the relevant obligatory definitions of the settings.
+ * You may override the filters and runtime values timing and passLevel to the values you need.
+ * If other values need to be changed, define all of them in your Logger object. */
 trait ProductionLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
@@ -54,14 +56,14 @@ trait ProductionLoggerSettings :
   /** Setting not relevant when no trace information is passed. */
   final val fullParameters = false
 
-  /** Set showConfidential to true to see usernames and passwords in the logs. */
-  final val showConfidential = true
+  /** Set showConfidential to false to hide usernames and passwords in the logs. */
+  final val showConfidential = false
 
-  /** Do not filter of the source path, so return true. */
-  final def sourcePathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter on the source path, let logs all pass, so return true. */
+  def sourcePathFilter(level: Level, path: String): Boolean = true
 
-  /** Do not filter of the actor path, so return true. */
-  final def actorPathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter on the actor path, let logs all pass, so return true. */
+  def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -73,12 +75,12 @@ trait ProductionLoggerSettings :
   final val spoolInterval = 1.minute
 
   /** During production second level accuracy suffices. This is more efficient. */
-  final val timing  = Timing.Recent
+  def timing: Timing  = Timing.Recent
 
   /** Since FixPassLevel is already Level.Info, lower makes no sense here. */
-  final val passLevel = Level.Info
+  def passLevel: Level = Level.Info
 
-  /** Warnings and above still count as incident. */
+  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn
 
   /** Disable any local settings in actors for more efficiency. */
@@ -88,7 +90,9 @@ trait ProductionLoggerSettings :
 
 /**
  * Default logger settings you may use for your application during beta testing production.
- * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
+ * It contains reasonable defaults for the relevant obligatory definitions of the settings.
+ * You may override the filters and runtime values timing and passLevel to the values you need.
+ * If other values need to be changed, define all of them in your Logger object. */
 trait BetaTestLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
@@ -105,14 +109,14 @@ trait BetaTestLoggerSettings :
   /** Setting not relevant when no trace information is passed. */
   final val fullParameters = false
 
-  /** Set showConfidential to true to see usernames and passwords in the logs. */
-  final val showConfidential = true
+  /** Set showConfidential to false to hide usernames and passwords in the logs. */
+  final val showConfidential = false
 
-  /** Do not filter of the source path, so return true. */
-  final def sourcePathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter of the source path, let logs all pass, so return true. */
+  def sourcePathFilter(level: Level, path: String): Boolean = true
 
-  /** Do not filter of the actor path, so return true. */
-  final def actorPathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter of the actor path, let logs all pass, so return true. */
+  def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -124,21 +128,23 @@ trait BetaTestLoggerSettings :
   final val spoolInterval = 1.minute
 
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
-  final val timing = Timing.Millis
+  def timing: Timing = Timing.Millis
 
   /** Since fixPassLevel is already Level.Beta, lower makes no sense here. */
-  final val passLevel = Level.Beta
+  def passLevel: Level = Level.Beta
 
-  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
+  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn
 
-  /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
+  /** Enable local settings to allow for changes in logging/incident level and timing within the actors. */
   final val localSettings = true
 
 
 /**
  * Default logger settings you may use for your application during development production.
- * It contains reasonable defaults for the relevant obligatory definitions of the settings. */
+ * It contains reasonable defaults for the relevant obligatory definitions of the settings.
+ * You may override the filters and runtime values timing and passLevel to the values you need.
+ * If other values need to be changed, define all of them in your Logger object. */
 trait DevelopmentLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
@@ -158,11 +164,11 @@ trait DevelopmentLoggerSettings :
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Do not filter of the source path, so return true. */
-  final def sourcePathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter of the source path, let logs all pass, so return true. */
+  def sourcePathFilter(level: Level, path: String): Boolean = true
 
-  /** Do not filter of the source path, so return true. */
-  final def actorPathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter of the source path, let logs all pass, so return true. */
+  def actorPathFilter(level: Level, path: String): Boolean = true
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -174,14 +180,14 @@ trait DevelopmentLoggerSettings :
   final val spoolInterval = 5.seconds
 
   /** Set timing to Nanos to have accurate log entries. */
-  final val timing = Timing.Nanos
+  def timing: Timing = Timing.Nanos
 
-  /** Set default logging level to trace to see all logs during development. */
-  final val passLevel = Level.Trace
+  /** Set default logging level to debug to see all logs during development. */
+  def passLevel: Level = Level.Debug
 
-  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
+  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn
 
-  /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
+  /** Enable local settings to allow for changes in logging/incident level and timing within the actors. */
   final val localSettings = true
 

@@ -99,12 +99,13 @@ trait LogHandlerConfig :
    *   final val showChannels = ShowChannels((Pass))
    * - To block all channels (except entries in the Pass channel):
    *   final val showChannels = ShowChannels(())
-   * See ShowChannels for more documentation. Implementation is obligatory, the default is:
+   * See ShowChannels for more documentation. Implementation is obligatory, to start use the default:
    * final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl)) */
   def showChannels: ShowChannels[?]
 
   /**
-   * This method is called for every log entry when the entries are spooled. It is best if the implementation
+   * This method is called for every log entry when the entries are spooled. It is the point where the logs
+   * are transferred form the actor framework to you logging framework. It is best if the implementation
    * is re-entrant and thread save. However, if you correctly implemented spool() you may expect strict
    * sequential access to process, from one special thread. */
   def process(entry: Entry): Unit
@@ -165,8 +166,8 @@ trait LogProcessConfig :
 
   /**
    * Define the default runtime active logging level (see ActorLogger.Level for documentation).
-   * Although you may change the result at runtime, there are not guarantees as to when the change
-   * will become effective. Usually this for making runtime changes at the very start of the application. */
+   * Although you may change the result at runtime, there are not guarantees as to when the change will
+   * become effective. Usually this is for making runtime changes at the very start of the application. */
   def passLevel: Level
 
   /**
