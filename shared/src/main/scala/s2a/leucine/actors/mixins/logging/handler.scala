@@ -36,7 +36,16 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make a new log entry, returns the constructed entry for further processing if succeeded.
    * With feed true, the entry will be directly stored otherwise only constructed. */
-  protected def entry(feed: Boolean, level: Level, channel: Channel, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry]
+  protected def entry(
+      feed: Boolean,
+      level: Level,
+      channel: Channel,
+      actorFilter: ActorFilter,
+      sourceKind: Kind,
+      sourcePath: String,
+      message: => String,
+      thrown: Option[Throwable]
+    ): Option[Entry]
 
   /** Test if we have enough new logs for spooling */
   private[actors] def trySpool(entry: Entry): Unit
@@ -44,19 +53,28 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * General method for feeding the logger with log statements. Due to inlining it is completely
    * stripped down to the statements that are relevant at the logging level of execution. */
-  inline private[actors] def feed(inline level: Level, inline channel: Channel, inline kind: Kind, inline path: String, inline message: String): Unit =
+  inline private[actors] def feed(
+      inline level: Level,
+      inline channel: Channel,
+      inline kind: Kind,
+      inline path: String,
+      inline message: String,
+      inline thrown: Option[Throwable]
+    ): Unit =
     /* See if the current fixed level surpassed the level of this entry, if not, we are done. If this
      * method is called from the fixed level methods or with a compile time constant in in the variable
      * log methods code will be eliminated when not reachable. */
     inline if level.ordinal <= fixPassLevel.ordinal then
       /* If we are dealing with a Fatal event, extra steps may be needed, for the system may crash before
-       * the log queue is flushed. First report that this happened. */
+       * the log queue is flushed. First report that this happened. Note that, if we have a Fatal situation
+       * message is called twice (here, and in one of the entry calls below). It is assumed that in such a
+       * case making the message does not involve length calculations. */
       inline if level.ordinal == Level.Fatal.ordinal then appFatal(message)
       if sourcePathFilter(level,path) then
         /* Now, construct and feed if needed the log entry directly to the process handler or to the log queue */
         inline if directSpool
-          then entry(false,level,channel,actorPathFilter,kind,path,message).foreach(process)
-          else entry(true,level,channel,actorPathFilter,kind,path,message).foreach(trySpool)
+          then entry(false,level,channel,actorPathFilter,kind,path,message,thrown).foreach(process)
+          else entry(true,level,channel,actorPathFilter,kind,path,message,thrown).foreach(trySpool)
 
   /** Get the  appropriate level dependent info for system logging events for the source path. */
   inline private def getInfo(inline level: Level): String =
@@ -95,7 +113,7 @@ private trait LogHandler extends LogHandlerConfig:
    * removed from the code at compile time, it is still inlined to ensure it generates the correct context
    * information. The logic test to see if logging is required is fast. The call publishes the message in
    * in the channel Pass, SysPrd or SysDvl depending on the level. */
-  private[actors] inline def syslog(inline level: Level, message: => String): Unit =
+  private[actors] inline def syslog(inline level: Level, inline message: String): Unit =
     if level <= fixPassLevel then
       inline if level.ordinal == Level.Fatal.ordinal then sysFatal(message)
       if level.ordinal == Level.Fatal.ordinal ||
@@ -103,39 +121,57 @@ private trait LogHandler extends LogHandlerConfig:
          showChannels.hasSysDvl && level.ordinal >= Level.Beta.ordinal then
         if directSpool
         /* Due to issue https://github.com/scala/scala3/issues/25350 we must provide the full path to fixPass locally. */
-        then entry(false,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message).foreach(process)
-        else entry(true,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message).foreach(trySpool)
+        then entry(false,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message,None).foreach(process)
+        else entry(true,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message,None).foreach(trySpool)
 
   /**
    * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent.
    * This call is only eliminated from the code when fixLevel is set to Ignore. The call publishes the message
+   * in the channel Pass, so is cannot be stopped with ShowChannels(()). Make sure your message does not require
+   * lengthy calculations, preferably use a short fixed string. */
+  inline def fatal(inline message: String): Unit =
+    feed(Level.Fatal,Channel.Pass,kindInfo,pathInfo(fullPath),message,None)
+
+  /**
+   * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent,
+   * with the ability to pass a throwable. Leucine just passes the the throwable and does not interact with it.
+   * This call is only eliminated from the code when fixLevel is set to Ignore. The call publishes the message
    * in the channel Pass, so is cannot be stopped with ShowChannels(()). */
-  inline def fatal(message: => String): Unit =
-    feed(Level.Fatal,Channel.Pass,kindInfo,pathInfo(fullPath),message)
+  inline def fatal(inline message: String, throwable: Throwable): Unit =
+    feed(Level.Fatal,Channel.Pass,kindInfo,pathInfo(fullPath),message,Some(throwable))
 
   /**
    * Make log entry with level Error, indicating severe disturbances in process handling, but system
    * can continue with other tasks. This call is eliminated from the code when not needed on a
    * best effort approach. The call publishes the message in the channel AppPrd. */
-  inline def error(message: => String): Unit =
+  inline def error(inline message: String): Unit =
     inline if showChannels.contains(Channel.AppPrd) then
-      feed(Level.Error,Channel.AppPrd,kindInfo,pathInfo(fullPath),message)
+      feed(Level.Error,Channel.AppPrd,kindInfo,pathInfo(fullPath),message,None)
+
+  /**
+   * Make log entry with level Error, indicating severe disturbances in process handling, but system can continue
+   * with other tasks. This call allows to pass a throwable. Leucine just passes the the throwable and does not
+   * interact with it. The call is eliminated from the code when not needed on a best effort approach and publishes
+   * the message in the channel AppPrd. */
+  inline def error(inline message: String, throwable: Throwable): Unit =
+    inline if showChannels.contains(Channel.AppPrd) then
+      feed(Level.Error,Channel.AppPrd,kindInfo,pathInfo(fullPath),message,Some(throwable))
 
   /**
    * Make log entry with level Warn, indicating that something is out of the ordinary, but processing
    * can continue. This call is eliminated from the code when not needed on a best effort approach. The
    * call publishes the message in the channel AppPrd. */
-  inline def warn(message: => String): Unit  =
+  inline def warn(inline message: String): Unit  =
     inline if showChannels.contains(Channel.AppPrd) then
-      feed(Level.Warn,Channel.AppPrd,kindInfo,pathInfo(fullPath),message)
+      feed(Level.Warn,Channel.AppPrd,kindInfo,pathInfo(fullPath),message,None)
 
   /**
    * Make log entry with level Info, to keep the user informed about the systems whereabouts. This call is
    * eliminated from the code when not needed on a best effort approach. The call publishes the message in
    * the channel AppPrd. */
-  inline def info(message: => String): Unit  =
+  inline def info(inline message: String): Unit  =
     inline if showChannels.contains(Channel.AppPrd) then
-      feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),message)
+      feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),message,None)
 
   /**
    * Make log entry with level Info, to keep the user informed about the systems whereabouts.
@@ -144,11 +180,11 @@ private trait LogHandler extends LogHandlerConfig:
    * showConfidential to false. Now the publicMessage is passed to the logger. The reference to
    * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
    * when not needed on a best effort approach. The call publishes the message in the channel AppPrd. */
-  inline def info(confidentialMesssage: => String, publicMessage: => String): Unit  =
+  inline def info(inline confidentialMesssage: String, inline publicMessage: String): Unit  =
     inline if showChannels.contains(Channel.AppPrd) then
       inline if showConfidential
-      then feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),confidentialMesssage)
-      else feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),publicMessage)
+      then feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),confidentialMesssage,None)
+      else feed(Level.Info,Channel.AppPrd,kindInfo,pathInfo(fullPath),publicMessage,None)
 
   /**
    * Make log entry with level Beta, to keep the developer informed about the systems whereabouts.
@@ -157,9 +193,9 @@ private trait LogHandler extends LogHandlerConfig:
    * still been seen during Beta testing, without the clutter of all the other debug logging. This call
    * is eliminated from the code when not needed on a best effort approach. The call publishes the message
    * in the channel AppDvl. */
-  inline def beta(message: => String): Unit  =
+  inline def beta(inline message: String): Unit  =
     inline if showChannels.contains(Channel.AppDvl) then
-      feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),message)
+      feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),message,None)
 
   /**
    * Make log entry with level Beta, to keep the developer informed about the systems whereabouts.
@@ -171,27 +207,27 @@ private trait LogHandler extends LogHandlerConfig:
    * ShowConfidential to false. Now the publicMessage is passed to the logger. The reference to
    * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
    * when not needed on a best effort approach. The call publishes the message in the channel AppDvl. */
-  inline def beta(confidentialMesssage: => String, publicMessage: => String): Unit  =
+  inline def beta(inline confidentialMesssage: String, inline publicMessage: String): Unit  =
     inline if showChannels.contains(Channel.AppDvl) then
       inline if showConfidential
-      then feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),confidentialMesssage)
-      else feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),publicMessage)
+      then feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),confidentialMesssage,None)
+      else feed(Level.Beta,Channel.AppDvl,kindInfo,pathInfo(fullPath),publicMessage,None)
 
   /**
    * Make log entry with level Debug, to communicate internals of the system for diagnostic purposes.
    * This call is eliminated from the code when not needed on a best effort approach. The call publishes
    * the message in the channel AppDvl. */
-  inline def debug(message: => String): Unit =
+  inline def debug(inline message: String): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
-      feed(Level.Debug,Channel.AppDvl,kindInfo,pathInfo(fullPath),message)
+      feed(Level.Debug,Channel.AppDvl,kindInfo,pathInfo(fullPath),message,None)
 
   /**
    * Make log entry with level Debug, to communicate internals of the system for diagnostic purposes.
    * Log entry is only made when the channel in the parameter is activated via showChannels.
    * This call is eliminated from the code when not needed on a best effort approach. */
-  inline def debug[CH <: Channel](channel: CH, message: => String): Unit =
+  inline def debug[CH <: Channel](channel: CH, inline message: String): Unit =
     inline if showChannels.contains(channel) then
-      feed(Level.Debug,channel,kindInfo,pathInfo(fullPath),message)
+      feed(Level.Debug,channel,kindInfo,pathInfo(fullPath),message,None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -201,7 +237,7 @@ private trait LogHandler extends LogHandlerConfig:
    * The call publishes the message in the channel AppDvl. */
   inline def trace(): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
-      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,fullParameters),"")
+      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,fullParameters),"",None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -210,9 +246,9 @@ private trait LogHandler extends LogHandlerConfig:
    * definition. With the possibility to enter extra information in the form of a message. This call is
    * eliminated from the code when not needed on a best effort approach.  The call publishes the message
    * in the channel AppDvl. */
-  inline def trace(message: => String): Unit =
+  inline def trace(inline message: String): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
-      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,fullParameters),message)
+      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,fullParameters),message,None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -222,7 +258,7 @@ private trait LogHandler extends LogHandlerConfig:
    * effort approach.  The call publishes the message in the channel AppDvl. */
   inline def trace(withParameters: Boolean): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
-      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,withParameters),"")
+      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,withParameters),"",None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -232,9 +268,9 @@ private trait LogHandler extends LogHandlerConfig:
    * With the possibility to enter extra information in the form of a message. This call is eliminated
    * from the code when not needed on a best effort approach.  The call publishes the message in the
    * channel AppDvl. */
-  inline def trace(withParameters: Boolean, message: => String): Unit =
+  inline def trace(withParameters: Boolean, inline message: String): Unit =
     inline if showChannels.contains(Channel.AppDvl) then
-      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,withParameters),message)
+      feed(Level.Trace,Channel.AppDvl,kindInfo,callInfo(fullPath,withParameters),message,None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -244,7 +280,7 @@ private trait LogHandler extends LogHandlerConfig:
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[CH <: Channel](channel: CH): Unit =
     inline if showChannels.contains(channel) then
-      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,fullParameters),"")
+      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,fullParameters),"",None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -253,9 +289,9 @@ private trait LogHandler extends LogHandlerConfig:
    * definition. Log entry is only made when the channel in the parameter is activated via showChannels.
    * With the possibility to enter extra information in the form of a message. This call is eliminated
    * from the code when not needed on a best effort approach. */
-  inline def trace[CH <: Channel](channel: CH, message: => String): Unit =
+  inline def trace[CH <: Channel](channel: CH, inline message: String): Unit =
     inline if showChannels.contains(channel) then
-      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,fullParameters),message)
+      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,fullParameters),message,None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -266,7 +302,7 @@ private trait LogHandler extends LogHandlerConfig:
    * This call is eliminated from the code when not needed on a best effort approach. */
   inline def trace[CH <: Channel](channel: CH, withParameters: Boolean): Unit =
     inline if showChannels.contains(channel) then
-      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,withParameters),"")
+      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,withParameters),"",None)
 
   /**
    * Make log entry with level Trace, to follow the flow of the code in detail for diagnostic purposes.
@@ -276,6 +312,6 @@ private trait LogHandler extends LogHandlerConfig:
    * is only made when the channel in the parameter is activated via showChannels. With the possibility
    * to enter extra information in the form of a message. This call is eliminated from the code when
    * not needed on a best effort approach. */
-  inline def trace[CH <: Channel](channel: CH, withParameters: Boolean, message: => String ): Unit =
+  inline def trace[CH <: Channel](channel: CH, withParameters: Boolean, inline message: String ): Unit =
     inline if showChannels.contains(channel) then
-      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,withParameters),message)
+      feed(Level.Trace,channel,kindInfo,callInfo(fullPath,withParameters),message,None)

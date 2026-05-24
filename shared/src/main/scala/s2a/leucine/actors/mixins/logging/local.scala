@@ -94,7 +94,16 @@ private class LogLocal() :
    * Left(false) to indicate we could not handle this call. If the holder is present, but the level is
    * not sufficient for action return Left(true) to indicate the situation has been dealt with. When feed
    * is true, the entry will be directly stored on the log queue. Return the required entry instance. */
-  private[actors] def entry(feed: Boolean, level: Level, channel: Channel, actorFilter: ActorFilter, kind: Kind, path: String, message: => String): Either[Boolean,Entry] =
+  private[actors] def entry(
+      feed: Boolean,
+      level: Level,
+      channel: Channel,
+      actorFilter: ActorFilter,
+      kind: Kind,
+      path: String,
+      message: => String,
+      thrown: Option[Throwable]
+    ): Either[Boolean,Entry] =
     /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
     val holder = threadedHolder.get()
     /* If so, we do not have a container and we must try the globalHolder as fallback (thus we return false).
@@ -103,7 +112,7 @@ private class LogLocal() :
     if holder == null then Left(false) else
       if !holder.pass(level,actorFilter) then Left(true) else
         /* Construct the entry on the holder. */
-        val entry = holder.make(level,channel,kind,path,message)
+        val entry = holder.make(level,channel,kind,path,message,thrown)
         /* Add the entry to the log queue.  */
         if feed then holder.add(entry)
         /* Construct the entry on the holder. */

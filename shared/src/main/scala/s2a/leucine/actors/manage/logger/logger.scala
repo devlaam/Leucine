@@ -28,6 +28,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
 import scala.compiletime.constValue
 import scala.annotation.implicitNotFound
+import scala.collection.mutable.ListBuffer
 
 /**
  * Basic interface for each custom ActorLogger. You must at least implement the last
@@ -63,15 +64,24 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
    * the entry is created by the global container. Returns the constructed entry for further processing.
    * If feed is true, the entry will be directly stored on the log queue. If not, the entry will only be
    * constructed on the holder, and you are responsible for further processing. */
-  protected def entry(feed: Boolean, level: Level, channel: Channel, actorFilter: ActorFilter, sourceKind: Kind, sourcePath: String, message: => String): Option[Entry] =
+  protected def entry(
+      feed: Boolean,
+      level: Level,
+      channel: Channel,
+      actorFilter: ActorFilter,
+      sourceKind: Kind,
+      sourcePath: String,
+      message: => String,
+      thrown: Option[Throwable]
+    ): Option[Entry] =
     /* Try to construct the entry on the thread local container */
-    LogLocal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message) match
+    LogLocal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message,thrown) match
       /* This was a success, return the entry */
       case Right(entry) => Some(entry)
       /* The container was there but the entry could not be made due to insufficient log level. */
       case Left(true)   => None
       /* The container was not there, we must try the global container. */
-      case Left(false)  => LogGlobal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message) match
+      case Left(false)  => LogGlobal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message,thrown) match
         /* This was a success, return the entry */
         case Right(entry) => Some(entry)
         /* The entry could not be made due to insufficient log level or absent global logger. */
@@ -325,12 +335,12 @@ object ActorLogger  :
     /* Each level is given a fixed ordinal number. The highest level (Disable) has the lowest number (0). */
     inline def ordinal: Int
     /* Names & Priorities used in other logging frameworks */
-    def juName: String
+    def julName: String
     def l4jName: String
-    def lbName: String
-    def juPrio: Int
+    def lgbName: String
+    def julPrio: Int
     def l4jPrio: Int
-    def lbPrio: Int
+    def lgbPrio: Int
 
     /* The use of each level is counted for informational purposes. */
     private val counter: AtomicLong = AtomicLong(0)
@@ -361,12 +371,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Disable]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "OFF"
+      def julName: String = "OFF"
       def l4jName: String = "OFF"
-      def lbName: String  = "OFF"
-      def juPrio: Int  = 1100
+      def lgbName: String = "OFF"
+      def julPrio: Int = 1100
       def l4jPrio: Int = 0
-      def lbPrio: Int  = Integer.MAX_VALUE
+      def lgbPrio: Int = Integer.MAX_VALUE
 
     /**
      * Meaning: indicates that further processing is unreliable and shutdown is imminent.
@@ -377,12 +387,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Fatal]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "SEVERE"
+      def julName: String = "SEVERE"
       def l4jName: String = "FATAL"
-      def lbName: String  = "ERROR"
-      def juPrio: Int  = 1000
+      def lgbName: String = "ERROR"
+      def julPrio: Int = 1000
       def l4jPrio: Int = 100
-      def lbPrio: Int  = 40000
+      def lgbPrio: Int = 40000
 
     /**
      * Meaning: severe disturbances in process handling, but system can continue with other tasks.
@@ -393,12 +403,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Error]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "SEVERE"
+      def julName: String = "SEVERE"
       def l4jName: String = "ERROR"
-      def lbName: String  = "ERROR"
-      def juPrio: Int  = 1000
+      def lgbName: String = "ERROR"
+      def julPrio: Int = 1000
       def l4jPrio: Int = 200
-      def lbPrio: Int  = 40000
+      def lgbPrio: Int = 40000
 
     /**
      * Meaning: indication that something is out of the ordinary, but processing can continue.
@@ -409,12 +419,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Warn]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "WARNING"
+      def julName: String = "WARNING"
       def l4jName: String = "WARN"
-      def lbName: String  = "WARN"
-      def juPrio: Int  = 900
+      def lgbName: String = "WARN"
+      def julPrio: Int = 900
       def l4jPrio: Int = 300
-      def lbPrio: Int  = 30000
+      def lgbPrio: Int = 30000
 
     /**
      * Meaning: to keep the user informed about the systems whereabouts
@@ -425,12 +435,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Info]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "INFO"
+      def julName: String = "INFO"
       def l4jName: String = "INFO"
-      def lbName: String  = "INFO"
-      def juPrio: Int  = 800
+      def lgbName: String = "INFO"
+      def julPrio: Int = 800
       def l4jPrio: Int = 400
-      def lbPrio: Int  = 20000
+      def lgbPrio: Int = 20000
 
     /**
      * Meaning: to keep the developer informed about the systems whereabouts
@@ -441,12 +451,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Beta]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "FINE"
+      def julName: String = "FINE"
       def l4jName: String = "BETA"
-      def lbName: String  = "DEBUG"
-      def juPrio: Int  = 500
+      def lgbName: String = "DEBUG"
+      def julPrio: Int = 500
       def l4jPrio: Int = 450
-      def lbPrio: Int  = 10000
+      def lgbPrio: Int = 10000
 
     /**
      * Meaning: to communicate internals of the system for diagnostic purposes.
@@ -457,12 +467,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Debug]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "FINER"
+      def julName: String = "FINER"
       def l4jName: String = "DEBUG"
-      def lbName: String  = "DEBUG"
-      def juPrio: Int  = 400
+      def lgbName: String = "DEBUG"
+      def julPrio: Int = 400
       def l4jPrio: Int = 500
-      def lbPrio: Int  = 10000
+      def lgbPrio: Int = 10000
 
     /**
      * Meaning: to follow the flow of the code for diagnostic purposes.
@@ -473,12 +483,12 @@ object ActorLogger  :
       /* Ordinal defined as inline since we need this for the compile time elimination of log entries. */
       inline def ordinal: Int = constValue[Ordinal[Level.Trace]]
       /* Names & Priorities used in other logging frameworks */
-      def juName: String  = "FINEST"
+      def julName: String = "FINEST"
       def l4jName: String = "TRACE"
-      def lbName: String  = "TRACE"
-      def juPrio: Int  = 300
+      def lgbName: String = "TRACE"
+      def julPrio: Int = 300
       def l4jPrio: Int = 600
-      def lbPrio: Int  = 5000
+      def lgbPrio: Int = 5000
 
     /** This are all operational levels in one list. From high to low. */
     val allLevels = List(Fatal,Error,Warn,Info,Beta,Debug,Trace)
@@ -526,22 +536,23 @@ object ActorLogger  :
    * It is not possible to create instances directly from the class definition since they will not be
    * accounted for. Use the factory methods to that end. */
   class Entry private (
-    val index:       Long,
-    val level:       Level,
-    val counter:     Long,
-    val timing:      Timing,
-    val timestamp:   Long,
-    val channel:     Channel,
-    val threadName:  String,
-    val actorName:   String,
-    val sourceKind:  Kind,
-    val sourcePath:  String,
-    val message:     String) :
+      val index:       Long,
+      val level:       Level,
+      val counter:     Long,
+      val timing:      Timing,
+      val timestamp:   Long,
+      val channel:     Channel,
+      val threadName:  String,
+      val actorName:   String,
+      val sourceKind:  Kind,
+      val sourcePath:  String,
+      val thrown:      Option[Throwable],
+      val message:     String) :
 
-    /* Return the timestamp as an java Instant. */
+    /** Return the timestamp as a java Instant. */
     def getInstant: Instant = DateTime.toInstant(timestamp)
 
-    /* Return the auxiliary fields for external loggers. */
+    /** Return the string representation of the fields as Map for external loggers. */
     def getFields: Map[String,String] = Map(
       "index"      -> index.toString,
       "level"      -> level.toString,
@@ -553,27 +564,46 @@ object ActorLogger  :
       "actor"      -> actorName,
       "kind"       -> sourceKind.toString,
       "path"       -> sourcePath,
+      "thrown"     -> thrown.map(_.getMessage()).getOrElse(""),
       "message"    -> message)
 
-    /** Simple formatter to show the contents of a log entry. */
-    override def toString: String =
-      val time = DateTime(timestamp)
-      val indexStr  = s"%${2}s".format(index)
-      val levelStr  = s"%${6}s".format(level)
-      val countStr  = counter.toString
-      val yearStr   = f"${time.year}%04d"
-      val monthStr  = f"${time.month}%02d"
-      val datumStr  = f"${time.day}%02d"
-      val hoursStr  = f"${time.hour}%02d"
-      val minsStr   = f"${time.minute}%02d"
-      val secsStr   = f"${time.second}%02d"
-      val source    = sourceKind.toString
+    /**
+     * Return a single line string representation of all fields for external loggers. With pretty set to
+     * true it tries its best to make this look good when printed to the console or in a plain text file.
+     * Absent fields are ignored, numbers are filled to three positions and level name to five positions.
+     * This results in semi stable column widths. Since the thread and actor names can vary considerably
+     * column widths are only fixed for the first few columns. When pretty is set to false, fields are
+     * converted to bare strings and empty ones are not skipped. Use this to construct csv or html makeups. */
+    def getList(pretty: Boolean): List[String] =
+      val result = new ListBuffer[String]()
+      def append(content: String, label: String = ""): Unit =
+        if      !pretty           then result.append(content)
+        else if content.isEmpty   then ()
+        else if label.isEmpty     then result.append(content)
+        else if label(0)=='%'     then append(label.format(content))
+        else                           result.append(s"$label($content)")
+      val datetime  = DateTime(timestamp)
       val subsecStr = timing match
         case Timing.Recent => ""
-        case Timing.Millis => f".${time.milli}%03d"
-        case Timing.Nanos  => f".${time.nano}%09d"
-      val dtStr  = s"$yearStr-$monthStr-$datumStr $hoursStr:$minsStr:$secsStr$subsecStr"
-      s"LOG($indexStr; $levelStr; #$countStr; $dtStr; Channel($channel); Thread($threadName) Actor($actorName); $source($sourcePath); $message)"
+        case Timing.Millis => f".${datetime.milli}%03d"
+        case Timing.Nanos  => f".${datetime.nano}%09d"
+      append(index.toString,"%3s")
+      append(level.toString,"%5s")
+      append(s"#$counter","%4s")
+      append(s"${datetime.dateStr("-")}T${datetime.timeStr(":")}$subsecStr")
+      append(channel.toString,"Channel")
+      append(threadName,"Thread")
+      append(actorName,"Actor")
+      if pretty then append(sourcePath,sourceKind.toString) else { append(sourceKind.toString); append(sourcePath) }
+      thrown match
+        case Some(throwable) => append(throwable.getMessage(),"Thrown")
+        case None            => if !pretty then result.append("")
+      append(message)
+      result.toList
+
+    /** Default (pretty) string representation of the entry. */
+    override def toString: String = getList(true).mkString("Log(","; ",")")
+
 
   /** Object Entry contains the factory methods for Entry and the thread save counter.*/
   object Entry :
@@ -593,12 +623,21 @@ object ActorLogger  :
      * Construct an log entry based on the given data and add a timestamp, an index,  a thread name, timing and
      * actor path name (if available). Every entry that is created gets a new unique index number, and the level
      * at which it is created also increases a use counter. */
-    def apply(path: String, level: Level, timing: Timing, channel: Channel, sourceKind: Kind, sourcePath: String, message: String): Entry =
+    def apply(
+        path: String,
+        level: Level,
+        timing: Timing,
+        channel: Channel,
+        sourceKind: Kind,
+        sourcePath: String,
+        message: String,
+        thrown: Option[Throwable]
+      ): Entry =
       val counter    = level.created()
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
-      new Entry(index,level,counter,timing,timeStamp,channel,threadName,path,sourceKind,sourcePath,message)
+      new Entry(index,level,counter,timing,timeStamp,channel,threadName,path,sourceKind,sourcePath,thrown,message)
 
 
   /**

@@ -65,22 +65,29 @@ class DateTime(epochTimeInNanoSeconds: Long) :
   /* Finds the zero based month part staring at march. */
   private val mp: Long   = ( (5 * doy + 2) / 153 )
 
-  /* Find the one based day of the month */
+  /** Find the one based day of the month */
   val day: Int    = (doy - (153 * mp + 2) / 5 + 1).toInt
-  /* Finds the one based month part staring at january. */
+  /** Finds the one based month part staring at january. */
   val month: Int  = (mp + (if mp < 10 then 3 else -9)).toInt
-  /* Correct the year for the rebase from march to january. */
+  /** Correct the year for the rebase from march to january. */
   val year: Int   = (ynr + (if month <= 2 then 1 else 0)).toInt
 
-  /* Find hour, min and second now. */
+  /** Find hour, min and second now. */
   val hour: Int   = (sod / secsInHour).toInt
   val minute: Int = (mod / secsInMin).toInt
   val second: Int = (mod % secsInMin).toInt
 
-  /* Find the parts of the remaining second. */
+  /** Find the parts of the remaining second. */
   val nano: Int   = (epochTimeInNanoSeconds % nanosPerSec).toInt
   val micro: Int  = (nano  / metric3Step).toInt
   val milli: Int  = (micro / metric3Step).toInt
+
+  /** Formatter for the date, always YYYY MM DD, separator can be chosen. */
+  def dateStr(sep: String) = f"${year}%04d${sep}${month}%02d${sep}${day}%02d"
+
+  /** Formatter for the time, always HH MM SS, separator can be chosen. */
+  def timeStr(sep: String) = f"${hour}%02d${sep}${minute}%02d${sep}${second}%02d"
+
 
 /** Companion object holding the constants. */
 object DateTime :
