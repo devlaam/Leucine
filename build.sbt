@@ -6,8 +6,8 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
  */
 
 val nightly = "3.8.1-RC1-bin-20260104-f08de70-NIGHTLY"
-val latest  = "3.7.4"  // from 3.4.3 () (ok, 2 warns), 3.5.2 (ok), 3.6.4 (ok), 3.7.4 (ok, 19 warns)
-val stable  = "3.3.7"  // from 3.3.3 ... 3.3.7 (ok, 21 warns)
+val latest  = "3.8.3"
+val stable  = "3.3.7"
 
 /* Set to 1 for publishing to exclude the demo/test files. */
 val publishMe: Int = 0

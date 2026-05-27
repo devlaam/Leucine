@@ -24,27 +24,18 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import scala.concurrent.duration.FiniteDuration
-
 /**
  * Configuration definitions for the LogHandler. You must implement these settings
  * and methods to get a working logger. This can be done by making use of one of
  * the predefined traits. */
 trait LogHandlerConfig :
-  import ActorLogger.{Level, Entry, ShowChannels}
+  import ActorLogger.{Level, Entry, ShowChannels, Spooling}
 
   /**
    * The fixPassLevel defines the logging level used at compile time. Regular log statements with a lower
    * level will to removed from the code at compile time. Use this for example to eliminate info and
    * debug log messages by setting it to Level.Warn for a production release. */
   def fixPassLevel: Level
-
-  /**
-   * directSpool can be set to true if you want to directly receive the log entries without making
-   * use of the per thread collectors. Sometimes this is handy to zoom in on a critical bug or if you
-   * have your own threaded log handler. For delayed logging (which is the purpose of the whole framework
-   * inside the actors) this should be false. */
-  def directSpool: Boolean
 
   /**
    * Log entries contain information about the origin of their use (objects, classes and methods). With
@@ -104,6 +95,20 @@ trait LogHandlerConfig :
   def showChannels: ShowChannels[?]
 
   /**
+   * Spooling defines how the collected logs are handled. If set to Spooling.Direct every log will
+   * directly be passed to the user process() call. No use of per thread collectors is made. Sometimes
+   * this is handy to zoom in on a critical bug or if you have your own threaded log handler. Also,
+   * on a single threaded platform there may be no need to defer any processing. For delayed logging
+   * (which is the purpose of the whole logging framework inside the actors) this should be set to
+   * Spooling.Periodic(size,time,level). There are three parameters that allow you to define when the
+   * spooling must take place. The size parameter defines the maximum number of logs that are kept
+   * before the logs are spooled, the time parameter defines the maximum time between the spools and
+   * the level parameter the lowest level that induces a direct spool. Realistic values depend on the
+   * number of log statements in the code, but 20 to 100 for the size, 10 seconds to 1 minute for the
+   * time and Warn for the level should be considered as realistic lower bounds. */
+  def spooling: Spooling
+
+  /**
    * This method is called for every log entry when the entries are spooled. It is the point where the logs
    * are transferred form the actor framework to you logging framework. It is best if the implementation
    * is re-entrant and thread save. However, if you correctly implemented spool() you may expect strict
@@ -122,6 +127,7 @@ trait LogHandlerConfig :
    * last wishes. Note that the implementation must be re-entrant and thread save. This method is not guaranteed
    * to be strictly sequential, and can originate from any thread. (although one occurrence is bad enough) */
   def sysFatal(message: String): Unit
+
 
 /**
  * Configuration definitions for the Log processing. You must implement these settings
@@ -148,21 +154,6 @@ trait LogProcessConfig :
    * equal throughout the whole application. Setting this to false makes that so, without have
    * to revisit all logging code lines. */
   def localSettings: Boolean
-
-  /**
-   * Define the max number of logs allowed before spooling must start. Do not make this value
-   * to low, since it every time logs are spooled, they interfere if even ever so slightly,
-   * with the actor processing. Realistic values depend on the number of log statements in
-   * you code, but 20 to 100 should be considered as realistic lower bounds. Note that logs
-   * are also periodically spooled. So this number is effective only if the number of logs
-   * builds up quickly in between. */
-  def maxLogs: Int
-
-  /**
-   * Define how often you want the logs be spooled. Note that this defines a upper bound.
-   * Spools may occur sooner for several reasons, for example if the maxLogs are reached
-   * or if the application is about to terminate. */
-  def spoolInterval: FiniteDuration
 
   /**
    * Define the default runtime active logging level (see ActorLogger.Level for documentation).

@@ -10,19 +10,17 @@ import s2a.control.{Buffer, Deferred}
 
 /** Special Settings for this test */
 trait TestLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
-  final val directSpool = false
-  final val fullPath = false
-  final val fullParameters = true
+  final val fullPath         = false
+  final val fullParameters   = true
   final val showConfidential = true
-  final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
-  final val maxLogs = 10
-  final val spoolInterval = 5.seconds
-  final val timing = Timing.Nanos
-  final val incidentLevel = Level.Warn
-  final val localSettings = true
+  final val showChannels     = ShowChannels((SysPrd, AppPrd, AppDvl))
+  final val spooling         = Spooling.Periodic(10,5.seconds,Level.Error)
+  final val timing           = Timing.Nanos
+  final val incidentLevel    = Level.Warn
+  final val localSettings    = true
 
 
 /* Processing part of Logger that provides storage for the logs at a fixed log level. */

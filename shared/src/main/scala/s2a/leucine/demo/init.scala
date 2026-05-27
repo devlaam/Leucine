@@ -38,7 +38,7 @@ given actorContext: ActorContext = ActorContext.system
 /* This is our logging object to be used for all demo applications. Experiment with mixing
  * in the different LoggerSettings, or changing some settings below. */
 object Logger extends ActorLogger, DefaultLoggerProcessing :
-  import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel}
+  import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel, Spooling}
   import ActorLogger.Channel.{Pass, SysPrd, SysDvl, AppPrd, AppDvl}
 
   /* Create for every demo a separate channel for logging. We shall use this only for tracing. */
@@ -50,9 +50,6 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
 
   /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
   final val fixPassLevel = Level.Trace
-
-  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
-  final val directSpool = false
 
   /** Set fullPath to true to obtain full info on object/class/method names. */
   final val fullPath = false
@@ -77,11 +74,8 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   //final val showChannels = ShowChannels((SysPrd, Pass))
   //final val showChannels = ShowChannels(())
 
-  /** Set the number of maxLogs low, so we have responsive logging. */
-  final val maxLogs = 10
-
-  /** Set the time between spools low, so we have responsive logging. */
-  final val spoolInterval = 5.seconds
+  /** Use reasonable periodic spooling settings. */
+  final val spooling = Spooling.Periodic(10,5.seconds,Level.Warn)
 
   /** Set timing to Nanos to have accurate log entries. */
   final val timing = Timing.Nanos

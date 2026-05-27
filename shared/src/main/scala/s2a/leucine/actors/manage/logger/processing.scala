@@ -30,7 +30,7 @@ package s2a.leucine.actors
  * Default logger you may use to simply send your logs to the console via the main thread.
  * It contains reasonable defaults for all obligatory definitions of the settings. */
 trait DefaultLoggerProcessing :
-  import ActorLogger.Entry
+  import ActorLogger.{Entry, Spooling}
   import LogHolder.{Hold, Store}
 
   /* Access to spooling must be strictly sequential. This object guards the entry. */
@@ -39,8 +39,8 @@ trait DefaultLoggerProcessing :
   /* Keep log entries that could not yet be processed. */
   private var store: Store = Store.empty
 
-  /** Get the max number of logs defined in your settings. */
-  def maxLogs: Int
+  /** Get the spooling settings set by the user. */
+  def spooling: Spooling
 
   /** Signature of the retrieve() method that returns all the log entries so far in random order. */
   def retrieve(): Hold[List[Entry]]
@@ -50,7 +50,7 @@ trait DefaultLoggerProcessing :
    * delays log entries to be spooled as long as there are entries missing. Makes a best effort to produce
    * a dense and continuous log entry numbering. Access is protected by spoolGuard for strict sequential entry. */
   def spool(completed: Boolean): Unit = spoolGuard.synchronized :
-    store = ActorLogger.stichedSpool(retrieve(),store,10*maxLogs,completed,process)
+    store = ActorLogger.stichedSpool(retrieve(),store,10*spooling.size,completed,process)
 
   /** Simply say in the console that a fatal event occurred. */
   def appFatal(message: String): Unit = println(s"FATAL event in application: $message")

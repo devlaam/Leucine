@@ -48,7 +48,7 @@ class Noise extends RestrictActor(Noise,"Noise") :
       case (Noise.Request(key,size,length), source: Text) =>
         val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
         source ! Text.Lipsum(key,result)
-      /* This cannot be reached, but the compiler is not able to verify. */
+      /* This cannot be reached, but the compiler (3.3.7) is not able to verify. */
       case (_,_) => Logger.fatal("Code should not arrive here.")
 
 

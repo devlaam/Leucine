@@ -47,8 +47,8 @@ private trait LogHandler extends LogHandlerConfig:
       thrown: Option[Throwable]
     ): Option[Entry]
 
-  /** Test if we have enough new logs for spooling */
-  private[actors] def trySpool(entry: Entry): Unit
+  /** Router for the log entries. */
+  private[actors] def preprocess(entry: Entry): Unit
 
   /**
    * General method for feeding the logger with log statements. Due to inlining it is completely
@@ -72,9 +72,7 @@ private trait LogHandler extends LogHandlerConfig:
       inline if level.ordinal == Level.Fatal.ordinal then appFatal(message)
       if sourcePathFilter(level,path) then
         /* Now, construct and feed if needed the log entry directly to the process handler or to the log queue */
-        inline if directSpool
-          then entry(false,level,channel,actorPathFilter,kind,path,message,thrown).foreach(process)
-          else entry(true,level,channel,actorPathFilter,kind,path,message,thrown).foreach(trySpool)
+        entry(!spooling.direct,level,channel,actorPathFilter,kind,path,message,thrown).foreach(preprocess)
 
   /** Get the  appropriate level dependent info for system logging events for the source path. */
   inline private def getInfo(inline level: Level): String =
@@ -119,10 +117,8 @@ private trait LogHandler extends LogHandlerConfig:
       if level.ordinal == Level.Fatal.ordinal ||
          showChannels.hasSysPrd && level.ordinal <= Level.Info.ordinal ||
          showChannels.hasSysDvl && level.ordinal >= Level.Beta.ordinal then
-        if directSpool
         /* Due to issue https://github.com/scala/scala3/issues/25350 we must provide the full path to fixPass locally. */
-        then entry(false,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message,None).foreach(process)
-        else entry(true,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message,None).foreach(trySpool)
+        entry(!spooling.direct,level,getChannel(level),LogHolder.fixPass(true),kindInfo,getInfo(level),message,None).foreach(preprocess)
 
   /**
    * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent.

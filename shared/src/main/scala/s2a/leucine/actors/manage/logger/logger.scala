@@ -27,6 +27,7 @@ package s2a.leucine.actors
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
 import scala.compiletime.constValue
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.annotation.implicitNotFound
 import scala.collection.mutable.ListBuffer
 
@@ -46,7 +47,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
 
   /* A timer is used to schedule the regular log spool actions. This is defined lazy for the
    * spoolInterval will not yet be available at this part of the object construction. */
-  private lazy val timer: Timer = Timer(spoolInterval,action)
+  private lazy val timer: Timer = Timer(spooling.time,action)
 
   /* Contains the logHolder for the main and other threads without local logHolders. (non top
    * level objects are lazy, so we have the correct values here, this works) */
@@ -92,20 +93,21 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
 
   /**
    * Test if we have enough new logs for spooling, entry should be the last or recently produced.
-   * If we are directly spooling this method does nothing, since there is nothing to spool. */
-  private[actors] def trySpool(entry: Entry): Unit = if !directSpool then
+   * If we are directly spooling this method calls process directly and otherwise tests if we must
+   * already spool. This can be the case if there are enough logs or if the log is important. */
+  private[actors] def preprocess(entry: Entry): Unit = if spooling.direct then process(entry) else
     /* See how far we have come since the last spool. */
     val size = entry.index - lastIndex.get
-    /* See if there are enough logs lingering to perform a manual spool. Note that this action must
-     * be quick, for we want return asap to the task that was calling this. */
-    if size > maxLogs then action()
+    /* See if there are enough logs lingering or the log is important enough to perform a direct spool.
+     * Note that this action must be quick, for we want return asap to the task that was calling this. */
+    if size > spooling.size || entry.level <= spooling.level then action()
 
   /**
    * Manually retrieve and clear the log entries collected since the last retrieve. You must make sure
    * yourself that you are not calling this method concurrently. However, since this is solely called
    * within spool handling, and that method must also obey that restriction, we do not protect it here.
    * Note that if we are direct spooling there will be no entries available.  */
-  final def retrieve(): Hold[List[Entry]] = if directSpool then Hold.empty else
+  final def retrieve(): Hold[List[Entry]] = if spooling.direct then Hold.empty else
     /* Store the current value of the log index. Note, immediately after the call the value
      * is already outdated, so if we base an estimation about the number of none processed
      * log entries on this number it will be to high. However, that is better than the opposite
@@ -125,7 +127,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
      * on the context. Even when called manually this is the right thing to do, since we do not know
      * the origin of this call. There is however no need if we are direct spooling since then there
      * will be no entries available. */
-    if !directSpool then context.sequential(spool(false))
+    if !spooling.direct then context.sequential(spool(false))
 
   /**
    * Start the logger. You must call this at least once, the logger does not start spooling automatically.
@@ -161,7 +163,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
     ActorGuard.syslog(Level.Info, if goodbye then "Logger stopped." else "Logger paused.")
     /* If we are not directly spooling we should spool any remaining entries. With direct spooling there
      * are no remaining entries to spool. */
-    if !directSpool then context.sequential(spool(goodbye))
+    if !spooling.direct then context.sequential(spool(goodbye))
     /* Stop the spooling timer. Try to prohibit the last queue event if we are only pausing. */
     timer.stop(!goodbye)
     /* Enable buffering if we are not at the last take. */
@@ -502,6 +504,31 @@ object ActorLogger  :
      * Method to find the level given a string representation to a level. Searches for the
      * for the level ignoring the letter casing. */
     def fromString(name: String): Option[Level] = allLevels.find(_.toString.equalsIgnoreCase(name))
+
+
+  /**
+   * The spooling trait is for defining the way spooling is done with one parameter. There are basically
+   * two modes. Or we directly process each log, or we collect them a while, and then process them. In the
+   * latte case some kind of trigger is needed to initiate the spooling. This can either be that there are
+   * too many logs, or it has taken too long since the last spool or a very important log passed by. */
+  sealed trait Spooling :
+    def direct: Boolean
+    def size: Int
+    def time: FiniteDuration
+    def level: Level
+
+  /* Companion object for Spooling holding the user settings. */
+  object Spooling :
+    /** Use this to bypass any log queuing and process the logs immediately. */
+    case object Direct extends Spooling :
+      final def direct = true
+      final def size   = 0
+      final def time   = Duration.Zero
+      final def level  = Level.Disable
+    /** Use this to periodically spool the logs when either of the parameters has been reached. */
+    case class Periodic(size: Int, time: FiniteDuration, level: Level) extends Spooling :
+      final def direct = false
+
 
   /**
    * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,

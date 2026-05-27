@@ -41,14 +41,11 @@ import scala.concurrent.duration.DurationInt
  * You may override the filters and runtime values timing and passLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait ProductionLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Info to for a realistic information load. */
   final val fixPassLevel = Level.Info
-
-  /** Set directSpool to false to ensure all logs pass the thread local entry collectors. */
-  final val directSpool = false
 
   /** Set fullPath to false to have concise object/class/method names. */
   final val fullPath = false
@@ -68,11 +65,8 @@ trait ProductionLoggerSettings :
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
-  /** During production we do not closely follow the log production. */
-  final val maxLogs = 100
-
-  /** During production we do not closely follow the log production. */
-  final val spoolInterval = 1.minute
+  /** Use periodic spooling with high thresholds to minimize execution delay. */
+  final val spooling = Spooling.Periodic(100,1.minute,Level.Error)
 
   /** During production second level accuracy suffices. This is more efficient. */
   def timing: Timing  = Timing.Recent
@@ -94,14 +88,11 @@ trait ProductionLoggerSettings :
  * You may override the filters and runtime values timing and passLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait BetaTestLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.{Level, Timing, ShowChannels,Spooling}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
   final val fixPassLevel = Level.Beta
-
-  /** Set directSpool to false to ensure all logs pass the thread local entry collectors. */
-  final val directSpool = false
 
   /** Set fullPath to false to have concise object/class/method names. */
   final val fullPath = false
@@ -121,11 +112,8 @@ trait BetaTestLoggerSettings :
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
-  /** During beta testing we do not closely follow the log production. */
-  final val maxLogs = 100
-
-  /** During production we do not closely follow the log production. */
-  final val spoolInterval = 1.minute
+  /** Use periodic spooling with high thresholds to minimize execution delay. */
+  final val spooling = Spooling.Periodic(100,1.minute,Level.Warn)
 
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
   def timing: Timing = Timing.Millis
@@ -146,14 +134,11 @@ trait BetaTestLoggerSettings :
  * You may override the filters and runtime values timing and passLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait DevelopmentLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
   final val fixPassLevel = Level.Trace
-
-  /** Set DirectSpool to false to ensure all logs pass the thread local entry collectors. */
-  final val directSpool = false
 
   /** Set fullPath to true to obtain full info on object/class/method names. */
   final val fullPath = true
@@ -173,11 +158,8 @@ trait DevelopmentLoggerSettings :
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
-  /** Set the number of maxLogs low, so we have responsive logging. */
-  final val maxLogs = 10
-
-  /** Set the time between spools low, so we have responsive logging. */
-  final val spoolInterval = 5.seconds
+  /** Use periodic spooling with lower thresholds to have responsive logging. */
+  final val spooling = Spooling.Periodic(10,5.seconds,Level.Warn)
 
   /** Set timing to Nanos to have accurate log entries. */
   def timing: Timing = Timing.Nanos
