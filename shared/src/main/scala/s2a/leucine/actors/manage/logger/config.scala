@@ -29,7 +29,7 @@ package s2a.leucine.actors
  * and methods to get a working logger. This can be done by making use of one of
  * the predefined traits. */
 trait LogHandlerConfig :
-  import ActorLogger.{Level, Entry, ShowChannels, Spooling}
+  import ActorLogger.{Level, Entry, ShowChannels, Spooling, Filter}
 
   /**
    * The fixPassLevel defines the logging level used at compile time. Regular log statements with a lower
@@ -64,7 +64,7 @@ trait LogHandlerConfig :
    * if you block the corresponding  entry here. The passed path depends on the setting of fullPath. Return true
    * to allow for the entry, return false to block it. If there is no need for this functionality, just return true.
    * Implementation is obligatory, even if unused. */
-  def sourcePathFilter(level: Level, path: String): Boolean
+  //def sourcePathFilter(level: Level, path: String): Boolean
 
   /**
    * Log entries that are made inside the execution of an actor (can be any class or object) contains information
@@ -75,7 +75,10 @@ trait LogHandlerConfig :
    * appFatal/sysFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
    * for the entry, return false to block it. If there is no need for this functionality, just return true.
    * Implementation is obligatory, even if unused. */
-  def actorPathFilter(level: Level, path: String): Boolean
+  //def actorPathFilter(level: Level, path: String): Boolean
+
+  //VOEG COMMENTAAR TOE.
+  def filter: Filter
 
   /**
    * Implement this method to define the channels to be shown in the logging which have a membership channel defined.

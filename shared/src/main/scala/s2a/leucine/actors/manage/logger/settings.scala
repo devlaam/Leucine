@@ -41,7 +41,7 @@ import scala.concurrent.duration.DurationInt
  * You may override the filters and runtime values timing and passLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait ProductionLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels, Spooling}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Info to for a realistic information load. */
@@ -56,11 +56,8 @@ trait ProductionLoggerSettings :
   /** Set showConfidential to false to hide usernames and passwords in the logs. */
   final val showConfidential = false
 
-  /** Do not filter on the source path, let logs all pass, so return true. */
-  def sourcePathFilter(level: Level, path: String): Boolean = true
-
-  /** Do not filter on the actor path, let logs all pass, so return true. */
-  def actorPathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter, let all logs pass */
+  def filter: Filter = Filter.allPass
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -88,7 +85,7 @@ trait ProductionLoggerSettings :
  * You may override the filters and runtime values timing and passLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait BetaTestLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels,Spooling}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
@@ -103,11 +100,8 @@ trait BetaTestLoggerSettings :
   /** Set showConfidential to false to hide usernames and passwords in the logs. */
   final val showConfidential = false
 
-  /** Do not filter of the source path, let logs all pass, so return true. */
-  def sourcePathFilter(level: Level, path: String): Boolean = true
-
-  /** Do not filter of the actor path, let logs all pass, so return true. */
-  def actorPathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter, let all logs pass */
+  def filter: Filter = Filter.allPass
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -134,7 +128,7 @@ trait BetaTestLoggerSettings :
  * You may override the filters and runtime values timing and passLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait DevelopmentLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels, Spooling}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
@@ -149,11 +143,8 @@ trait DevelopmentLoggerSettings :
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Do not filter of the source path, let logs all pass, so return true. */
-  def sourcePathFilter(level: Level, path: String): Boolean = true
-
-  /** Do not filter of the source path, let logs all pass, so return true. */
-  def actorPathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter, let all logs pass */
+  def filter: Filter = Filter.allPass
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))

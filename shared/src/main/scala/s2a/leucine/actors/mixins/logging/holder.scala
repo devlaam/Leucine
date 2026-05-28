@@ -41,7 +41,7 @@ private class LogHolder(
     passLevel: () => ActorLogger.Level,
     incidentLevel: ActorLogger.Level,
     timing: () => ActorLogger.Timing) :
-  import ActorLogger.{Level, Channel, Entry}
+  import ActorLogger.{Level, Channel, Entry, Filter, Capture}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter, minStart, maxStart}
 
@@ -74,17 +74,18 @@ private class LogHolder(
   /**
    * Construct an log entry based on the given data and add a timestamp, an index,  a thread
    * name, timing and actor path name (called sourcePath here). */
-  private[actors] def make(level: Level, channel: Channel, sourceKind: Kind, sourcePath: String, message: String, thrown: Option[Throwable]): Entry =
+  private[actors] def make(capture: Capture): Entry =
     /* We count the incidents as occurred when we construct the entry and not when we add it. This
      * is because in case of direct spooling entries are not added to the holder. Make sure you
      * use every entry that is made here. */
-    if level <= incidentLevel then incidents = incidents + 1
+    if capture.level <= incidentLevel then incidents = incidents + 1
     /* Construct the new entry. */
-    Entry(actorPath,level,timing(),channel,sourceKind,sourcePath,message,thrown)
+    Entry(actorPath,timing(),capture)
+
 
   /** Test if an log entry with the given level would pass for the current settings. */
-  private[actors] def pass(level: Level, pathFilter: ActorFilter): Boolean =
-    level <= passLevel() && pathFilter(level,actorPath)
+  private[actors] def pass(capture: Capture): Boolean =
+    capture.level <= passLevel() && capture.passActor(actorPath)
 
   /** Add a log entry to the list. */
   private[actors] def add(entry: Entry): Unit =

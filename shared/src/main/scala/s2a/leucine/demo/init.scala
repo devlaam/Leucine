@@ -38,7 +38,7 @@ given actorContext: ActorContext = ActorContext.system
 /* This is our logging object to be used for all demo applications. Experiment with mixing
  * in the different LoggerSettings, or changing some settings below. */
 object Logger extends ActorLogger, DefaultLoggerProcessing :
-  import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel, Spooling}
+  import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel, Spooling, Filter}
   import ActorLogger.Channel.{Pass, SysPrd, SysDvl, AppPrd, AppDvl}
 
   /* Create for every demo a separate channel for logging. We shall use this only for tracing. */
@@ -52,19 +52,17 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final val fixPassLevel = Level.Trace
 
   /** Set fullPath to true to obtain full info on object/class/method names. */
-  final val fullPath = false
+  final val fullPath = true
 
   /** Set fullParameters to true so we see for each trace the parameters used in the call. */
-  final val fullParameters = false
+  final val fullParameters = true
 
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Do not filter of the source path, so return true. */
-  final def sourcePathFilter(level: Level, path: String): Boolean = true
+  /** Do not filter, let all logs pass */
+  final def filter: Filter = Filter.allPass
 
-  /** Do not filter of the source path, so return true. */
-  final def actorPathFilter(level: Level, path: String): Boolean = true
 
   /* Experiment here to see the effects of including and excluding channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -79,9 +77,6 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
 
   /** Set timing to Nanos to have accurate log entries. */
   final val timing = Timing.Nanos
-
-  /** Set default logging level to trace to see all logs during development. */
-  //final val passLevel = Level.Trace
 
   /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn

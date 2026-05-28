@@ -36,7 +36,7 @@ import scala.collection.mutable.ListBuffer
  * method of this interface and the FixLevel to get your logger running. See the
  * DefaultActorLogger object for an example. */
 trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessConfig, Service :
-  import ActorLogger.{Level, Channel, Entry}
+  import ActorLogger.{Level, Channel, Entry, Capture}
   import LogHolder.{Hold, ActorFilter}
   import Static.Kind
 
@@ -65,27 +65,18 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
    * the entry is created by the global container. Returns the constructed entry for further processing.
    * If feed is true, the entry will be directly stored on the log queue. If not, the entry will only be
    * constructed on the holder, and you are responsible for further processing. */
-  protected def entry(
-      feed: Boolean,
-      level: Level,
-      channel: Channel,
-      actorFilter: ActorFilter,
-      sourceKind: Kind,
-      sourcePath: String,
-      message: => String,
-      thrown: Option[Throwable]
-    ): Option[Entry] =
+  protected def entry(feed: Boolean, capture: Capture): Option[Entry] =
     /* Try to construct the entry on the thread local container */
-    LogLocal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message,thrown) match
+    LogLocal.entry(feed,capture) match
       /* This was a success, return the entry */
       case Right(entry) => Some(entry)
-      /* The container was there but the entry could not be made due to insufficient log level. */
+      /* The container was there but the entry could not be made due to insufficient log level or blocking filter. */
       case Left(true)   => None
       /* The container was not there, we must try the global container. */
-      case Left(false)  => LogGlobal.entry(feed,level,channel,actorFilter,sourceKind,sourcePath,message,thrown) match
+      case Left(false)  => LogGlobal.entry(feed,capture) match
         /* This was a success, return the entry */
         case Right(entry) => Some(entry)
-        /* The entry could not be made due to insufficient log level or absent global logger. */
+        /* The entry could not be made due to insufficient log level, blocking filter or absent global logger. */
         case Left(_)      => None
 
   /** Enables/Disables buffering by setting the last lastIndex to a very high value or to zero. */
@@ -529,6 +520,40 @@ object ActorLogger  :
     case class Periodic(size: Int, time: FiniteDuration, level: Level) extends Spooling :
       final def direct = false
 
+   //VOEG COMMENTAAR TOE
+  class Slow(msg: () => String) :
+    private lazy val _msg = try msg() catch case e: Exception => s"Exception in log statement: ${e.getMessage}"
+    override def toString: String = _msg
+
+  object Slow:
+    def apply(msg: => String): Slow = new Slow(() => msg)
+
+   //VOEG COMMENTAAR TOE
+  trait Filter :
+    def onSource(level: Level, path: String): Boolean
+    def onActor(level: Level, path: String): Boolean
+    def onMessage(level: Level, msg: => String): Boolean
+
+  object Filter :
+    object allPass extends Filter :
+      final def onSource(level: Level, path: String)    = true
+      final def onActor(level: Level, path: String)     = true
+      final def onMessage(level: Level, msg: => String) = true
+
+   //VOEG COMMENTAAR TOE
+  transparent class Capture(
+      val level: Level,
+      val channel: Channel,
+      val filter: Filter,
+      val sourceKind: Kind,
+      val sourcePath: String,
+      val message: String | Slow,
+      val thrown: Option[Throwable] = None) :
+    def passActor(actorPath: String): Boolean = filter.onActor(level,actorPath)
+    def passSource: Boolean  = filter.onSource(level,sourcePath)
+    def passMessage: Boolean = filter.onMessage(level,message.toString)
+    def getMessage: String   = message.toString
+
 
   /**
    * The different timings that are available for logging. Nanos offers resolution at the nanosecond level,
@@ -650,21 +675,13 @@ object ActorLogger  :
      * Construct an log entry based on the given data and add a timestamp, an index,  a thread name, timing and
      * actor path name (if available). Every entry that is created gets a new unique index number, and the level
      * at which it is created also increases a use counter. */
-    def apply(
-        path: String,
-        level: Level,
-        timing: Timing,
-        channel: Channel,
-        sourceKind: Kind,
-        sourcePath: String,
-        message: String,
-        thrown: Option[Throwable]
-      ): Entry =
-      val counter    = level.created()
+    def apply(actorName: String, timing: Timing, capture: Capture): Entry =
+      val counter    = capture.level.created()
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
-      new Entry(index,level,counter,timing,timeStamp,channel,threadName,path,sourceKind,sourcePath,thrown,message)
+      new Entry(index,capture.level,counter,timing,timeStamp,capture.channel,threadName,actorName,
+                capture.sourceKind,capture.sourcePath,capture.thrown,capture.message.toString)
 
 
   /**

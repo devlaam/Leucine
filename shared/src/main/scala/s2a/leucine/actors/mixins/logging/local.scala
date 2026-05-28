@@ -30,7 +30,7 @@ import java.lang.ThreadLocal
  * This object gives access to the thread local logHolders and accumulates its entries
  * and boundary values. To be used next to LogGlobal. */
 private class LogLocal() :
-  import ActorLogger.{Level, Channel, Entry}
+  import ActorLogger.{Level, Channel, Entry, Capture}
   import Static.Kind
   import LogHolder.{Hold, ActorFilter, minStart, maxStart}
 
@@ -94,25 +94,19 @@ private class LogLocal() :
    * Left(false) to indicate we could not handle this call. If the holder is present, but the level is
    * not sufficient for action return Left(true) to indicate the situation has been dealt with. When feed
    * is true, the entry will be directly stored on the log queue. Return the required entry instance. */
-  private[actors] def entry(
-      feed: Boolean,
-      level: Level,
-      channel: Channel,
-      actorFilter: ActorFilter,
-      kind: Kind,
-      path: String,
-      message: => String,
-      thrown: Option[Throwable]
-    ): Either[Boolean,Entry] =
-    /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
+  private[actors] def entry(feed: Boolean, capture: Capture): Either[Boolean,Entry] =
+   /* Try to obtain the local logHolder in this thread. Since this is a Java call it may return null. */
     val holder = threadedHolder.get()
     /* If so, we do not have a container and we must try the globalHolder as fallback (thus we return false).
      * Otherwise we use the obtained holder for thread local handling. Since we are always in one thread, (for
      * empty, which removes data and entry which adds data) synchronize is not needed. */
     if holder == null then Left(false) else
-      if !holder.pass(level,actorFilter) then Left(true) else
+      /* In the holder we test if the actor path and level fulfill the runtime requirements and if so,
+       * we finally test the message filter. This can now not be longer postponed. In case of slow messages
+       * this is the place where the message string gets created. */
+      if !holder.pass(capture) || !capture.passMessage then Left(true) else
         /* Construct the entry on the holder. */
-        val entry = holder.make(level,channel,kind,path,message,thrown)
+        val entry = holder.make(capture)
         /* Add the entry to the log queue.  */
         if feed then holder.add(entry)
         /* Construct the entry on the holder. */
