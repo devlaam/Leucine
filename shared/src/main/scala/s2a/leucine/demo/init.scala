@@ -51,6 +51,9 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   /** Set fixLevel to Level.Trace to ensure all logs pass during development. */
   final val fixLevel = Level.Trace
 
+  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
+  final val incidentLevel = Level.Warn
+
   /** Set fullPath to true to obtain full info on object/class/method names. */
   final val fullPath = true
 
@@ -59,10 +62,6 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
 
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
-
-  /** Do not filter, let all logs pass */
-  final def filter: Filter = Filter.Pass
-
 
   /* Experiment here to see the effects of including and excluding channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -75,14 +74,14 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   /** Use reasonable periodic spooling settings. */
   final val spooling = Spooling.Periodic(10,5.seconds,Level.Warn)
 
-  /** Set timing to Nanos to have accurate log entries. */
-  final val timing = Timing.Nanos
-
-  /** Set the incident logging level to warn so we we count warning and more severe log events as incidents. */
-  final val incidentLevel = Level.Warn
-
   /** Set local to true to allow for changes in logging/incident level and timing within the actors. */
   final val localSettings = true
+
+  /** Do not filter, let all logs pass */
+  final val filter: Filter = Filter.Pass
+
+  /** Set timing to Nanos to have accurate log entries. */
+  final val timing = Timing.Nanos
 
   /* We want to set the used pass level at the start of the application via its arguments. But we
    * also want the logger to be available as global object. So we must manipulate the value after

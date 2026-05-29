@@ -47,6 +47,9 @@ trait ProductionLoggerSettings :
   /** Set fixLevel to Level.Info to for a realistic information load. */
   final val fixLevel = Level.Info
 
+  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
+  final val incidentLevel = Level.Warn
+
   /** Set fullPath to false to have concise object/class/method names. */
   final val fullPath = false
 
@@ -56,26 +59,23 @@ trait ProductionLoggerSettings :
   /** Set showConfidential to false to hide usernames and passwords in the logs. */
   final val showConfidential = false
 
-  /** Do not filter, let all logs pass */
-  def filter: Filter = Filter.Pass
-
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
   /** Use periodic spooling with high thresholds to minimize execution delay. */
   final val spooling = Spooling.Periodic(100,1.minute,Level.Error)
 
+  /** Disable any local settings in actors for more efficiency. */
+  final val localSettings = false
+
+  /** Do not filter, let all logs pass */
+  def filter: Filter  = Filter.Pass
+
   /** During production second level accuracy suffices. This is more efficient. */
   def timing: Timing  = Timing.Recent
 
   /** Since fixLevel is already Level.Info, lower makes no sense here. */
   def runLevel: Level = Level.Info
-
-  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
-  final val incidentLevel = Level.Warn
-
-  /** Disable any local settings in actors for more efficiency. */
-  final val localSettings = false
 
 
 
@@ -91,6 +91,9 @@ trait BetaTestLoggerSettings :
   /** Set fixLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
   final val fixLevel = Level.Beta
 
+  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
+  final val incidentLevel = Level.Warn
+
   /** Set fullPath to false to have concise object/class/method names. */
   final val fullPath = false
 
@@ -100,26 +103,23 @@ trait BetaTestLoggerSettings :
   /** Set showConfidential to false to hide usernames and passwords in the logs. */
   final val showConfidential = false
 
-  /** Do not filter, let all logs pass */
-  def filter: Filter = Filter.Pass
-
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
   /** Use periodic spooling with high thresholds to minimize execution delay. */
   final val spooling = Spooling.Periodic(100,1.minute,Level.Warn)
 
+  /** Enable local settings to allow for changes in logging/incident level and timing within the actors. */
+  final val localSettings = true
+
+  /** Do not filter, let all logs pass */
+  def filter: Filter  = Filter.Pass
+
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
-  def timing: Timing = Timing.Millis
+  def timing: Timing  = Timing.Millis
 
   /** Since fixLevel is already Level.Beta, lower makes no sense here. */
   def runLevel: Level = Level.Beta
-
-  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
-  final val incidentLevel = Level.Warn
-
-  /** Enable local settings to allow for changes in logging/incident level and timing within the actors. */
-  final val localSettings = true
 
 
 /**
@@ -134,6 +134,9 @@ trait DevelopmentLoggerSettings :
   /** Set fixLevel to Level.Trace to ensure all logs pass during development. */
   final val fixLevel = Level.Trace
 
+  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
+  final val incidentLevel = Level.Warn
+
   /** Set fullPath to true to obtain full info on object/class/method names. */
   final val fullPath = true
 
@@ -143,24 +146,21 @@ trait DevelopmentLoggerSettings :
   /** Set showConfidential to true to see usernames and passwords in the logs. */
   final val showConfidential = true
 
-  /** Do not filter, let all logs pass */
-  def filter: Filter = Filter.Pass
-
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
 
   /** Use periodic spooling with lower thresholds to have responsive logging. */
   final val spooling = Spooling.Periodic(10,5.seconds,Level.Warn)
 
+  /** Enable local settings to allow for changes in logging/incident level and timing within the actors. */
+  final val localSettings = true
+
+  /** Do not filter, let all logs pass */
+  def filter: Filter  = Filter.Pass
+
   /** Set timing to Nanos to have accurate log entries. */
-  def timing: Timing = Timing.Nanos
+  def timing: Timing  = Timing.Nanos
 
   /** Set default logging level to debug to see all logs during development. */
   def runLevel: Level = Level.Debug
-
-  /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
-  final val incidentLevel = Level.Warn
-
-  /** Enable local settings to allow for changes in logging/incident level and timing within the actors. */
-  final val localSettings = true
 

@@ -58,26 +58,17 @@ trait LogHandlerConfig :
   def showConfidential: Boolean
 
   /**
-   * Each log entry contains information about its source, objects, classes and methods. Implement this filter so
-   * you can zoom in on particular log entries by inspecting the path. It is a run time filter that works for all
-   * levels. However, if a fatal event appears, the special call handleFatal will nevertheless be used, even
-   * if you block the corresponding  entry here. The passed path depends on the setting of fullPath. Return true
-   * to allow for the entry, return false to block it. If there is no need for this functionality, just return true.
-   * Implementation is obligatory, even if unused. */
-  //def sourcePathFilter(level: Level, path: String): Boolean
-
-  /**
-   * Log entries that are made inside the execution of an actor (can be any class or object) contains information
-   * about its actor name/path. With this filter you can zoom in on particular log entries by inspecting the path.
-   * Note that, if you construct a new actor in and other actor, the constructor code of your new actor, actually
-   * runs in the constructing actor. So this may lead to missed logs if you set the filter to narrow.
-   * It is a run time filter that works for all levels. However, if a fatal event appears, the special call
-   * appFatal/sysFatal will nevertheless be used, even if you block the corresponding  entry here. Return true to allow
-   * for the entry, return false to block it. If there is no need for this functionality, just return true.
-   * Implementation is obligatory, even if unused. */
-  //def actorPathFilter(level: Level, path: String): Boolean
-
-  //VOEG COMMENTAAR TOE.
+   * Filter gives you the possibility to filter the log statement before spooling at runtime. If the statement
+   * does not pass any of the filters it is discarded. There are three flavors: Filter on the source path,
+   * the actor path (or name) and the contents of the message itself. The filters are applied in that order.
+   * The first filter that blocks terminates the sequence. Note that the actorPath gets passed the actor path
+   * which depends on the setting of fullPath so make sure your filter code is aware of that. The same applies
+   * to the sourcePath filter which depends on the setting of fullParameters.
+   * You can make each filter level dependent on its own if needed. The filters allow you to zoom in on particular
+   * log entries and (temporarily) suppress log statements that are not of interest.  However, if a fatal event
+   * appears, the special call appFatal/sysFatal will nevertheless be used, even if you block the corresponding
+   * entry here. Implement the Filter trait and its corresponding methods to define your own filters. If there
+   * is no need for this functionality, just return Filter.Pass to let all statements pass. */
   def filter: Filter
 
   /**
@@ -166,12 +157,12 @@ trait LogProcessConfig :
 
   /**
    * Level (equal and) above which the log event is counted as incident in the actors.
-   * Although you may change the result at runtime, there are not guarantees as to when the change
-   * will become effective. Usually this for making runtime changes at the very start of the application. */
+   * Although you may change the result at runtime, there are not guarantees as to when the change will
+   * become effective. Usually this is for making runtime changes at the very start of the application. */
   def incidentLevel: Level
 
   /**
    * Define the default runtime active logging timing (see ActorLogger.Timing for documentation).
-   * Although you may change the result at runtime, there are not guarantees as to when the change
-   * will become effective. Usually this for making runtime changes at the very start of the application. */
+   * Although you may change the result at runtime, there are not guarantees as to when the change will
+   * become effective. Usually this is for making runtime changes at the very start of the application. */
   def timing: Timing
