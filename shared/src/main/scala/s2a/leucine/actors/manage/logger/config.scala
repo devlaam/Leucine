@@ -32,10 +32,10 @@ trait LogHandlerConfig :
   import ActorLogger.{Level, Entry, ShowChannels, Spooling, Filter}
 
   /**
-   * The fixPassLevel defines the logging level used at compile time. Regular log statements with a lower
+   * The fixLevel defines the logging level used at compile time. Regular log statements with a lower
    * level will to removed from the code at compile time. Use this for example to eliminate info and
    * debug log messages by setting it to Level.Warn for a production release. */
-  def fixPassLevel: Level
+  def fixLevel: Level
 
   /**
    * Log entries contain information about the origin of their use (objects, classes and methods). With
@@ -162,7 +162,7 @@ trait LogProcessConfig :
    * Define the default runtime active logging level (see ActorLogger.Level for documentation).
    * Although you may change the result at runtime, there are not guarantees as to when the change will
    * become effective. Usually this is for making runtime changes at the very start of the application. */
-  def passLevel: Level
+  def runLevel: Level
 
   /**
    * Level (equal and) above which the log event is counted as incident in the actors.

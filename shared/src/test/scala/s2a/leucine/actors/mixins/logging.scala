@@ -40,7 +40,7 @@ trait TestLoggerProcessing(level: ActorLogger.Level, buffer: Buffer[String]) :
     spoolGuard.synchronized :
       ActorLogger.simpleSpool(retrieve(),process)
 
-  final val passLevel: Level = level
+  final val runLevel: Level = level
   def process(entry: Entry): Unit = buffer.writeln(entry.message)
   def appFatal(message: String): Unit = buffer.writeln(message.toUpperCase())
   def sysFatal(message: String): Unit = buffer.writeln(message.toUpperCase())
@@ -56,13 +56,13 @@ object ActorLoggerTest extends TestSuite :
 
   /* Loggers with different settings for the fixed level. These have all to be spelled out, for the
    * the fixLevel must be a constant type in order for the inline expressions to work. */
-  class FatalLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Fatal }
-  class ErrorLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Error }
-  class WarnLogger (rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Warn }
-  class InfoLogger (rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Info }
-  class BetaLogger (rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Beta }
-  class DebugLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Debug }
-  class TraceLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixPassLevel = Level.Trace }
+  class FatalLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Fatal }
+  class ErrorLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Error }
+  class WarnLogger (rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Warn }
+  class InfoLogger (rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Info }
+  class BetaLogger (rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Beta }
+  class DebugLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Debug }
+  class TraceLogger(rtLevel: Level, buffer: Buffer[String]) extends BaseLogger(rtLevel,buffer) { final val fixLevel = Level.Trace }
 
   /* Base writer to handle the common writer tasks. */
   abstract class BaseWriter[Logger <: BaseLogger](name: String, writeln: String => Unit, done: () => Unit, logger: Logger) extends AcceptActor(Writer,name), LogAid(logger) :
@@ -81,7 +81,7 @@ object ActorLoggerTest extends TestSuite :
       case  Writer.Debug   => logger.debug(s"debug($name)")
       case  Writer.Trace   => logger.trace(s"trace($name)")
 
-  /* Also here, to test we must construct a different writer for each FixPassLevel in order to be able to
+  /* Also here, to test we must construct a different writer for each fixLevel in order to be able to
    * inline the logger calls. */
   class FatalWriter(name: String, val writeln: String => Unit, val done: () => Unit, logger: FatalLogger) extends BaseWriter(name,writeln,done,logger):
     def receive(letter: Writer.Letter, sender: Sender): Unit = process(letter)

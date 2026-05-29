@@ -48,8 +48,8 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   case object Crawler extends Channel
 
 
-  /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
-  final val fixPassLevel = Level.Trace
+  /** Set fixLevel to Level.Trace to ensure all logs pass during development. */
+  final val fixLevel = Level.Trace
 
   /** Set fullPath to true to obtain full info on object/class/method names. */
   final val fullPath = true
@@ -94,7 +94,7 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   def setLevel(level: Level): Unit = this.level = level
 
   /** This is called to obtain the current logging level. */
-  final def passLevel: Level = level
+  final def runLevel: Level = level
 
   /* In this demo we want all the logging to appear at the end. So we buffer it until the
    * application is about to close. Then it is displayed. This prohibits mixing the output
@@ -131,7 +131,7 @@ object Init :
      * level. If this fails: no logging. */
     Logger.setLevel(CLI.argsOf(args).headOption.flatMap(Level.fromString).getOrElse(Level.Disable))
     /* Register the Logger so that the ActorGuard can start (and stop) it, if not disabled. */
-    if Logger.passLevel > Level.Disable then ActorGuard.register(Logger)
+    if Logger.runLevel > Level.Disable then ActorGuard.register(Logger)
     /* Register the Monitor so that the ActorGuard can start (and stop) it. */
     ActorGuard.register(Monitor)
     Logger.info("Main called")

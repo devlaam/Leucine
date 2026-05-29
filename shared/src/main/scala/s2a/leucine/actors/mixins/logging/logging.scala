@@ -41,13 +41,13 @@ trait LogAid(logger: ActorLogger) extends ActorInit, ActorDefs :
   this: BareActor =>
   import ActorLogger.{Level, Timing}
 
-  /* Local copies of the passLevel and timing from the global values. Although you may change the
+  /* Local copies of the runLevel and timing from the global values. Although you may change the
    * global values from the outside, this has no effect once the actor is created. If the values
    * are changed with logSettings this has effect directly. */
-  private var _level: Level    = logger.passLevel
+  private var _level: Level    = logger.runLevel
   private var _timing: Timing  = logger.timing
 
-  /* Local functions to produce the values of passLevel and timing inside the local instance of LogHolder. */
+  /* Local functions to produce the values of runLevel and timing inside the local instance of LogHolder. */
   private def level(): Level   = _level
   private def timing(): Timing = _timing
 

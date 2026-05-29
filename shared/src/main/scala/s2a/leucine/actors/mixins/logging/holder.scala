@@ -31,14 +31,14 @@ package s2a.leucine.actors
  * for large amounts of logs due to the scattered nature of memory use and missed cache hits
  * at garbage collection. The class also keeps a local copy of the active level and timing
  * settings. Any entry can be (runtime) checked prior to entry construction and storage.
- * The incident level is used to determine when an entry is counted as incident. The passLevel
+ * The incident level is used to determine when an entry is counted as incident. The runLevel
  * and timing are functions, and you may alter their outcome from the outside during operation.
  * For internal use only. The class is not thread safe by design, so synchronize your calls
  * or ensure that you are using this holder in one thread by other means. The latter is comes
  * natural when used as a thread local variable. */
 private class LogHolder(
     actorPath: String,
-    passLevel: () => ActorLogger.Level,
+    runLevel: () => ActorLogger.Level,
     incidentLevel: ActorLogger.Level,
     timing: () => ActorLogger.Timing) :
   import ActorLogger.{Entry, Capture}
@@ -84,7 +84,7 @@ private class LogHolder(
 
   /** Test if an log entry with the given level would pass for the current settings. */
   private[actors] def pass(capture: Capture): Boolean =
-    capture.level <= passLevel() && capture.passActor(actorPath)
+    capture.level <= runLevel() && capture.passActor(actorPath)
 
   /** Add a log entry to the list. */
   private[actors] def add(entry: Entry): Unit =

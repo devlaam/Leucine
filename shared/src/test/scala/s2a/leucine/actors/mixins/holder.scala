@@ -87,9 +87,9 @@ object LogHolderTest extends TestSuite :
       /* See if no entries were added in make */
       logHolder.get.entries.isEmpty ==> true
 
-    test("pass uses passLevel and actor-path filter") :
-      var dynamicPassLevel: Level = Level.Info
-      val logHolder = new LogHolder("parent.child1",() => dynamicPassLevel,Level.Warn,() => Timing.Recent)
+    test("pass uses runLevel and actor-path filter") :
+      var dynamicLevel: Level = Level.Info
+      val logHolder = new LogHolder("parent.child1",() => dynamicLevel,Level.Warn,() => Timing.Recent)
       object Filter1 extends Filter :
         final def onSource(level: Level, kind: Kind, path: String) = true
         final def onActor(level: Level, path: String)              = (level != Level.Fatal) && (path == "parent.child1")
@@ -116,7 +116,7 @@ object LogHolderTest extends TestSuite :
       logHolder.pass(capture(Level.Beta,fixPass(true)))  ==> false
       logHolder.pass(capture(Level.Beta,fixPass(false))) ==> false
       /* Test the pass method on external filter change at various levels. */
-      dynamicPassLevel = Level.Trace
+      dynamicLevel = Level.Trace
       logHolder.pass(capture(Level.Debug,Filter1)) ==> true
       logHolder.pass(capture(Level.Debug,Filter2)) ==> false
       logHolder.pass(capture(Level.Fatal,Filter1)) ==> false

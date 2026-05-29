@@ -38,14 +38,14 @@ import scala.concurrent.duration.DurationInt
 /**
  * Default logger settings you may use for your application in production.
  * It contains reasonable defaults for the relevant obligatory definitions of the settings.
- * You may override the filters and runtime values timing and passLevel to the values you need.
+ * You may override the filters and runtime values timing and runLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait ProductionLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
-  /** Set fixPassLevel to Level.Info to for a realistic information load. */
-  final val fixPassLevel = Level.Info
+  /** Set fixLevel to Level.Info to for a realistic information load. */
+  final val fixLevel = Level.Info
 
   /** Set fullPath to false to have concise object/class/method names. */
   final val fullPath = false
@@ -68,8 +68,8 @@ trait ProductionLoggerSettings :
   /** During production second level accuracy suffices. This is more efficient. */
   def timing: Timing  = Timing.Recent
 
-  /** Since FixPassLevel is already Level.Info, lower makes no sense here. */
-  def passLevel: Level = Level.Info
+  /** Since fixLevel is already Level.Info, lower makes no sense here. */
+  def runLevel: Level = Level.Info
 
   /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn
@@ -82,14 +82,14 @@ trait ProductionLoggerSettings :
 /**
  * Default logger settings you may use for your application during beta testing production.
  * It contains reasonable defaults for the relevant obligatory definitions of the settings.
- * You may override the filters and runtime values timing and passLevel to the values you need.
+ * You may override the filters and runtime values timing and runLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait BetaTestLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
-  /** Set fixPassLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
-  final val fixPassLevel = Level.Beta
+  /** Set fixLevel to Level.Beta to ensure all beta logs (and above) pass during beta testing. */
+  final val fixLevel = Level.Beta
 
   /** Set fullPath to false to have concise object/class/method names. */
   final val fullPath = false
@@ -112,8 +112,8 @@ trait BetaTestLoggerSettings :
   /** Set timing to Millis to have a reasonable estimate about the moment the log was processed. */
   def timing: Timing = Timing.Millis
 
-  /** Since fixPassLevel is already Level.Beta, lower makes no sense here. */
-  def passLevel: Level = Level.Beta
+  /** Since fixLevel is already Level.Beta, lower makes no sense here. */
+  def runLevel: Level = Level.Beta
 
   /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn
@@ -125,14 +125,14 @@ trait BetaTestLoggerSettings :
 /**
  * Default logger settings you may use for your application during development production.
  * It contains reasonable defaults for the relevant obligatory definitions of the settings.
- * You may override the filters and runtime values timing and passLevel to the values you need.
+ * You may override the filters and runtime values timing and runLevel to the values you need.
  * If other values need to be changed, define all of them in your Logger object. */
 trait DevelopmentLoggerSettings :
   import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
-  /** Set fixPassLevel to Level.Trace to ensure all logs pass during development. */
-  final val fixPassLevel = Level.Trace
+  /** Set fixLevel to Level.Trace to ensure all logs pass during development. */
+  final val fixLevel = Level.Trace
 
   /** Set fullPath to true to obtain full info on object/class/method names. */
   final val fullPath = true
@@ -156,7 +156,7 @@ trait DevelopmentLoggerSettings :
   def timing: Timing = Timing.Nanos
 
   /** Set default logging level to debug to see all logs during development. */
-  def passLevel: Level = Level.Debug
+  def runLevel: Level = Level.Debug
 
   /** Set the incident logging level to warn so we count warning and more severe log events as incidents. */
   final val incidentLevel = Level.Warn

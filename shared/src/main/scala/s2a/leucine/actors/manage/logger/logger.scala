@@ -50,7 +50,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
 
   /* Contains the logHolder for the main and other threads without local logHolders. (non top
    * level objects are lazy, so we have the correct values here, this works) */
-  private object LogGlobal extends LogGlobal(LogHolder("",() => passLevel,incidentLevel, () => timing))
+  private object LogGlobal extends LogGlobal(LogHolder("",() => runLevel,incidentLevel, () => timing))
 
   /* Contains the logHolder for the actors with local logHolders. (non top level objects are lazy,
    * so we have the correct values here, this works) */

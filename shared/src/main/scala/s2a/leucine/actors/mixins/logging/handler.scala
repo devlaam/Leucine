@@ -48,12 +48,12 @@ private trait LogHandler extends LogHandlerConfig:
 
   /* See if the current fixed level surpassed the level of this entry, if not, we are done. Eliminates
    * subsequent code if the test is not fulfilled. */
-  inline private[actors] def pass(inline level: Level) = level.ordinal <= fixPassLevel.ordinal
+  inline private[actors] def pass(inline level: Level) = level.ordinal <= fixLevel.ordinal
 
   /* See if the current fixed level surpassed the level of this entry and if we may publish in this
    * channel, if not, we are done. Eliminates subsequent code if the test is not fulfilled.  */
   inline private[actors] def pass(inline level: Level, inline channel: Channel) =
-    level.ordinal <= fixPassLevel.ordinal && showChannels.contains(channel)
+    level.ordinal <= fixLevel.ordinal && showChannels.contains(channel)
 
 
   /** Get the  appropriate level dependent info for system logging events for the source path. */
@@ -94,7 +94,7 @@ private trait LogHandler extends LogHandlerConfig:
    * information. The logic test to see if logging is required is fast. The call publishes the message in
    * in the channel Pass, SysPrd or SysDvl depending on the level. */
   private[actors] inline def syslog(inline level: Level, inline message: String): Unit =
-    if level <= fixPassLevel then
+    if level <= fixLevel then
       inline if level.ordinal == Level.Fatal.ordinal then sysFatal(message)
       if level.ordinal == Level.Fatal.ordinal ||
          showChannels.hasSysPrd && level.ordinal <= Level.Info.ordinal ||
@@ -104,7 +104,7 @@ private trait LogHandler extends LogHandlerConfig:
 
   /**
    * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent.
-   * This call is only eliminated from the code when fixLevel is set to Ignore. The call publishes the message
+   * This call is only eliminated from the code when fixLevel is set to Disable. The call publishes the message
    * in the channel Pass, so is cannot be stopped with ShowChannels(()). Make sure your message does not require
    * lengthy calculations, preferably use a short fixed string. */
   inline def fatal(message: String | Slow): Unit =
@@ -117,7 +117,7 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent,
    * with the ability to pass a throwable. Leucine just passes the the throwable and does not interact with it.
-   * This call is only eliminated from the code when fixLevel is set to Ignore. The call publishes the message
+   * This call is only eliminated from the code when fixLevel is set to Disable. The call publishes the message
    * in the channel Pass, so is cannot be stopped with ShowChannels(()). */
   inline def fatal(message: String | Slow, throwable: Throwable): Unit =
     inline if pass(Level.Fatal) then
@@ -175,7 +175,7 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make log entry with level Beta, to keep the developer informed about the systems whereabouts.
    * Promote debug messages that are important during beta testing to the level Beta. That way they
-   * can easily be eliminated by setting the fixPassLevel/passLevel to Info for production code, but
+   * can easily be eliminated by setting the fixLevel/runLevel to Info for production code, but
    * still been seen during Beta testing, without the clutter of all the other debug logging. This call
    * is eliminated from the code when not needed on a best effort approach. The call publishes the message
    * in the channel AppDvl. */
@@ -186,7 +186,7 @@ private trait LogHandler extends LogHandlerConfig:
   /**
    * Make log entry with level Beta, to keep the developer informed about the systems whereabouts.
    * Promote debug messages that are important during beta testing to the level Beta. That way they
-   * can easily be eliminated by setting the FixPassLevel/passLevel to Info for production code, but
+   * can easily be eliminated by setting the fixLevel/runLevel to Info for production code, but
    * still been seen during Beta testing, without the clutter of all the other debug logging.
    * Use this call to log sensitive information like usernames and passwords. During testing, with
    * ShowConfidential set to true, the confidentialMessage is used for logging. At production, set
