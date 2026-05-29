@@ -5,8 +5,8 @@ import utest.*
 
 object HolderTest extends TestSuite :
 
-  import LogHolder.{Hold, fixPass}
-  import ActorLogger.Level
+  import LogHolder.Hold
+  import ActorLogger.{Level,Filter}
 
   val tests = Tests :
 
@@ -35,11 +35,11 @@ object HolderTest extends TestSuite :
       val right = Hold[List[Int]](20L,List(List(3,4)),22L)
       (empty + right) ==> right
 
-    test("fixPass filter ignores input") :
-      fixPass(true)(Level.Error,"main.work")  ==> true
-      fixPass(false)(Level.Error,"main.leaf") ==> false
-      fixPass(true)(Level.Trace,"main.work")  ==> true
-      fixPass(false)(Level.Trace,"main.leaf") ==> false
+    test("Filter.Pass filter always returns true") :
+      Filter.Pass.onSource(Level.Error,Static.Class,"main.work")  ==> true
+      Filter.Pass.onActor(Level.Error,"main.leaf") ==> true
+      Filter.Pass.onMessage(Level.Trace,"troubles")  ==> true
+
 
     test("Hold.merge ignores empty holds") :
       val hold1 = Hold.empty[String]
@@ -54,8 +54,9 @@ object HolderTest extends TestSuite :
 
 object LogHolderTest extends TestSuite :
 
-  import ActorLogger.{Level, Timing, Channel}
-  import LogHolder.{Hold, fixPass}
+  import ActorLogger.{Level, Timing, Channel, Capture, Filter}
+  import Static.Kind
+  import LogHolder.Hold
 
   val tests = Tests :
 
@@ -66,8 +67,8 @@ object LogHolderTest extends TestSuite :
 
     test("make creates entries and counts incidents") :
       val logHolder = new LogHolder("parent.child",() => Level.Trace,Level.Warn,() => Timing.Millis)
-      val incident  = logHolder.make(Level.Error,Channel.Pass,Static.Method,"/main/myclass/method1","Troubles",None)
-      val regular   = logHolder.make(Level.Info,Channel.Pass,Static.Class,"/main/myclass/method2","All is fine",None)
+      val incident  = logHolder.make(Capture(Level.Error,Channel.Pass,Filter.Pass,Static.Method,"/main/myclass/method1","Troubles"))
+      val regular   = logHolder.make(Capture(Level.Info,Channel.Pass,Filter.Pass,Static.Class,"/main/myclass/method2","All is fine"))
       /* See if there is just one incident. */
       logHolder.getIncidents ==> 1
       /* Test the entry contents for construction errors. */
@@ -89,35 +90,47 @@ object LogHolderTest extends TestSuite :
     test("pass uses passLevel and actor-path filter") :
       var dynamicPassLevel: Level = Level.Info
       val logHolder = new LogHolder("parent.child1",() => dynamicPassLevel,Level.Warn,() => Timing.Recent)
-      val filter1: LogHolder.ActorFilter = (level,path) => (level != Level.Fatal) && (path == "parent.child1")
-      val filter2: LogHolder.ActorFilter = (level,path) => (level != Level.Fatal) && (path == "parent.child2")
+      object Filter1 extends Filter :
+        final def onSource(level: Level, kind: Kind, path: String) = true
+        final def onActor(level: Level, path: String)              = (level != Level.Fatal) && (path == "parent.child1")
+        final def onMessage(level: Level, msg: => String)          = true
+      object Filter2 extends Filter :
+        final def onSource(level: Level, kind: Kind, path: String) = true
+        final def onActor(level: Level, path: String)              = (level != Level.Fatal) && (path == "parent.child2")
+        final def onMessage(level: Level, msg: => String)          = true
+      object Block extends Filter :
+        final def onSource(level: Level, kind: Kind, path: String) = false
+        final def onActor(level: Level, path: String)              = false
+        final def onMessage(level: Level, msg: => String)          = false
+      def capture(level: Level, filter: Filter) = Capture(level,Channel.Pass,filter,Static.Method,"/main/myclass/method1","Troubles")
+      def fixPass(result: Boolean): Filter = if result then Filter.Pass else Block
       /* Test the pass method on fixed filters at various levels. */
-      logHolder.pass(Level.Warn,filter1)   ==> true
-      logHolder.pass(Level.Warn,filter2)   ==> false
-      logHolder.pass(Level.Debug,filter1)  ==> false
-      logHolder.pass(Level.Debug,filter2)  ==> false
-      logHolder.pass(Level.Fatal,fixPass(true))  ==> true
-      logHolder.pass(Level.Fatal,fixPass(false)) ==> false
-      logHolder.pass(Level.Info,fixPass(true))  ==> true
-      logHolder.pass(Level.Info,fixPass(false)) ==> false
-      logHolder.pass(Level.Beta,fixPass(true))  ==> false
-      logHolder.pass(Level.Beta,fixPass(false)) ==> false
+      logHolder.pass(capture(Level.Warn,Filter1))   ==> true
+      logHolder.pass(capture(Level.Warn,Filter2))   ==> false
+      logHolder.pass(capture(Level.Debug,Filter1))  ==> false
+      logHolder.pass(capture(Level.Debug,Filter2))  ==> false
+      logHolder.pass(capture(Level.Fatal,fixPass(true)))  ==> true
+      logHolder.pass(capture(Level.Fatal,fixPass(false))) ==> false
+      logHolder.pass(capture(Level.Info,fixPass(true)))  ==> true
+      logHolder.pass(capture(Level.Info,fixPass(false))) ==> false
+      logHolder.pass(capture(Level.Beta,fixPass(true)))  ==> false
+      logHolder.pass(capture(Level.Beta,fixPass(false))) ==> false
       /* Test the pass method on external filter change at various levels. */
       dynamicPassLevel = Level.Trace
-      logHolder.pass(Level.Debug,filter1) ==> true
-      logHolder.pass(Level.Debug,filter2) ==> false
-      logHolder.pass(Level.Fatal,filter1) ==> false
-      logHolder.pass(Level.Fatal,filter2) ==> false
-      logHolder.pass(Level.Trace,fixPass(true))  ==> true
-      logHolder.pass(Level.Trace,fixPass(false)) ==> false
+      logHolder.pass(capture(Level.Debug,Filter1)) ==> true
+      logHolder.pass(capture(Level.Debug,Filter2)) ==> false
+      logHolder.pass(capture(Level.Fatal,Filter1)) ==> false
+      logHolder.pass(capture(Level.Fatal,Filter2)) ==> false
+      logHolder.pass(capture(Level.Trace,fixPass(true)))  ==> true
+      logHolder.pass(capture(Level.Trace,fixPass(false))) ==> false
 
     test("get returns hold bounds and clear resets holder") :
       val logHolder = new LogHolder("parent.child",() => Level.Trace,Level.Warn,() => Timing.Recent)
-      val entry1 = logHolder.make(Level.Warn,Channel.Pass,Static.Object,"classA.objectA","first",None)
-      val entry2 = logHolder.make(Level.Info,Channel.Pass,Static.Class,"classA.classB","second",None)
-      val entry3 = logHolder.make(Level.Trace,Channel.Pass,Static.Method,"classA.methodC","third",None)
-      val entry4 = logHolder.make(Level.Error,Channel.Pass,Static.Class,"classA.classC","forth",None)
-      val entry5 = logHolder.make(Level.Beta,Channel.Pass,Static.Object,"classA.objectB","fifth",None)
+      val entry1 = logHolder.make(Capture(Level.Warn,Channel.Pass,Filter.Pass,Static.Object,"classA.objectA","first"))
+      val entry2 = logHolder.make(Capture(Level.Info,Channel.Pass,Filter.Pass,Static.Class,"classA.classB","second"))
+      val entry3 = logHolder.make(Capture(Level.Trace,Channel.Pass,Filter.Pass,Static.Method,"classA.methodC","third"))
+      val entry4 = logHolder.make(Capture(Level.Error,Channel.Pass,Filter.Pass,Static.Class,"classA.classC","forth"))
+      val entry5 = logHolder.make(Capture(Level.Beta,Channel.Pass,Filter.Pass,Static.Object,"classA.objectB","fifth"))
       /* Add a few entries*/
       logHolder.add(entry1)
       logHolder.add(entry2)

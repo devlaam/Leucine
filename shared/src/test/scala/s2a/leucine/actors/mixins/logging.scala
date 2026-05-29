@@ -10,12 +10,13 @@ import s2a.control.{Buffer, Deferred}
 
 /** Special Settings for this test */
 trait TestLoggerSettings :
-  import ActorLogger.{Level, Timing, ShowChannels, Spooling}
+  import ActorLogger.{Level, Timing, ShowChannels, Spooling, Filter}
   import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   final val fullPath         = false
   final val fullParameters   = true
   final val showConfidential = true
+  final val filter           = Filter.Pass
   final val showChannels     = ShowChannels((SysPrd, AppPrd, AppDvl))
   final val spooling         = Spooling.Periodic(10,5.seconds,Level.Error)
   final val timing           = Timing.Nanos
@@ -43,9 +44,6 @@ trait TestLoggerProcessing(level: ActorLogger.Level, buffer: Buffer[String]) :
   def process(entry: Entry): Unit = buffer.writeln(entry.message)
   def appFatal(message: String): Unit = buffer.writeln(message.toUpperCase())
   def sysFatal(message: String): Unit = buffer.writeln(message.toUpperCase())
-
-  final def sourcePathFilter(level: Level, path: String): Boolean = true
-  final def actorPathFilter(level: Level, path: String): Boolean = true
 
 object ActorLoggerTest extends TestSuite :
   import ActorLogger.Level
