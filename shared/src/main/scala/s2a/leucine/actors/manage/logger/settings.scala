@@ -57,7 +57,7 @@ trait ProductionLoggerSettings :
   final val showConfidential = false
 
   /** Do not filter, let all logs pass */
-  def filter: Filter = Filter.allPass
+  def filter: Filter = Filter.Pass
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -101,7 +101,7 @@ trait BetaTestLoggerSettings :
   final val showConfidential = false
 
   /** Do not filter, let all logs pass */
-  def filter: Filter = Filter.allPass
+  def filter: Filter = Filter.Pass
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))
@@ -144,7 +144,7 @@ trait DevelopmentLoggerSettings :
   final val showConfidential = true
 
   /** Do not filter, let all logs pass */
-  def filter: Filter = Filter.allPass
+  def filter: Filter = Filter.Pass
 
   /** Show only the default channels. */
   final val showChannels = ShowChannels((SysPrd, AppPrd, AppDvl))

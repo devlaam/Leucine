@@ -36,9 +36,8 @@ import scala.collection.mutable.ListBuffer
  * method of this interface and the FixLevel to get your logger running. See the
  * DefaultActorLogger object for an example. */
 trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessConfig, Service :
-  import ActorLogger.{Level, Channel, Entry, Capture}
-  import LogHolder.{Hold, ActorFilter}
-  import Static.Kind
+  import ActorLogger.{Level, Entry, Capture}
+  import LogHolder.Hold
 
   /* Keep an lower bound of the index since the last retrieve. Note that we must synchronize
    * since bare longs are not atomic with respect to read/write in Java (others are, except doubles)
@@ -520,39 +519,53 @@ object ActorLogger  :
     case class Periodic(size: Int, time: FiniteDuration, level: Level) extends Spooling :
       final def direct = false
 
-   //VOEG COMMENTAAR TOE
-  class Slow(msg: () => String) :
+  /**
+   * Class to pack your log messages when they contain (extensive) calculations or may trigger exceptions
+   * at evaluation. For regular log message just use standard strings. If you pack your string in this
+   * class the evaluation will be postponed until all tests and filters are done. If the log does not make
+   * it to the spooler, the string is never evaluated. If it does, it is evaluated at most one time, but this
+   * may take place in an other thread. Make sure the string calculator is thread safe. */
+  class Slow private (msg: () => String) :
     private lazy val _msg = try msg() catch case e: Exception => s"Exception in log statement: ${e.getMessage}"
     override def toString: String = _msg
 
   object Slow:
+    /** Convenience packer for Slow. */
     def apply(msg: => String): Slow = new Slow(() => msg)
 
-   //VOEG COMMENTAAR TOE
+  /** Trait the user can implement to filter logs before they are passed to spooler.  */
   trait Filter :
-    def onSource(level: Level, path: String): Boolean
+    /** Filter method to filter on the log level, source location and enclosing kind of the log instruction. */
+    def onSource(level: Level, kind: Kind, path: String): Boolean
+    /** Filter method to filter on the log level and the name or full family path of the actor */
     def onActor(level: Level, path: String): Boolean
+    /** Filter method to filter on the log level and contents of the message. */
     def onMessage(level: Level, msg: => String): Boolean
 
+  /* Companion object of Filter trait. */
   object Filter :
-    object allPass extends Filter :
-      final def onSource(level: Level, path: String)    = true
-      final def onActor(level: Level, path: String)     = true
-      final def onMessage(level: Level, msg: => String) = true
+    /** Filter object that allows all logs to pass. This is the default value. */
+    object Pass extends Filter :
+      final def onSource(level: Level, kind: Kind, path: String) = true
+      final def onActor(level: Level, path: String)              = true
+      final def onMessage(level: Level, msg: => String)          = true
 
-   //VOEG COMMENTAAR TOE
-  transparent class Capture(
-      val level: Level,
-      val channel: Channel,
-      val filter: Filter,
-      val sourceKind: Kind,
-      val sourcePath: String,
-      val message: String | Slow,
-      val thrown: Option[Throwable] = None) :
-    def passActor(actorPath: String): Boolean = filter.onActor(level,actorPath)
-    def passSource: Boolean  = filter.onSource(level,sourcePath)
-    def passMessage: Boolean = filter.onMessage(level,message.toString)
-    def getMessage: String   = message.toString
+  /** This class is used to capture data to be passed around in the framework. */
+  final class Capture(
+      /* All fields are private because this class is not for use outside the framework. Note the
+       * class itself cannot be made private for it is inlined in user code. */
+      private[actors] val level: Level,
+      private[actors] val channel: Channel,
+      private[actors] val filter: Filter,
+      private[actors] val sourceKind: Kind,
+      private[actors] val sourcePath: String,
+      private[actors] val message: String | Slow,
+      private[actors] val thrown: Option[Throwable] = None) :
+    /* All methods are private because this class is not for use outside the framework. */
+    private[actors] def passActor(actorPath: String): Boolean = filter.onActor(level,actorPath)
+    private[actors] def passSource: Boolean  = filter.onSource(level,sourceKind,sourcePath)
+    private[actors] def passMessage: Boolean = filter.onMessage(level,message.toString)
+    private[actors] def getMessage: String   = message.toString
 
 
   /**

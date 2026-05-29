@@ -41,9 +41,8 @@ private class LogHolder(
     passLevel: () => ActorLogger.Level,
     incidentLevel: ActorLogger.Level,
     timing: () => ActorLogger.Timing) :
-  import ActorLogger.{Level, Channel, Entry, Filter, Capture}
-  import Static.Kind
-  import LogHolder.{Hold, ActorFilter, minStart, maxStart}
+  import ActorLogger.{Entry, Capture}
+  import LogHolder.{Hold, minStart, maxStart}
 
   /* Although we produce a Hold at the end of the LogHolders lifetime , we choose not to
    * do the work inside the Hold itself, for it would require construction and destruction
@@ -108,12 +107,7 @@ private class LogHolder(
  * Object that contains the public methods to add a log to the relevant log list.
  * For internal use only */
 private object LogHolder :
-  import ActorLogger.{Level, Entry}
-
-  /* Helper type to locally pass filters around */
-  private[actors] type ActorFilter = (Level,String) => Boolean
-  /* Method to define an ActorFilter with a fixed outcome. */
-  private[actors] def fixPass(result: Boolean):  ActorFilter = (_,_) => result
+  import ActorLogger.Entry
 
   /* Universal start values to determine the highest and lowest index values */
   private[actors] inline val minStart = Long.MaxValue

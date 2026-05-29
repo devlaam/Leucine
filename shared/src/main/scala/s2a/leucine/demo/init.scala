@@ -61,7 +61,7 @@ object Logger extends ActorLogger, DefaultLoggerProcessing :
   final val showConfidential = true
 
   /** Do not filter, let all logs pass */
-  final def filter: Filter = Filter.allPass
+  final def filter: Filter = Filter.Pass
 
 
   /* Experiment here to see the effects of including and excluding channels. */

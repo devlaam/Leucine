@@ -31,9 +31,8 @@ package s2a.leucine.actors
  * futures started from within an actor. It can even be on an actor, if that actor does not have logging
  * enabled. All actions are thread save, but of course require synchronization. */
 private class LogGlobal(logHolder: LogHolder) :
-  import ActorLogger.{Level, Channel, Entry, Capture}
-  import Static.Kind
-  import LogHolder.{Hold, ActorFilter}
+  import ActorLogger.{Entry, Capture}
+  import LogHolder.Hold
 
   /**
    * Returns the number of incidents outside of the actors. At the moment we do not have a natural way to

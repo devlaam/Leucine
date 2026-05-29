@@ -30,8 +30,7 @@ package s2a.leucine.actors
  * internal extension for the actor logger. Not for external use. */
 private trait LogHandler extends LogHandlerConfig:
   import ActorLogger.{Entry, Level, Channel, Filter, Capture, Slow}
-  import Static.{Kind, kindInfo, pathInfo, callInfo}
-  import LogHolder.ActorFilter
+  import Static.{kindInfo, pathInfo, callInfo}
 
   /**
    * Make a new log entry, returns the constructed entry for further processing if succeeded.
@@ -101,7 +100,7 @@ private trait LogHandler extends LogHandlerConfig:
          showChannels.hasSysPrd && level.ordinal <= Level.Info.ordinal ||
          showChannels.hasSysDvl && level.ordinal >= Level.Beta.ordinal then
         /* Due to issue https://github.com/scala/scala3/issues/25350 we must provide the full path to fixPass locally. */
-        entry(!spooling.direct,Capture(level,getChannel(level),Filter.allPass,kindInfo,getInfo(level),message)).foreach(preprocess)
+        entry(!spooling.direct,Capture(level,getChannel(level),Filter.Pass,kindInfo,getInfo(level),message)).foreach(preprocess)
 
   /**
    * Make log entry with level Fatal, indicates that further processing is unreliable and shutdown is imminent.
