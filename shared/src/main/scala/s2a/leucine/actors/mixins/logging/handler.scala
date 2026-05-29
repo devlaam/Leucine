@@ -204,7 +204,7 @@ private trait LogHandler extends LogHandlerConfig:
    * This call is eliminated from the code when not needed on a best effort approach. The call publishes
    * the message in the channel AppDvl. */
   inline def debug(message: String | Slow): Unit =
-    inline if pass(Level.Beta,Channel.AppDvl) then
+    inline if pass(Level.Debug,Channel.AppDvl) then
       feed(Capture(Level.Debug,Channel.AppDvl,filter,kindInfo,pathInfo(fullPath),message))
 
   /**
