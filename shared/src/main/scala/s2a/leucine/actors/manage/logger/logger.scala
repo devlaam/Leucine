@@ -46,7 +46,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
 
   /* A timer is used to schedule the regular log spool actions. This is defined lazy for the
    * spoolInterval will not yet be available at this part of the object construction. */
-  private lazy val timer: Timer = Timer(spooling.time,action)
+  private lazy val timer: Timer = Timer(spooling.time,() => action(false))
 
   /* Contains the logHolder for the main and other threads without local logHolders. (non top
    * level objects are lazy, so we have the correct values here, this works) */
@@ -84,13 +84,19 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
   /**
    * Test if we have enough new logs for spooling, entry should be the last or recently produced.
    * If we are directly spooling this method calls process directly and otherwise tests if we must
-   * already spool. This can be the case if there are enough logs or if the log is important. */
+   * already spool. This can be the case if there are enough logs or if the log is important. If flush
+   * is true, the spooler is ordered to process all lingering (if any) logs. */
   private[actors] def preprocess(entry: Entry): Unit = if spooling.direct then process(entry) else
-    /* See how far we have come since the last spool. */
-    val size = entry.index - lastIndex.get
+    /* See how far we have come since the last spool. This is def, for it may not be needed to
+     * determine its value if we have a flush. */
+    def size = entry.index - lastIndex.get
+    /* See if we have the situation that the level triggers the spooling. In that case we want the
+     * the log queue to be flushed, otherwise possible gaps in the log statements would rather delay
+     * the important log message than speed up. The consequence is that there index order may be broken. */
+    val flush = entry.level <= spooling.level
     /* See if there are enough logs lingering or the log is important enough to perform a direct spool.
      * Note that this action must be quick, for we want return asap to the task that was calling this. */
-    if size > spooling.size || entry.level <= spooling.level then action()
+    if flush || size > spooling.size then action(flush)
 
   /**
    * Manually retrieve and clear the log entries collected since the last retrieve. You must make sure
@@ -107,8 +113,11 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
     /* Get the data, clear the collection, return the result. */
     LogGlobal.retrieve() + LogLocal.retrieve()
 
-  /** Access point for the timer events and manual spool events. */
-  private[actors] protected def action(): Unit =
+  /**
+   * Access point for the timer events and manual spool events. If flush is true, the spooler is ordered
+   * to process all lingering (if any) logs. This may break the strict order if the spooler is capable
+   * of keeping this.  */
+  private[actors] protected def action(flush: Boolean): Unit =
     /* Update the recent time stamp. Note this is done before retrieving, which may lead to some
      * generated log entries to have the new timestamp. Since their log timestamps are in fact
      * closer to this moment, that is no problem. */
@@ -117,7 +126,7 @@ trait ActorLogger(using context: ActorContext) extends LogHandler, LogProcessCon
      * on the context. Even when called manually this is the right thing to do, since we do not know
      * the origin of this call. There is however no need if we are direct spooling since then there
      * will be no entries available. */
-    if !spooling.direct then context.sequential(spool(false))
+    if !spooling.direct then context.sequential(spool(flush))
 
   /**
    * Start the logger. You must call this at least once, the logger does not start spooling automatically.
@@ -732,10 +741,10 @@ object ActorLogger  :
    * Spool method where we stitch new log entries before processing. Stitching means that if the
    * current spool session has missing entries, that part will be temporarily stored for reprocessing
    * in the next run of spool. That way we obtain strict ordering with respect of the log index, at the
-   * cost of a slight delay of processing. When complete is true all remaining logs will be spooled. We
+   * cost of a slight delay of processing. When flush is true all remaining logs will be spooled. We
    * will limit the temporary storage array to maxArraySize. If it gets bigger, log entries are spooled
    * anyway (and the strict order may be broken). */
-  def stichedSpool(hold: Hold[List[Entry]], store: Store, maxArraySize: Int, completed: Boolean, process: Entry => Unit): Store =
+  def stichedSpool(hold: Hold[List[Entry]], store: Store, maxArraySize: Int, flush: Boolean, process: Entry => Unit): Store =
 
     /** Way to make the contents of an array visible. For development of this method.*/
     def arrayToString(title: String, array: IArray[Entry | Null]): String =
@@ -824,7 +833,7 @@ object ActorLogger  :
     def hasCurrEntry(index: Long) = hasCurrIndex(index) &&  getCurrEntry(index) != null
 
     /* The send phase runs as long as we can process entries with continuously increasing indices without gaps.
-     * We ignore gaps when we are terminating (completed is true, but then there should not be any gaps) or when
+     * We ignore gaps when we are terminating (flush is true, but then there should not be any gaps) or when
      * there the gaps are so early that we must store more then the maximum amount of entries. This breaks the
      * strict ordering, but is further not harmful. We also stop when we reached the end. */
     def sendPass(index: Long): Long = if index >= endIndex then endIndex else
@@ -836,8 +845,8 @@ object ActorLogger  :
       /* Process the available entry (or none if there isn't any). */
       if hasLast then process(getLastEntry(index))
       if hasCurr then process(getCurrEntry(index))
-      /* Break if we have a gap but are not completed and the merged array will not become to large. */
-      if !hasLast && !hasCurr && !completed && (endIndex - index < maxArraySize) then index else sendPass(index + 1)
+      /* Break if we have a gap but are not flushing and the merged array will not become to large. */
+      if !hasLast && !hasCurr && !flush && (endIndex - index < maxArraySize) then index else sendPass(index + 1)
 
     /* The remainder of the values must be merged into one array (or just copied if the other is shorter) */
     def mergePass(index: Long, offset: Long, result: Array[NEntry]): Array[NEntry] = if index >= endIndex then result else

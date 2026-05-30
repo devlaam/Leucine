@@ -99,7 +99,11 @@ trait LogHandlerConfig :
    * before the logs are spooled, the time parameter defines the maximum time between the spools and
    * the level parameter the lowest level that induces a direct spool. Realistic values depend on the
    * number of log statements in the code, but 20 to 100 for the size, 10 seconds to 1 minute for the
-   * time and Warn for the level should be considered as realistic lower bounds. */
+   * time and Warn for the level should be considered as realistic lower bounds. Note that, if the
+   * spooling takes place as a result of the level, this also triggers a complete flush of the statements
+   * that were temporarily stored to reorder them. Thus strict order may broken. This is needed however,
+   * since otherwise the offending statement could possibly to delayed even more. With the help of
+   * the index, you can restore the order manually if needed. */
   def spooling: Spooling
 
   /**
