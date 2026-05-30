@@ -166,7 +166,7 @@ private trait LogHandler extends LogHandlerConfig:
    * showConfidential to false. Now the publicMessage is passed to the logger. The reference to
    * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
    * when not needed on a best effort approach. The call publishes the message in the channel AppPrd. */
-  inline def info(confidentialMesssage: String | Slow, publicMessage: String | Slow): Unit  =
+  inline def info(confidentialMesssage: => String | Slow, publicMessage: => String | Slow): Unit  =
     inline if pass(Level.Info,Channel.AppPrd) then
       inline if showConfidential
       then feed(Capture(Level.Info,Channel.AppPrd,filter,kindInfo,pathInfo(fullPath),confidentialMesssage))
@@ -193,7 +193,7 @@ private trait LogHandler extends LogHandlerConfig:
    * ShowConfidential to false. Now the publicMessage is passed to the logger. The reference to
    * confidentialMesssage is removed at compile time. The whole call is also eliminated from the code
    * when not needed on a best effort approach. The call publishes the message in the channel AppDvl. */
-  inline def beta(confidentialMesssage: String | Slow, publicMessage: String | Slow): Unit  =
+  inline def beta(confidentialMesssage: => String | Slow, publicMessage: => String | Slow): Unit  =
     inline if pass(Level.Beta,Channel.AppDvl) then
       inline if showConfidential
       then feed(Capture(Level.Beta,Channel.AppDvl,filter,kindInfo,pathInfo(fullPath),confidentialMesssage))
