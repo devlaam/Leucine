@@ -11,8 +11,8 @@ for more details. Versioning adheres to [Semantic Versioning](https://semver.org
 (extra method, small change in syntax).
 
 ## Motivation
-The project is motivated by the recent [change of license](https://www.lightbend.com/akka/license-faq)
-of [Akka](https://akka.io) and the not so recent inactivity of the nice port of Akka to JavaScript:
+The project is motivated by the [change of license](https://www.lightbend.com/akka/license-faq)
+of [Akka](https://akka.io) and the inactivity of the nice port of Akka to JavaScript:
 [Akka.JS](https://github.com/akka-js/akka.js). Please note that I used Akka with much pleasure and it is
 very high quality. It is also very large, probably I did not even use 10% of all its possibilities. What
 I however do need  is cross platform abilities and an open source license. If you are on the same page, maybe

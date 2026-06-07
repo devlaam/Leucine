@@ -1,4 +1,5 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import BuildSupport.{Mode,compileExcluder}
 
 /* Build after:
  * https://github.com/portable-scala/sbt-crossproject
@@ -9,10 +10,10 @@ val nightly = "3.8.1-RC1-bin-20260104-f08de70-NIGHTLY"
 val latest  = "3.8.3"
 val stable  = "3.3.7"
 
-/* Set to 1 for publishing to exclude the demo/test files. */
-val publishMe: Int = 0
+/* Select one of the possible compiler modes. */
+val mode: Mode = Mode.Demo
 
-ThisBuild / version       :=  "0.6.4"
+ThisBuild / version       :=  "0.6.5-RC1"
 ThisBuild / scalaVersion  :=  stable
 ThisBuild / usePipelining :=  false
 
@@ -21,9 +22,9 @@ val sharedSettings = Seq(
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all","-Wnonunit-statement","-Wvalue-discard"),
-  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.9.5" % Test).drop(publishMe),
-  testFrameworks          +=  new TestFramework("s2a.control.LeucineFramework"),
-  Compile / excludeFilter :=  new FileFilter { def accept(f: File) = (publishMe==1) && (f.getPath.containsSlice("/demo/") || f.getPath.containsSlice("/test/")) },
+  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.9.5" % Test).drop(Mode.Test.drop(mode)),
+  libraryDependencies     ++= Seq("org.apache.logging.log4j" % "log4j-core" % "2.26.0").drop(Mode.Wiki.drop(mode)),
+  Compile / excludeFilter := compileExcluder(mode)
   )
 
 // We moeten positief gaan filteren op tests per platform.
