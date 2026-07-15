@@ -15,7 +15,7 @@ object BuildSupport {
     def name: String
     def block: List[String]
     def filter(f: File): Boolean = block.exists(s => f.getPath.contains(s"/$s/"))
-    def drop(mode: Mode): Int = if (mode.block.contains(this.name)) 1 else 0 }
+    def drop(mode: Mode): Int = if mode.block.contains(this.name) then 1 else 0 }
 
   /* These are the possible modes for compilation */
   object Mode {

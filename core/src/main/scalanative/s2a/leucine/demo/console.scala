@@ -24,33 +24,19 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
+import scala.io.StdIn
 
-/** JS platform specific implementation of the ClientSocket */
-class ClientSocketImplementation(jsSocket: Node.Socket) extends ClientSocket :
 
-  /** Container to collect the data send over the line. */
-  private val data: StringBuilder = StringBuilder()
+/* Utility methods for the commend line interface for Native terminals */
+object CLI :
+  /* One time conversation in the console */
+  def talk(tell: String, listen: String => Unit) =
+    print(tell)
+    /* Yes, this blocks, but it is only at the start, so for the demo this is acceptable.
+     * Even when Native has only one thread ... */
+    listen(StdIn.readLine())
+  /* Actually, there is nothing to close here */
+  def close(): Unit = ()
 
-  /** Method to fill the data container. */
-  private val receive: String => Unit = (s) => data.append(s)
-
-  jsSocket.on("data",receive)
-
-  /** Obtain the port number of the connection on this side. */
-  def localPort: Int  = jsSocket.localPort
-
-  /** Obtain the port number of the connection on the other side. */
-  def remotePort: Int = jsSocket.remotePort
-
-  /** Write (and flush) some text to the socket. */
-  def writeln(text: String): Unit = jsSocket.write(s"$text\n")
-
-  /** Read some text from the socket (up to the newline) */
-  def readln: String =
-    val result = data.toString()
-    data.clear
-    result
-
-  /** Close this socket */
-  def close(): Unit = jsSocket.destroy()
-
+  /* Platform independent way of obtaining the arguments passed at startup. */
+  def argsOf(passed: Array[String]): Array[String] = passed

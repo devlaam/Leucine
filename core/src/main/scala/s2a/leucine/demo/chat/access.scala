@@ -24,43 +24,43 @@ package s2a.leucine.demo
  * SOFTWARE.
  **/
 
-import scala.util.Random
 import s2a.leucine.actors.*
 
 
-/** This is your ideal white noise char string generator. */
-class Noise extends RestrictActor(Noise,"Noise") :
+/** This is your access controller. Only existing users are granted access. */
+class Access extends RestrictActor(Access,"Access") :
   Logger.trace(Logger.Chat)
-  println("Noise Actor Started.")
+  println("Access Actor Started.")
 
-  /* Constructs a string with 'length' random chars. */
-  private def make(length: Int): String = Random.alphanumeric.take(length).mkString
+  /* Currently registered users. */
+  private var store: Map[String,String] = Map.empty
+
+  /* See if a user is present in the store, and if so the password is valid. */
+  private def checkUser(name: String, password: String): Boolean =
+    Logger.trace(Logger.Chat)
+    store.get(name).map(_ == password).getOrElse(false)
 
   /* Receive method that handles the incoming requests. */
   final protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit =
     Logger.trace(Logger.Chat)
     (letter,sender) match
-      /* Return a sequence of size random strings each of the same length. */
-      case (Noise.Request(_,size,length), source: Register) =>
-        val result = List.fill(size)(make(length))
-        source ! Register.Passwords(result)
-      /* Return a random piece of text of 'size' number of words, each not longer than 'length' chars. */
-      case (Noise.Request(key,size,length), source: Text) =>
-        val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
-        source ! Text.Lipsum(key,result)
-      /* This cannot be reached, but the compiler (3.3.7) is not able to verify. */
-      case (_,_) => Logger.fatal("Code should not arrive here.")
+      /* If the pair message comes from the Register actor, we store it as a new/updated user */
+      case (Access.Pair(name,password),_: Register) => store += name -> password
+      /* If the pair message comes from the Text Actor we must verify if the user has the correct credentials */
+      case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
+      /* Compilers previous to 3.3.8 should test for (_,_) */
+      //case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
-/** Companion object where letters and accepted sender actors are defined. We keep no state. */
-object Noise extends RestrictDefine, Stateless :
+/** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
+object Access extends RestrictDefine, Stateless :
   Logger.trace(Logger.Chat)
 
-  /* Only the Access and Text actors may request for random content. */
+  /* We only accept letters from the Register or Text actors. */
   type Accept = Register | Text
 
   /* Letter is the base type for all letters: */
   sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
 
-  /* Letter that requests for size new random char strings. */
-  case class Request(key: String, size: Int, length: Int) extends Letter[Accept]
+  /* A letter to send name and password to me. */
+  case class Pair(name: String, password: String) extends Letter[Accept]

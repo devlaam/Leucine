@@ -266,8 +266,8 @@ object ActorLogger  :
       case ch : Channel   => ch == channel
       /* If there is a tuple, test each element. */
       case tuple : Tuple  => tuple.toArray.contains(channel)
-      /* Any other situation (which should not appear) is rejected. */
-      case _              => false
+      /* Last possibility is null (which should not appear) is rejected. */
+      case null           => false
 
     /* Predefined check on the presence of SysPrd to make this fast at runtime. */
     private[actors] val hasSysPrd = member(Channel.SysPrd)

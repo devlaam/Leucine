@@ -39,7 +39,8 @@ given actorContext: ActorContext = ActorContext.system
  * in the different LoggerSettings, or changing some settings below. */
 object Logger extends ActorLogger, DefaultLoggerProcessing :
   import ActorLogger.{Entry, Level, Timing, ShowChannels, Channel, Spooling, Filter}
-  import ActorLogger.Channel.{Pass, SysPrd, SysDvl, AppPrd, AppDvl}
+  /* Choose from the Channel options: Pass, SysPrd, SysDvl, AppPrd, AppDvl*/
+  import ActorLogger.Channel.{SysPrd, AppPrd, AppDvl}
 
   /* Create for every demo a separate channel for logging. We shall use this only for tracing. */
   case object Chat    extends Channel

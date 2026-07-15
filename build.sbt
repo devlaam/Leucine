@@ -1,29 +1,32 @@
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import BuildSupport.{Mode,compileExcluder}
+import org.scalajs.linker.interface.ModuleKind
 
 /* Build after:
  * https://github.com/portable-scala/sbt-crossproject
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-val nightly = "3.8.1-RC1-bin-20260104-f08de70-NIGHTLY"
-val latest  = "3.8.3"
-val stable  = "3.3.7"
+val latest  = "3.8.4"
+val stable  = "3.3.8"
 
-/* Select one of the possible compiler modes. */
+/* Select one of the possible compiler modes: Demo, Sona, Test or Wiki */
 val mode: Mode = Mode.Demo
 
-ThisBuild / version       :=  "0.6.5-RC1"
-ThisBuild / scalaVersion  :=  stable
-ThisBuild / usePipelining :=  false
+/* Select the version you want to compile with*/
+val compileWith = stable
+
+version       :=  "0.6.5-RC1"
+scalaVersion  :=  compileWith
+usePipelining :=  false
 
 val sharedSettings = Seq(
   name                    :=  "leucine",
   organization            :=  "com.sense2act",
   description             :=  "Small x-platform actor framework.",
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all","-Wnonunit-statement","-Wvalue-discard"),
-  libraryDependencies     ++= Seq("com.lihaoyi" %%% "utest" % "0.9.5" % Test).drop(Mode.Test.drop(mode)),
+  libraryDependencies     ++= Seq("com.lihaoyi" %% "utest" % "0.10.0-RC1" % Test).drop(Mode.Test.drop(mode)),
   libraryDependencies     ++= Seq("org.apache.logging.log4j" % "log4j-core" % "2.26.0").drop(Mode.Wiki.drop(mode)),
+  testFrameworks          +=  new TestFramework("utest.runner.Framework"),
   Compile / excludeFilter := compileExcluder(mode)
   )
 
@@ -54,13 +57,30 @@ val nativeSettings = Seq(
   //nativeLinkStubs := true,
   //Test / testOptions := Seq(Tests.Filter(_.contains("_NTV")))
   ///* Remove test which cannot run on the Native platform.*/
-  Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN")))
+  Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN"))),
+  // uTest 0.9.5 and 0.10.0-RC1 depend on test-interface 0.5.8,
+  // while Scala Native 0.5.12 selects test-interface 0.5.12.
+  // Allow the eviction until uTest updates its dependency metadata.
+  libraryDependencySchemes += ("org.scala-native" % "test-interface_native0.5_3" % VersionScheme.Always),
   )
 
-lazy val leucine = crossProject(JSPlatform, JVMPlatform, NativePlatform)
-  .crossType(CrossType.Full)
-  .in(file("."))
+lazy val leucine = (projectMatrix in file("core"))
+  /* To rename default leucine to leucineJVM */
+  .defaultAxes(VirtualAxis.scalaABIVersion(compileWith))
   .settings(sharedSettings)
-  .jvmSettings(jvmSettings)
-  .jsSettings(jsSettings)
-  .nativeSettings(nativeSettings)
+  .jvmPlatform(
+    scalaVersions = Seq(compileWith),
+    settings = jvmSettings,
+  )
+  .jsPlatform(
+    scalaVersions = Seq(compileWith),
+    settings = jsSettings,
+  )
+  .nativePlatform(
+    scalaVersions = Seq(compileWith),
+    settings = nativeSettings,
+  )
+
+lazy val leucineJVM    = leucine.jvm(compileWith)
+lazy val leucineJS     = leucine.js(compileWith)
+lazy val leucineNative = leucine.native(compileWith)
