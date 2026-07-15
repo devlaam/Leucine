@@ -17,8 +17,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup Scala
-      uses: japgolly/setup-everything-scala@v3.1
+    - name: Checkout
+      uses: actions/checkout@v6
+    - name: Setup JDK 21
+      uses: actions/setup-java@v5
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'sbt'
+    - name: Setup sbt
+      uses: sbt/setup-sbt@v1
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+    - name: Show versions
+      run: |
+        java -version
+        node --version
+        sbt --version
     - name: Run tests
       run: sbt leucineJS/test
