@@ -123,12 +123,12 @@ Each demo allows a startup parameter indicating the log level for the demonstrat
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJVM/assembly
-[info] welcome to sbt 1.11.7 (Java 21.0.3)
+[info] welcome to sbt 2.0.2 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Java to run):
 ```
-leucine $ java -jar jvm/target/scala-3.3.7/main.jar
+leucine $ java -jar target/out/jvm/scala-3.3.8/leucine/main.jar
 Started Actor examples on the JVM platform.
 Please state the demo you want to run (collatz, clock, crawler or chatgrt):
 ```
@@ -140,12 +140,12 @@ you can also `collatz debug` or `crawler debug`. The other demo's do not allow f
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJS/fullLinkJS
-[info] welcome to sbt 1.11.7 (Java 21.0.3)
+[info] welcome to sbt 2.0.2 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Node JS to run):
 ```
-leucine $ node js/target/scala-3.3.7/leucine-opt/main.js
+leucine $ node target/out/sjs1/scala-3.3.8/leucine/leucine-opt/main.js
 Started Actor examples on the JS platform.
 Please state the demo you want to run (collatz, clock, crawler or chatgrt):
 ```
@@ -159,12 +159,12 @@ working in parallel.
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineNative/nativeLink
-[info] welcome to sbt 1.11.7 (Java 21.0.3)
+[info] welcome to sbt 2.0.2 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (runs directly):
 ```
-leucine $ native/target/scala-3.3.7/leucine-out
+leucine $ target/out/native0.5/scala-3.3.8/leucine/leucine
 Started Actor examples on the Native platform.
 Please state the demo you want to run (collatz, clock, crawler or chatgrt):
 ```
