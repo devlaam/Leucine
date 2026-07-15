@@ -12,7 +12,7 @@ val stable  = "3.3.8"
 /* Select one of the possible compiler modes: Demo, Sona, Test or Wiki */
 val mode: Mode = Mode.Demo
 
-/* Select the version you want to compile with*/
+/* Select the version you want to compile with */
 val compileWith = stable
 
 version       :=  "0.6.5-RC1"

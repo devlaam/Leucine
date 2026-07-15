@@ -48,8 +48,6 @@ class Noise extends RestrictActor(Noise,"Noise") :
       case (Noise.Request(key,size,length), source: Text) =>
         val result = List.fill(size)(make(Random.nextInt(length)+1)).mkString(" ")
         source ! Text.Lipsum(key,result)
-      /* Compilers previous to 3.3.8 should test for (_,_) */
-      //case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
 /** Companion object where letters and accepted sender actors are defined. We keep no state. */

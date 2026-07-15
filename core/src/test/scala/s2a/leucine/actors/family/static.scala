@@ -64,8 +64,6 @@ object ActorFamilySupply extends TestSuite :
       case(Outside_.Text(msg), _: Anonymous) => ()
       case(Outside_.Text(msg), _: Outside) => ()
       case(Outside_.Bell,_) => ()
-      /* Unfortunately the compiler does not understand the case below cannot occur */
-      case(Outside_.Text(msg),_) => ()
 
   abstract class Level0 extends RestrictActor(Level0_,"l0"), FamilyRootRelay(Level0_) :
     def outside: Outside
@@ -85,8 +83,6 @@ object ActorFamilySupply extends TestSuite :
       case (Level0_.Test0, _: Outside)   => ()
       case (Level0_.Test0, _: Level0)    => ()
       case (Level0_.Common, _)           => ()
-      /* Unfortunately the compiler does not understand the case below cannot occur */
-      case(Level0_.Test0,_) => ()
 
 
   class Level1A(protected val parent: Level0) extends RestrictActor(Level1A_,"1a"), FamilyBranchRelayRelayed[Level0,Level1A_.type](Level1A_) :
