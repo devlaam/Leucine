@@ -29,7 +29,7 @@ import annotation.nowarn as nw
 /**
  * The SelectActor is able to respond to messages. All possible sender types must be specified, but any actor
  * may send any of the letters, so these are uncoupled. Therefore the types are easier to define. This actor
- * does, bu default not accept messages from itself.
+ * does, by default, not accept messages from itself.
  * If no name is given, an unique name is generated, but the actor is not indexed to be retrieved
  * on the base of its name. Supply !# as name to define this a worker actor. Supply the (companion) object which
  * contains the necessary type aliases as first parameter. */

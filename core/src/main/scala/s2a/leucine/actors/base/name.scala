@@ -41,7 +41,7 @@ transparent trait NameActor(using context: ActorContext) extends Actor, ActorDef
   private[actors] def register(prename: String): String =
     /* If the name is empty, an unique name is given. If the name starts with a worker prefix a new
      * free worker name is generated. In these situations the actor is not put in the
-     * index. But, if an actor under the prename already exists, its index entry overwritten. */
+     * index. But, if an actor under the prename already exists, its index entry is overwritten. */
     val rename = Auxiliary.rename(prename,this,ActorGuard.worker,context.workerPrefix)
     /* Add this actor to the guard under its prename, index it when required. */
     ActorGuard.add(this,rename)

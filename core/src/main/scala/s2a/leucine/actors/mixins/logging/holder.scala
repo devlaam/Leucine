@@ -34,10 +34,11 @@ package s2a.leucine.actors
  * The incident level is used to determine when an entry is counted as incident. The runLevel
  * and timing are functions, and you may alter their outcome from the outside during operation.
  * For internal use only. The class is not thread safe by design, so synchronize your calls
- * or ensure that you are using this holder in one thread by other means. The latter is comes
- * natural when used as a thread local variable. */
+ * or ensure that you are using this holder in one thread by other means. The latter comes
+ * natural when used as a thread local variable. Note that the actorPath must be by name for
+ * it is yet unknown when the LogAid is mixed in. */
 private class LogHolder(
-    actorPath: String,
+    actorPath: => String,
     runLevel: () => ActorLogger.Level,
     incidentLevel: ActorLogger.Level,
     timing: () => ActorLogger.Timing) :

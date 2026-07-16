@@ -702,7 +702,9 @@ object ActorLogger  :
       val index      = getAndIncIndex()
       val timeStamp  = getTimeStamp(timing)
       val threadName = Thread.currentThread().getName()
-      new Entry(index,capture.level,counter,timing,timeStamp,capture.channel,threadName,actorName,
+      /* The actorName should not be null, but we are better save than sorry. */
+      val safeName   = if actorName == null then "???" else actorName
+      new Entry(index,capture.level,counter,timing,timeStamp,capture.channel,threadName,safeName,
                 capture.sourceKind,capture.sourcePath,capture.thrown,capture.message.toString)
 
 

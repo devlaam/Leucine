@@ -59,7 +59,7 @@ object Auxiliary :
   private[actors] def rename(prename: String, actor: NameActor, worker: Worker, prefix: String): Rename =
     /* If there is no prename, generate a unique name, based on the child's class name, but prohibit indexing. */
     if      prename.isEmpty            then Rename(actor.uniqueName,false)
-    /* If we want a worker, generate a new free worker name and  prohibit indexing. */
+    /* If we want a worker, generate a new free worker name and prohibit indexing. */
     else if prename.startsWith(prefix) then Rename(worker.name(prefix),false)
-    /* If this actor was give a name by hand use that, and try to index it. */
+    /* If this actor was given a name by hand use that, and try to index it. */
     else                                    Rename(prename,true)

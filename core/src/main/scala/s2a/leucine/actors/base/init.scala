@@ -37,7 +37,7 @@ package s2a.leucine.actors
 private transparent trait ActorInit :
   /* Counter which is filled with the number of classes/traits at the start. */
   private var ic: Int  = initCount
-  /** Method called when the instantiation is complete. Put you startup code in the implementation. */
+  /** Method called when the instantiation is complete. Put your startup code in the implementation. */
   private[actors] def initComplete(): Unit
   /** Auxiliary method to determine the number of mixins upfront. To be overridden in each mixin. */
   private[actors] def initCount: Int = 1
