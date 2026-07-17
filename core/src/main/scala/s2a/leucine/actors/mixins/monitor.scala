@@ -24,6 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import java.util.concurrent.atomic.AtomicLong
 
 /* Methods stub for when there is no monitor mixin used. */
 private trait MonitorDefs  extends BareDefs:
@@ -248,9 +249,9 @@ trait MonitorAid[Monitor <: ActorMonitor](val monitor: Monitor) extends Probable
 object MonitorAid :
 
   /* All trace entries are counted, so you can see none is failing. */
-  private var _tracer: Int = 0
-  // TODO: Replace by AtomicInteger
-  private def tracer: Int = synchronized { _tracer += 1; _tracer }
+  private val traceCounter: AtomicLong = AtomicLong(1)
+  /* Obtain the next trace number in a tread safe manner. */
+  private def newTraceNr(): Long = traceCounter.getAndIncrement
 
   enum Action :
     /* The actor is created */
@@ -286,7 +287,8 @@ object MonitorAid :
   /** Class to capture trace information. */
   class Trace(val time: Long, val action: Action, val post: Actor.Post) extends Ordered[Trace] :
     import Action.*
-    var nr = tracer
+    /* Get the next trace number. */
+    private val nr = newTraceNr()
     /* Sorting is first on action time and subsequently on trace number. This should be sufficient to be unique in
      * all circumstances. */
     def compare(that: Trace): Int =

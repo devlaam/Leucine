@@ -220,7 +220,7 @@ object ActorLogger  :
       case _     => false
 
   /** This type helps to enforce homogeneous elements for our tuple, with a proper error notification. */
-  @implicitNotFound("ShowChannels contains an element that is not a subtype of Channel in ${T} ")
+  @implicitNotFound("ShowChannels contains an element that is not a subtype of Channel.")
   type ChannelTuple[T <: GTuple[Channel]] = HTuple[Channel,T] =:= true
 
   /**

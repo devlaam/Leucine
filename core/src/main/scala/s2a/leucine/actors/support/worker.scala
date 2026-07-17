@@ -24,21 +24,18 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+import java.util.concurrent.atomic.AtomicLong
+
 class Worker :
 
   /** Counter to generate a unique name for the workers for an actor. */
-  // TODO: This can better be replaced by an AtomicLong (In an Object? No,
-  // because we have globalWorkers and FamilyWorkers. They both have there
-  // own number sequencing by instantiating this Worker Class. )
-  private var _counter: Long = 0L
+  private val counter: AtomicLong = AtomicLong(1)
 
-  /** Increase the value and get a copy. */
-  private def inc: Long = synchronized :
-    _counter = _counter + 1
-    _counter
+  /** Get a copy and increase the value. */
+  private def inc: Long = counter.getAndIncrement
 
   /** Get the number of worker names generated. Local copy, may be outdated. */
-  def size: Long = _counter
+  def size: Long = counter.get
 
   /** Generates a unique name based on this counter */
   def name(prefix: String): String = s"${prefix}${inc}"
