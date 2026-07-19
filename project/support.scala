@@ -1,9 +1,19 @@
 import java.io.File
 import sbt.io.FileFilter
 
+
+/* Locations of the source directories */
+val srcALL = "scala-all"
+val srcJVM = "scala-jvm"
+val srcJS  = "scala-js"
+val srcNTV = "scala-ntv"
+val srcMIX = "scala-mix"
+val cmpDir = "main"
+val tstDir = "test"
+
+
 /** Contains helper functions for the build.sbt file */
 object BuildSupport {
-  /* Note: We must still use Scala 2 syntax here  */
 
   /* names we use for the excluder. */
   private val demo = "demo"

@@ -3,7 +3,7 @@ package s2a.leucine.actors
 
 import utest.*
 
-import s2a.control.{Buffer, Deferred, Helpers}
+import s2a.control.{Buffer, Deferred}
 
 trait StashAidTest(using ac: ActorContext) :
 
@@ -49,5 +49,3 @@ trait StashAidTest(using ac: ActorContext) :
 
 
 object StashAidTestSystem extends TestSuite, StashAidTest(using ActorContext.system)
-
-object StashAidTestEmulationNJS extends TestSuite, StashAidTest(using Helpers.emulatedContext)

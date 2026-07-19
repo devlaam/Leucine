@@ -6,9 +6,7 @@ import utest.*
 
 import s2a.control.Deferred
 
-/* SBT does not seems able to catch futures on my execution context, which is kind of reasonable.
- * So these tests are only performed on JVM and JS. (NN = Non Native) */
-object ActorContextTestNN extends TestSuite :
+object ActorContextTest extends TestSuite :
 
   implicit val ac: ActorContext = ActorContext.system
   val stdEx = ExecutionContext.Implicits.global

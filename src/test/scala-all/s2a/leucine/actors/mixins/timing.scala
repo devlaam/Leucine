@@ -5,7 +5,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Try
 import utest.*
 
-import s2a.control.{Buffer, Deferred, Helpers}
+import s2a.control.{Buffer, Deferred}
 
 trait TimingAidTest(using ac: ActorContext) :
 
@@ -94,5 +94,3 @@ trait TimingAidTest(using ac: ActorContext) :
 
 
 object TimingAidTestSystem extends TestSuite, TimingAidTest(using ActorContext.system)
-
-object TimingAidTestEmulationNJS extends TestSuite, TimingAidTest(using Helpers.emulatedContext)

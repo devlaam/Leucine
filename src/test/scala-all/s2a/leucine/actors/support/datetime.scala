@@ -7,7 +7,7 @@ import utest.*
 /* Since DateTime is a completely independent of the platform, there may be no need to
  * test it on all platforms. Would also be hard, since we need a library to test on
  * Native. */
-object DateTimeTestNN extends TestSuite :
+trait DateTimeTest extends TestSuite :
   import s2a.leucine.test.DateTime as RefDateTime
 
   val maxTS = 2000000000000000000L

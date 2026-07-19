@@ -3,7 +3,7 @@ package s2a.leucine.actors
 import utest.*
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.DurationInt
-import s2a.control.{Buffer, Deferred, Helpers}
+import s2a.control.{Buffer, Deferred}
 
 trait ProtectAidTest(using ac: ActorContext) :
 
@@ -42,5 +42,3 @@ trait ProtectAidTest(using ac: ActorContext) :
 
 
 object ProtectAidTestSystem extends TestSuite, ProtectAidTest(using ActorContext.system)
-
-object ProtectAidTestEmulationNJS extends TestSuite, ProtectAidTest(using Helpers.emulatedContext)

@@ -30,53 +30,33 @@ val sharedSettings = Seq(
   Compile / excludeFilter := compileExcluder(mode)
   )
 
-// We moeten positief gaan filteren op tests per platform.
-// Of we moeten de tests die niet voor elk platform werken
-// opnemen in een apparte tak. Lastige is een beetje dat sommige
-// test voor twee platformen werken. We zouden de test objecten
-// met _JVM_JS_NAT kunnen laten eindigen. Daar is gemakkelijk op
-// te filteren en is simpel.
-
 val srcDir = file("src").getCanonicalFile
-val srcALL = "scala-all"
-val srcJVM = "scala-jvm"
-val srcJS  = "scala-js"
-val srcNTV = "scala-ntv"
-val srcMIX = "scala-mix"
-def mainDir(loc: String) = srcDir / "main" / loc
-def testDir(loc: String) = srcDir / "test" / loc
+def compDir(loc: String) = srcDir / cmpDir / loc
+def testDir(loc: String) = srcDir / tstDir / loc
 
 val jvmSettings = Seq(
   assembly / assemblyJarName := "main.jar",
   //Test / testOptions := Seq(Tests.Filter(_.contains("_JVM")))
-  Compile / unmanagedSourceDirectories := Seq(srcALL,srcJVM,srcMIX).map(mainDir),
-  Test / unmanagedSourceDirectories := Seq(srcALL,srcJVM,srcMIX).map(testDir),
+  Compile / unmanagedSourceDirectories := Seq(srcALL,srcJVM,srcMIX).map(compDir),
+  Test / unmanagedSourceDirectories := Seq(srcALL,srcJVM).map(testDir),
   )
 
 val jsSettings = Seq(
   scalaJSUseMainModuleInitializer := true,
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
-  Compile / unmanagedSourceDirectories := Seq(srcALL,srcJS).map(mainDir),
+  Compile / unmanagedSourceDirectories := Seq(srcALL,srcJS).map(compDir),
   Test / unmanagedSourceDirectories := Seq(srcALL,srcJS).map(testDir),
-  //Test / testOptions := Seq(Tests.Filter(_.contains("_JS")))
-  ///* Remove test which cannot run on the JS-Emulated platform.*/
-  Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NJS")))
   )
 
-val nativeSettings = Seq(
+val ntvSettings = Seq(
   /* The default mode is 'debug', to get smaller/faster code use: */
   //nativeMode      := "release-full"
-  /* This setting is a requirement for uTest on Native */
-  //nativeLinkStubs := true,
-  //Test / testOptions := Seq(Tests.Filter(_.contains("_NTV")))
-  ///* Remove test which cannot run on the Native platform.*/
-  Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NN"))),
-  // uTest 0.9.5 and 0.10.0-RC1 depend on test-interface 0.5.8,
-  // while Scala Native 0.5.12 selects test-interface 0.5.12.
-  // Allow the eviction until uTest updates its dependency metadata.
+  /* uTest 0.9.5 and 0.10.0-RC1 depend on test-interface 0.5.8,
+   * while Scala Native 0.5.12 selects test-interface 0.5.12.
+   * Allow the eviction until uTest updates its dependency metadata. */
   libraryDependencySchemes += ("org.scala-native" % "test-interface_native0.5_3" % VersionScheme.Always),
-  Compile / unmanagedSourceDirectories := Seq(srcALL,srcNTV,srcMIX).map(mainDir),
-  Test / unmanagedSourceDirectories := Seq(srcALL,srcNTV,srcMIX).map(testDir),
+  Compile / unmanagedSourceDirectories := Seq(srcALL,srcNTV,srcMIX).map(compDir),
+  Test / unmanagedSourceDirectories := Seq(srcALL,srcNTV).map(testDir),
   )
 
 lazy val leucine = (projectMatrix in srcDir)
@@ -93,9 +73,9 @@ lazy val leucine = (projectMatrix in srcDir)
   )
   .nativePlatform(
     scalaVersions = Seq(compileWith),
-    settings = nativeSettings,
+    settings = ntvSettings,
   )
 
-lazy val leucineJVM    = leucine.jvm(compileWith)
-lazy val leucineJS     = leucine.js(compileWith)
-lazy val leucineNative = leucine.native(compileWith)
+lazy val leucineJVM = leucine.jvm(compileWith)
+lazy val leucineJS  = leucine.js(compileWith)
+lazy val leucineNTV = leucine.native(compileWith)

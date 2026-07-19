@@ -9,7 +9,6 @@ import utest.*
 
 import s2a.leucine.actors.ActorContext
 
-
 /* It is not possible to use eventually to test, for they are not supported on JS/Native.
  * So we must construct something by hand. (This also works for the JVM) */
 
