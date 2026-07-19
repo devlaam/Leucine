@@ -2,7 +2,7 @@ name: Leucine/JVM
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "**" ]
     paths-ignore: [ "*.md"]
   pull_request:
     branches: [ "develop" ]
@@ -30,6 +30,5 @@ jobs:
     - name: Show versions
       run: |
         java -version
-        sbt --version
     - name: Run tests
-      run: sbt leucineJVM/test
+      run: sbt about

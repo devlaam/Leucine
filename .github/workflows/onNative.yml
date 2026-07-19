@@ -2,7 +2,7 @@ name: Leucine/Native
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "**" ]
     paths-ignore: [ "*.md"]
   pull_request:
     branches: [ "develop" ]
@@ -30,7 +30,6 @@ jobs:
     - name: Show versions
       run: |
         java -version
-        sbt --version
         clang --version
     - name: Run tests
-      run: sbt leucineNative/test
+      run: sbt about

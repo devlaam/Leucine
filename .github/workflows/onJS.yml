@@ -5,7 +5,7 @@ on:
     branches: [ "develop" ]
     paths-ignore: [ "*.md"]
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "**" ]
     paths-ignore: [ "*.md"]
 
 permissions:
@@ -37,4 +37,4 @@ jobs:
         node --version
         sbt --version
     - name: Run tests
-      run: sbt leucineJS/test
+      run: sbt about
