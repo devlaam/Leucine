@@ -32,4 +32,4 @@ jobs:
         java -version
         clang --version
     - name: Run tests
-      run: sbt about
+      run: sbt --server about
