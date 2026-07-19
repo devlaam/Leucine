@@ -32,7 +32,7 @@ import scala.scalajs.js.timers
 import scala.scalajs.js.timers.SetTimeoutHandle
 
 
-/** Context implementation for Javascript */
+/** Context implementation for JavaScript */
 abstract class ContextImplementation extends PlatformContext :
   import Auxiliary.toUnit
 
@@ -168,4 +168,3 @@ object ContextImplementation :
   private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
     timers.setTimeout(delay)(loop).toUnit
     false
-

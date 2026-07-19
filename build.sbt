@@ -15,7 +15,7 @@ val mode: Mode = Mode.Demo
 /* Select the version you want to compile with */
 val compileWith = stable
 
-version       :=  "0.6.5"
+version       :=  "0.7.0"
 scalaVersion  :=  compileWith
 usePipelining :=  false
 
@@ -37,9 +37,12 @@ val sharedSettings = Seq(
 // met _JVM_JS_NAT kunnen laten eindigen. Daar is gemakkelijk op
 // te filteren en is simpel.
 
+val coreDirectory = file("core").getCanonicalFile
+
 val jvmSettings = Seq(
   assembly / assemblyJarName := "main.jar",
   //Test / testOptions := Seq(Tests.Filter(_.contains("_JVM")))
+  Compile / unmanagedSourceDirectories += coreDirectory / "src" / "main" / "scala-mix",
   )
 
 val jsSettings = Seq(
@@ -62,9 +65,10 @@ val nativeSettings = Seq(
   // while Scala Native 0.5.12 selects test-interface 0.5.12.
   // Allow the eviction until uTest updates its dependency metadata.
   libraryDependencySchemes += ("org.scala-native" % "test-interface_native0.5_3" % VersionScheme.Always),
+  Compile / unmanagedSourceDirectories += coreDirectory / "src" / "main" / "scala-mix",
   )
 
-lazy val leucine = (projectMatrix in file("core"))
+lazy val leucine = (projectMatrix in coreDirectory)
   /* To rename default leucine to leucineJVM */
   .defaultAxes(VirtualAxis.scalaABIVersion(compileWith))
   .settings(sharedSettings)

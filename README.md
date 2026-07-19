@@ -117,7 +117,7 @@ All implementations (JVM,JS,Native) have their own Execution Context so you are 
 It turned out not to be possible to run all demos from within SBT on equal footing.
 Therefore these are best tested from the command line. We discuss the three different options one by one.
 
-Each demo allows a startup parameter indicating the log level for the demonstration. Try `info` or `trace` to see the effect.
+Each demo allows a startup (!) parameter indicating the log level for the demonstration. Try `info` or `trace` to see the effect.
 
 #### Demos on JVM
 Compile and package the demo as follows:
@@ -134,7 +134,7 @@ Please state the demo you want to run (collatz, clock, crawler or chatgrt):
 ```
 and then choose one of them. The `collatz`,`crawler` and `chatgrt` are stand alone demo's, the `clock` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180. To get an impression of the debug capabilities
-you can also `collatz debug` or `crawler debug`. The other demo's do not allow for this extra parameter.
+you can also `collatz debug` or `crawler debug`. The other demo's do not allow for this extra run parameter.
 
 #### Demos on NodeJS
 Compile and package the demo as follows:
@@ -151,7 +151,7 @@ Please state the demo you want to run (collatz, clock, crawler or chatgrt):
 ```
 and then choose one of them. The `collatz`,`crawler` and `chatgrt` are stand alone demo's, the `clock` requires an application
 that is able to connect with raw TCP sockets on the localhost, port 8180. To get an impression of the debug capabilities
-you can also `collatz debug` or `crawler debug`. The other demo's do not allow for this extra parameter.
+you can also `collatz debug` or `crawler debug`. The other demo's do not allow for this extra run parameter.
 And although projectJS is single threaded, the Actor implementation runs as if it is
 working in parallel.
 
@@ -171,8 +171,7 @@ Please state the demo you want to run (collatz, clock, crawler or chatgrt):
 and then choose one of them.  The `collatz`,`crawler` and `chatgrt` are stand alone demo's,  the `clock`
 requires an application that is able to connect with raw TCP sockets on the localhost, port 8180. To get an
 impression of the debug capabilities you can also `collatz debug` or `crawler debug`. The other demo's do not
-allow for this extra parameter. We are currently busy updating from 0.4.x to 0.5.9 with multi threading
-features, But from the user or the actors point of view, you will (should) not notice the difference.
+allow for this extra run parameter. Since version 0.7.0, the Native implementation is fully multithreaded.
 
 ## Future
 This library is a replacement for projects that used Akka before. But Leucine will not try to

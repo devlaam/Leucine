@@ -7,7 +7,7 @@ import scala.util.Try
 
 import utest.*
 
-import s2a.leucine.actors.{ActorContext, PlatformContext }
+import s2a.leucine.actors.ActorContext
 
 
 /* It is not possible to use eventually to test, for they are not supported on JS/Native.
@@ -37,8 +37,4 @@ class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration 
   def compare(expected: Result => Unit): Unit =
     if ac.emulated
     then result.map(expected).getOrElse(assert(false))
-    else ac.platform match
-      case Platform.JVM    => promise.future.foreach(expected)
-      case Platform.JS     => promise.future.foreach(expected)
-      case Platform.Native => result.map(expected).getOrElse(assert(false))
-
+    else promise.future.foreach(expected)

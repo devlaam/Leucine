@@ -24,22 +24,15 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-import scala.concurrent.duration.{Duration, FiniteDuration}
-
-/* Unfortunately the current native implementation does not have threadpools or timers. We only have a
- * global execution context and a Thread.Sleep. So we have to implement a loop ourselves for the moment.
- * To that end we use the thread emulator. */
 
 /** Context implementation for the Native Platform */
-abstract class ContextImplementation  extends ContextEmulation, PlatformContext
+abstract class ContextImplementation extends JavaContext
 
-
+/** Platform specific calls for Native */
 object ContextImplementation :
 
   /** Returns the platform that is currently running, here Native. */
   def platform = PlatformContext.Platform.Native
 
   /** Sleep which returns to the caller */
-  private[actors] def sleep(loop: => Unit, delay: FiniteDuration): Boolean =
-    if delay != Duration.Zero then Thread.sleep(delay.toMillis)
-    true
+  private[actors] def sleep = JavaContext.sleep
