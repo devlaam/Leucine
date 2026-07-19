@@ -37,17 +37,27 @@ val sharedSettings = Seq(
 // met _JVM_JS_NAT kunnen laten eindigen. Daar is gemakkelijk op
 // te filteren en is simpel.
 
-val coreDirectory = file("core").getCanonicalFile
+val srcDir = file("src").getCanonicalFile
+val srcALL = "scala-all"
+val srcJVM = "scala-jvm"
+val srcJS  = "scala-js"
+val srcNTV = "scala-ntv"
+val srcMIX = "scala-mix"
+def mainDir(loc: String) = srcDir / "main" / loc
+def testDir(loc: String) = srcDir / "test" / loc
 
 val jvmSettings = Seq(
   assembly / assemblyJarName := "main.jar",
   //Test / testOptions := Seq(Tests.Filter(_.contains("_JVM")))
-  Compile / unmanagedSourceDirectories += coreDirectory / "src" / "main" / "scala-mix",
+  Compile / unmanagedSourceDirectories := Seq(srcALL,srcJVM,srcMIX).map(mainDir),
+  Test / unmanagedSourceDirectories := Seq(srcALL,srcJVM,srcMIX).map(testDir),
   )
 
 val jsSettings = Seq(
   scalaJSUseMainModuleInitializer := true,
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+  Compile / unmanagedSourceDirectories := Seq(srcALL,srcJS).map(mainDir),
+  Test / unmanagedSourceDirectories := Seq(srcALL,srcJS).map(testDir),
   //Test / testOptions := Seq(Tests.Filter(_.contains("_JS")))
   ///* Remove test which cannot run on the JS-Emulated platform.*/
   Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("NJS")))
@@ -65,10 +75,11 @@ val nativeSettings = Seq(
   // while Scala Native 0.5.12 selects test-interface 0.5.12.
   // Allow the eviction until uTest updates its dependency metadata.
   libraryDependencySchemes += ("org.scala-native" % "test-interface_native0.5_3" % VersionScheme.Always),
-  Compile / unmanagedSourceDirectories += coreDirectory / "src" / "main" / "scala-mix",
+  Compile / unmanagedSourceDirectories := Seq(srcALL,srcNTV,srcMIX).map(mainDir),
+  Test / unmanagedSourceDirectories := Seq(srcALL,srcNTV,srcMIX).map(testDir),
   )
 
-lazy val leucine = (projectMatrix in coreDirectory)
+lazy val leucine = (projectMatrix in srcDir)
   /* To rename default leucine to leucineJVM */
   .defaultAxes(VirtualAxis.scalaABIVersion(compileWith))
   .settings(sharedSettings)

@@ -15,7 +15,6 @@ import s2a.leucine.actors.ActorContext
 
 /** Use this to complete the result by a number of events (done) or with a timeout. */
 class Deferred[Result](call: => Result, limit: Int = 1, timeout: FiniteDuration = 1000.millis)(using ac: ActorContext) :
-  import PlatformContext.Platform
   ac.revive()
   private val promise = Promise[Result]()
   private val delay   = ac.delayed(tryCall(), timeout)
