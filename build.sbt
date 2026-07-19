@@ -10,7 +10,7 @@ val latest  = "3.8.4"
 val stable  = "3.3.8"
 
 /* Select one of the possible compiler modes: Demo, Sona, Test or Wiki */
-val mode: Mode = Mode.Sona
+val mode: Mode = Mode.Demo
 
 /* Select the version you want to compile with */
 val compileWith = stable
@@ -36,7 +36,6 @@ def testDir(loc: String) = srcDir / tstDir / loc
 
 val jvmSettings = Seq(
   assembly / assemblyJarName := "main.jar",
-  //Test / testOptions := Seq(Tests.Filter(_.contains("_JVM")))
   Compile / unmanagedSourceDirectories := Seq(srcALL,srcJVM,srcMIX).map(compDir),
   Test / unmanagedSourceDirectories := Seq(srcALL,srcJVM).map(testDir),
   )
