@@ -10,7 +10,7 @@ val latest  = "3.8.4"
 val stable  = "3.3.8"
 
 /* Select one of the possible compiler modes: Demo, Sona, Test or Wiki */
-val mode: Mode = Mode.Demo
+val mode: Mode = Mode.Sona
 
 /* Select the version you want to compile with */
 val compileWith = stable
