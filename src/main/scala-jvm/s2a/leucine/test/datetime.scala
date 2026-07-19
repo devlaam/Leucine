@@ -14,3 +14,5 @@ class DateTime(timestamp: Long) :
   def hour: Int  = ldt.getHour
   def min : Int  = ldt.getMinute
   def sec: Int   = ldt.getSecond
+
+// Test
