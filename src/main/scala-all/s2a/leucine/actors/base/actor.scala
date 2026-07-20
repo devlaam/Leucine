@@ -33,14 +33,21 @@ private trait BareDefs :
   type Common <: Accept
   /** The super type for the state the actor can be in. */
   type State <: Actor.State
-  /** The Result type for the receive method. */
-  type Receive = State match
+  /* Possible result types from a letter */
+  private[actors] type Receiving = Unit | (State => State)
+  /** The Result type for the receive method, which depends if we are stateless or not. */
+  type Receive <: Receiving = State match
     case Actor.State.Default.type  => Unit
     case Actor.State               => (State => State)
   /** The super type for the letters you may receive. */
   private[actors] type MyLetter[Sender >: Common <: Accept] <: Actor.Letter[Sender]
   /** The combined type of Letter and Accept (Envelope).*/
   private[actors] type Env[Sender >: Common <: Accept] = BareActor.Envelope[Accept,Common,Sender,MyLetter]
+  /** Type dependent transformer for received letters */
+  private[actors] inline def receivedTransform(receiving: Receiving, state: State): State = receiving match
+    case         _ : Unit             => state
+    case transform : (State => State) => transform(state)
+
 
 /** Used as a type-parameter free base trait for all mixins. */
 private trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, ProcessDefs, MonitorDefs, LogDefs:

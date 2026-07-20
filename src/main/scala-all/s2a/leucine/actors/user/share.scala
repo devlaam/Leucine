@@ -47,8 +47,7 @@ transparent private trait ActorShare(prename: String) extends BareActor :
     synchronized { failed += 1 }
     /* Report the message as failed */
     ActorGuard.fail(Actor.Post(Actor.Mail.Unmatched,path,letter,sender))
-    /* Depending on the Stateless/Stateful we must return an other type. Per default the state is left as is.
-     * TODO: Can this also be solved compile time? In an elegant manner? */
+    /* Depending on the Stateless/Stateful we must return an other type. Per default the state is left as is. */
     initialState match
       case _: Actor.State.Default.type => ().asInstanceOf[Receive]
       case _: Actor.State              => ((s: State) => s).asInstanceOf[Receive]

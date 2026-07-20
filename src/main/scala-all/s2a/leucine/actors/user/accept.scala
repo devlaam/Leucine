@@ -47,12 +47,10 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
 
   /* Deliver the letter in the envelope. */
   private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
-    /* Let the letter be processed */
-    val received = receive(envelope.letter,envelope.sender)
-    /* The state remains unchanged, if we work stateless, otherwise compute the new state.
-     * TODO: Can this also be solved compile time? In an elegant manner?
-     * Based on this: https://scastie.scala-lang.org/13dD1LD8Q3OUpLrn89oLqw? */
-    if received.isInstanceOf[Unit] then state else received.asInstanceOf[State => State](state)
+    /* Let the letter be processed, note the type ascription is required for the transformer. */
+    val received: Receiving = receive(envelope.letter,envelope.sender)
+    /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
+    receivedTransform(received,state)
 
   /* Deliver the exception to the user. The state remains unchanged. */
   private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
