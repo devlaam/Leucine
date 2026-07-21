@@ -15,7 +15,7 @@ val mode: Mode = Mode.Demo
 /* Select the version you want to compile with */
 val compileWith = stable
 
-version       :=  "0.7.0"
+version       :=  "0.7.1"
 scalaVersion  :=  compileWith
 usePipelining :=  false
 
