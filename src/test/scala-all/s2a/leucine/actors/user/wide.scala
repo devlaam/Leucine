@@ -23,7 +23,7 @@ object WideActorTest extends TestSuite :
       case (Common.Text(_,0), _ : Anonymous)   => sendMary("*",0); sendSara("*",0)
       case (Common.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
-  object Joni extends WideDefine, Stateless
+  object Joni extends WideDefine
 
 
 
@@ -42,7 +42,7 @@ object WideActorTest extends TestSuite :
       case (Common.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendSara("*",0)
       case (Common.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
-  object Mary extends WideDefine, Stateless
+  object Mary extends WideDefine
 
 
   class Sara(val writeln: String => Unit, val done: () => Unit) extends WideActor(Sara,"Sara") :
@@ -60,7 +60,7 @@ object WideActorTest extends TestSuite :
       case (Common.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendMary("*",0)
       case (Common.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
-  object Sara extends WideDefine, Stateless
+  object Sara extends WideDefine
 
   object Common :
     sealed trait Letter extends Actor.Letter[Actor]

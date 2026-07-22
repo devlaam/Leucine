@@ -14,7 +14,7 @@ object SiblingWideSupply extends TestSuite, SiblingCommon :
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
       case Grandma.FamilyHello => children.foreach(child => child.send(Grandma.FamilyHello,sender))
 
-  object Grandma extends WideDefine, FamilyDefine, Stateless  :
+  object Grandma extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = Mama
     type ChildLetter = Actor.Letter[Actor]
@@ -31,7 +31,7 @@ object SiblingWideSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
-  object Mama extends WideDefine, FamilyDefine, Stateless  :
+  object Mama extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = Son | Daughter
     type ChildLetter = Actor.Letter[Actor]
@@ -44,7 +44,7 @@ object SiblingWideSupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends WideDefine, Stateless  :
+  object Son extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   class Daughter(name: String, val parent: Mama) extends WideActor(Daughter,name), Child :
@@ -52,7 +52,7 @@ object SiblingWideSupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends WideDefine, Stateless  :
+  object Daughter extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   def start(): Unit =
@@ -72,7 +72,7 @@ object SiblingWideRelaySupply extends TestSuite, SiblingCommon :
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
       case Grandma.FamilyHello => children.foreach(child => child.send(Grandma.FamilyHello,sender))
 
-  object Grandma extends WideDefine, FamilyDefine, Stateless  :
+  object Grandma extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = Mama
     type ChildLetter = Actor.Letter[Actor]
@@ -89,7 +89,7 @@ object SiblingWideRelaySupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         val _ = relayAll(Mama.FamilyHello,this)
 
-  object Mama extends WideDefine, FamilyDefine, Stateless  :
+  object Mama extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = BareActor
     type ChildLetter = Actor.Letter[Actor]
@@ -100,7 +100,7 @@ object SiblingWideRelaySupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends WideDefine, Stateless  :
+  object Son extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   class Daughter(name: String, val parent: Mama) extends WideActor(Daughter,name), FamilyLeafRelayed[Mama] :
@@ -108,7 +108,7 @@ object SiblingWideRelaySupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends WideDefine, Stateless  :
+  object Daughter extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   def start(): Unit =
@@ -130,7 +130,7 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
 
-  object Grandma extends WideDefine, FamilyDefine, Stateless  :
+  object Grandma extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = Mama
     type ChildLetter = Actor.Letter[Actor]
@@ -147,7 +147,7 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
-  object Mama extends WideDefine, FamilyDefine, Stateless  :
+  object Mama extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = Son | Daughter
     type ChildLetter = Actor.Letter[Actor]
@@ -160,7 +160,7 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends WideDefine, Stateless  :
+  object Son extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   class Daughter(name: String, val parent: Mama) extends WideActor(Daughter,name), Child :
@@ -168,7 +168,7 @@ object SiblingWideRelayedSupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends WideDefine, Stateless  :
+  object Daughter extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   def start(): Unit =
@@ -190,7 +190,7 @@ object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
       case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
-  object Grandma extends WideDefine, FamilyDefine, Stateless  :
+  object Grandma extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = Mama
     type ChildLetter = Actor.Letter[Actor]
@@ -207,7 +207,7 @@ object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         val _ = relayAll(Mama.FamilyHello,this)
 
-  object Mama extends WideDefine, FamilyDefine, Stateless  :
+  object Mama extends WideDefine, FamilyDefine :
     case object Hello extends Actor.Letter[Actor]
     type ChildActor = BareActor
     type ChildLetter = Actor.Letter[Actor]
@@ -218,7 +218,7 @@ object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends WideDefine, Stateless :
+  object Son extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   class Daughter(name: String, val parent: Mama) extends WideActor(Daughter,name), FamilyLeafRelayed[Mama] :
@@ -226,7 +226,7 @@ object SiblingWideRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends WideDefine, Stateless  :
+  object Daughter extends WideDefine :
     case object Hello extends Actor.Letter[Actor]
 
   def start(): Unit =

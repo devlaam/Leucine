@@ -19,13 +19,13 @@ object ActorFamilySupply extends TestSuite :
    *       object Y }
    */
 
-  object Outside_ extends RestrictDefine, Stateless  :
+  object Outside_ extends RestrictDefine :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
     case object Bell extends Letter[Accept]
 
-  object Level0_ extends RestrictDefine, FamilyDefine, Stateless  :
+  object Level0_ extends RestrictDefine, FamilyDefine :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test0 extends Letter[Accept]
@@ -35,7 +35,7 @@ object ActorFamilySupply extends TestSuite :
     /* TODO: This is still problematic, but we must be able to define common letters. */
     case object Common extends Letter[Anonymous], Level1A_.Letter[Anonymous], Level1B_.Letter[Anonymous], Level1C_.Letter[Anonymous]
 
-  object Level1A_ extends RestrictDefine, FamilyDefine, Stateless  :
+  object Level1A_ extends RestrictDefine, FamilyDefine :
     type Accept = Anonymous | Outside | Level0
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1A extends Letter[Accept]
@@ -43,22 +43,22 @@ object ActorFamilySupply extends TestSuite :
     type ChildAccept = Actor
     type ChildLetter[Sender <: ChildAccept] =  Level2A_.Letter[Sender]
 
-  object Level1B_ extends RestrictDefine, Stateless  :
+  object Level1B_ extends RestrictDefine :
     type Accept = Anonymous | Outside
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case object Test1B extends Letter[Accept]
 
-  object Level1C_ extends RestrictDefine, Stateless  :
+  object Level1C_ extends RestrictDefine :
     type Accept = Anonymous | Outside | Level1A
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
 
-  object Level2A_ extends RestrictDefine, Stateless  :
+  object Level2A_ extends RestrictDefine :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class Text(msg: String) extends Letter[Accept]
 
-  class Outside extends RestrictActor(Outside_,"boo"), TimingAid, Stateless  :
+  class Outside extends RestrictActor(Outside_,"boo"), TimingAid :
     val _ = post(Outside_.Bell,1.seconds)
     def receive[Sender <: Accept](letter: Outside_.Letter[Sender], sender: Sender) = (letter,sender) match
       case(Outside_.Text(msg), _: Anonymous) => ()

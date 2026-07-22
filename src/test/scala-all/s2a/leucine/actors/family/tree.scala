@@ -46,7 +46,7 @@ trait ActorTreeSupply :
         val relayed = relayAll(Tree.Stop,this)
         if relayed == 0 then stop(Actor.Stop.Direct)
 
-  object Tree extends RestrictDefine, Stateless :
+  object Tree extends RestrictDefine :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class  Create(width: Int, level: Int) extends Letter[Actor]

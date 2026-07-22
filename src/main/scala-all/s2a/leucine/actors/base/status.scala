@@ -50,7 +50,7 @@ private transparent trait StatusActor extends UserActor :
    * Variable that keeps track of the transient state between processes.
    * Note that although access on state may be from different threads, it is strictly sequential, so
    * there is no need to protect manipulations. */
-  private[actors] var state: State = initialState
+  private[actors] var state: State = _
 
   /** Counter for the total number of exceptions during the lifetime of this actor. */
   private[actors] var excepts: Int = 0

@@ -50,8 +50,8 @@ class Noise extends RestrictActor(Noise,"Noise") :
         source ! Text.Lipsum(key,result)
 
 
-/** Companion object where letters and accepted sender actors are defined. We keep no state. */
-object Noise extends RestrictDefine, Stateless :
+/** Companion object where letters and accepted sender actors are defined. */
+object Noise extends RestrictDefine :
   Logger.trace(Logger.Chat)
 
   /* Only the Access and Text actors may request for random content. */

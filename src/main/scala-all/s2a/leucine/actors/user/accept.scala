@@ -40,7 +40,6 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
    * accessibility of the type aliases below. */
   type Accept = Actor | this.type
   type Common = Actor
-  type State = actorDefine.State
   type Letter = MyLetter[Actor]
   type Sender = Actor
   private[actors] type MyLetter[Sender >: Common <: Accept] = actorDefine.Letter
@@ -48,7 +47,7 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
   /* Deliver the letter in the envelope. */
   private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
     /* Let the letter be processed, note the type ascription is required for the transformer. */
-    val received: Receiving = receive(envelope.letter,envelope.sender)
+    val received: Receive = receive(envelope.letter,envelope.sender)
     /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
     receivedTransform(received,state)
 
@@ -56,9 +55,6 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
   private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
     except(envelope.letter,envelope.sender,exception,exceptionCounter)
     state
-
-  /* Defines the initialState to be the Default state, the user does not need to implement this. */
-  private[actors] final def initialState: State = actorDefine.initial
 
   /* Use to distinguish between basic and other actors. AcceptActors does not have sender as parameter. */
   extension (stash: StashOps)
@@ -90,6 +86,7 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
    * The user may, as a precaution, end each match statement of the letter/sender type with an
    * catch all, and pass the result to unmatched, if the compiler is unable to verify that all
    * possible cases have been covered. In case of stateful processing, the state is left unaltered. */
+  //TODO: This causes a warning in case receive was specialized to Unit.
   protected def unmatched(letter: Letter, sender: Sender = Actor.Anonymous): Receive = defaultUnmatched(letter,sender)
 
   /**

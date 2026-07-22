@@ -18,14 +18,14 @@ object RefuseActorTest extends TestSuite :
       case  Writer.Number(int: Int)   => writeln(s"$name:$int")
       case  Writer.Except             => throw new Exception(name)
 
-  object Writer extends AcceptDefine, Stateless  :
+  object Writer extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case class Text(text: String) extends Letter
     case class Number(int: Int) extends Letter
     case object Except extends Letter
 
 
-  class Generator(name: String, writer: Writer, val writeln: String => Unit) extends RefuseActor(RefuseStateless,name) :
+  class Generator(name: String, writer: Writer, val writeln: String => Unit) extends RefuseActor(name) :
 
     def process(loops: Long): Unit =
       writeln(s"$name:enter")

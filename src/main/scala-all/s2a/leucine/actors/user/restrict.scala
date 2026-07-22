@@ -38,14 +38,13 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
 
   type Accept = actorDefine.Accept
   type Common = Nothing
-  type State  = actorDefine.State
   type Letter[Sender <: Accept] = MyLetter[Sender]
   private[actors] type MyLetter[Sender >: Common <: Accept] = actorDefine.Letter[Sender]
 
   /* Deliver the letter in the envelope. The state remains unchanged. */
   private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
     /* Let the letter be processed, note the type ascription is required for the transformer. */
-    val received: Receiving = receive(envelope.letter,envelope.sender)
+    val received: Receive = receive(envelope.letter,envelope.sender)
     /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
     receivedTransform(received,state)
 
@@ -53,9 +52,6 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
   private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
     except(envelope.letter,envelope.sender,exception,exceptionCounter)
     state
-
-  /* Defines the initialState to be the Default state, the user does not need to implement this. */
-  private[actors] final def initialState: State = actorDefine.initial
 
   extension (stash: StashOps)
     /**

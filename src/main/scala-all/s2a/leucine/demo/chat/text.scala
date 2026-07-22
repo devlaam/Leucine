@@ -45,8 +45,8 @@ class Text(access: Access, noise: Noise) extends RestrictActor(Text,"Text") :
       case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
-/** Companion object where letters and accepted sender actors are defined. We keep no state. */
-object Text extends RestrictDefine, Stateless :
+/** Companion object where letters and accepted sender actors are defined. */
+object Text extends RestrictDefine :
   Logger.trace(Logger.Chat)
 
   /* We only accept letters from the Noise or Access actors or from an anonymous source. */

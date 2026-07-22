@@ -36,13 +36,12 @@ package s2a.leucine.actors
  * If no name is given, an unique name is generated, but the actor is not indexed to be retrieved on the base of its name.
  * Supply !# as name to define this a worker actor. There is no need for the (companion) object which contains the necessary
  * type aliases, for there are none. */
-abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefine: Define = RefuseStateless, prename: String = "")(using val context: ActorContext) extends BareActor, ActorShare(prename):
+abstract class RefuseActor(prename: String = "")(using val context: ActorContext) extends BareActor, ActorShare(prename):
   import Auxiliary.toUnit
 
   /* We only want to be able to send messages to myself. */
   type Accept = this.type
   type Common = this.type
-  type State = actorDefine.State
   /* The letters are not further exposed. */
   type Letter = Actor.Letter[Accept]
   private[actors] type MyLetter[Sender >: Common <: Accept] = Letter
@@ -56,7 +55,7 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
   /* Deliver the letter in the envelope. */
   private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
     /* Let the letter be processed, note the type ascription is required for the transformer. */
-    val processed: Receiving = process(loops)
+    val processed: Receive = process(loops)
     /* Post a work message for the next process run. */
     sendEnvelope(work).toUnit
     /* Increase the loop counter */
@@ -68,9 +67,6 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
   private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
     except(exception,exceptionCounter)
     state
-
-  /* Defines the initialState to be the Default state, the user does not need to implement this. */
-  private[actors] final def initialState: State = actorDefine.initial
 
   /**
    * Implement this method in your actor to process the workload in parts. As long as you do not
@@ -97,16 +93,3 @@ abstract class RefuseActor[Define <: RefuseDefine](private[actors] val actorDefi
 
   /* Start the work in this actor. */
   sendEnvelope(work).toUnit
-
-
-
-
-/** Derive your companion object from this trait, so you can define your own typed letters. */
-trait RefuseDefine extends ShareDefine
-
-/**
- * Default object for Refuse actors that don't need any state. Since no other types need to be
- * defined in the RefuseDefine this default implementation is provided. It also serves as the
- * default value in the RefuseActor class define parameter.
- */
-object RefuseStateless extends RefuseDefine, Stateless

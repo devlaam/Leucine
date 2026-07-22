@@ -17,7 +17,7 @@ trait ProtectAidTest(using ac: ActorContext) :
     def receive(letter: Digest.Letter, sender: Sender): Unit = letter match
       case Digest.Knock(i) =>  writeln(s"Knock($i)")
 
-  object Digest extends AcceptDefine, Stateless :
+  object Digest extends AcceptDefine :
      sealed trait Letter extends Actor.Letter[Actor]
      case class Knock(i: Int) extends Letter
 

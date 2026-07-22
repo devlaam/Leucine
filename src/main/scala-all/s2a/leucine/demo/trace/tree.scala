@@ -104,7 +104,7 @@ class Tree(name: String, debug: Boolean, val parent: Option[Tree]) extends Accep
       case Tree.Report => if debug then monitor.show(samples = true)
 
 
-object Tree extends AcceptDefine, Stateless :
+object Tree extends AcceptDefine :
   Logger.trace(Logger.Crawler)
   sealed trait Letter extends Actor.Letter[Actor]
   /* Message to create the tree structure. The maximal number of levels

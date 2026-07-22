@@ -24,10 +24,3 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-
-/**
- * Actors are Stateful by default, since we assume you actually want to change anything. But
- * if keeping state is not required, mixin the Stateless trait into you defines. */
-trait Stateless :
-  type State = Actor.State.Default.type
-  val initial: State = Actor.State.Default

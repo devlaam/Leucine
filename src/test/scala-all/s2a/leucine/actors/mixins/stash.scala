@@ -7,15 +7,15 @@ import s2a.control.{Buffer, Deferred}
 
 trait StashAidTest(using ac: ActorContext) :
 
-  class Stack(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Stack), StashAid :
+  class Stack(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Stack), StashAid, StateAid[Stack.State](Stack.initial) :
     override protected def stopped(cause: Actor.Stop, complete: Boolean) =
       writeln(s"stop:$complete")
       done()
-    def receive[Sender <: Accept](letter: Stack.Letter[Sender], sender: Sender): (State => State) = (state: State) => letter match
-      case  Stack.Write(value)  => if state.block && value%2==0 then { Stash.store(); state } else state.copy(value::state.values)
-      case  Stack.Push(value)   => Stash.store(Stack.Write(value),sender); state
-      case  Stack.Pop           => Stash.flush(); state.copy(block=false)
-      case  Stack.Print         => writeln(state.values.toString); Stack.initial
+    def receive[Sender <: Accept](letter: Stack.Letter[Sender], sender: Sender): State = letter match
+      case  Stack.Write(value)  => if theState.block && value%2==0 then { Stash.store(); theState } else theState.copy(value::theState.values)
+      case  Stack.Push(value)   => Stash.store(Stack.Write(value),sender); theState
+      case  Stack.Pop           => Stash.flush(); theState.copy(block=false)
+      case  Stack.Print         => writeln(theState.values.toString); Stack.initial
 
   object Stack extends RestrictDefine :
     type Accept = Actor

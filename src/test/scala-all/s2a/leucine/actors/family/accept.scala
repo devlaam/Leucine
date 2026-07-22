@@ -14,7 +14,7 @@ object SiblingAcceptSupply extends TestSuite, SiblingCommon :
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
       case Grandma.FamilyHello => children.foreach(child => child.send(Grandma.FamilyHello,sender))
 
-  object Grandma extends AcceptDefine, FamilyDefine, Stateless  :
+  object Grandma extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = Mama
@@ -32,7 +32,7 @@ object SiblingAcceptSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
-  object Mama extends AcceptDefine, FamilyDefine, Stateless  :
+  object Mama extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = Son | Daughter
@@ -48,7 +48,7 @@ object SiblingAcceptSupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends AcceptDefine, Stateless  :
+  object Son extends AcceptDefine  :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -58,7 +58,7 @@ object SiblingAcceptSupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends AcceptDefine, Stateless  :
+  object Daughter extends AcceptDefine  :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -79,7 +79,7 @@ object SiblingAcceptRelaySupply extends TestSuite, SiblingCommon :
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
       case Grandma.FamilyHello => children.foreach(child => child.send(Grandma.FamilyHello,sender))
 
-  object Grandma extends AcceptDefine, FamilyDefine, Stateless  :
+  object Grandma extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = Mama
@@ -97,7 +97,7 @@ object SiblingAcceptRelaySupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         val _ = relayAll(Mama.FamilyHello,this)
 
-  object Mama extends AcceptDefine, FamilyDefine, Stateless  :
+  object Mama extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = BareActor
@@ -109,7 +109,7 @@ object SiblingAcceptRelaySupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends AcceptDefine, Stateless  :
+  object Son extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -118,7 +118,7 @@ object SiblingAcceptRelaySupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends AcceptDefine, Stateless  :
+  object Daughter extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -141,7 +141,7 @@ object SiblingAcceptRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
 
-  object Grandma extends AcceptDefine, FamilyDefine, Stateless  :
+  object Grandma extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = Mama
@@ -159,7 +159,7 @@ object SiblingAcceptRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         children.foreach(child => child.send(Mama.FamilyHello,this))
 
-  object Mama extends AcceptDefine, FamilyDefine, Stateless  :
+  object Mama extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = Son | Daughter
@@ -175,7 +175,7 @@ object SiblingAcceptRelayedSupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends AcceptDefine, Stateless  :
+  object Son extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -185,7 +185,7 @@ object SiblingAcceptRelayedSupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends AcceptDefine, Stateless  :
+  object Daughter extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -208,7 +208,7 @@ object SiblingAcceptRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.Hello       => children.foreach(child => child.send(Mama.Hello,this))
       case Grandma.FamilyHello => relayAll(Grandma.FamilyHello,sender).toUnit
 
-  object Grandma extends AcceptDefine, FamilyDefine, Stateless  :
+  object Grandma extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = Mama
@@ -226,7 +226,7 @@ object SiblingAcceptRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Grandma.FamilyHello =>
         val _ = relayAll(Mama.FamilyHello,this)
 
-  object Mama extends AcceptDefine, FamilyDefine, Stateless  :
+  object Mama extends AcceptDefine, FamilyDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
     type ChildActor = BareActor
@@ -238,7 +238,7 @@ object SiblingAcceptRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Son.Hello        => writeln(s"$name-SH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Son extends AcceptDefine, Stateless :
+  object Son extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 
@@ -247,7 +247,7 @@ object SiblingAcceptRelayRelayedSupply extends TestSuite, SiblingCommon :
       case Daughter.Hello   => writeln(s"$name-DH-${sender.name}")
       case Mama.FamilyHello => writeln(s"$name-MF-${sender.name}")
 
-  object Daughter extends AcceptDefine, Stateless  :
+  object Daughter extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Hello extends Letter
 

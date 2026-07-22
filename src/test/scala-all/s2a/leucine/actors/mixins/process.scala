@@ -29,7 +29,7 @@ trait ProcessAidRestrictTest(using ac: ActorContext) :
         this ! Ticker.Count(n+1)
         switch(new Process.Replace { def process[Sender <: Accept] = tick })
 
-  object Ticker extends RestrictDefine, Stateless :
+  object Ticker extends RestrictDefine :
     type Accept = Actor
     sealed trait Letter[Sender <: Accept] extends Actor.Letter[Sender]
     case class  Count(n: Int) extends Letter[Accept]
@@ -74,7 +74,7 @@ trait ProcessAidSelectTest(using ac: ActorContext) :
         this ! Ticker.Count(n+1)
         switch(new Process.Replace { def process = tick })
 
-  object Ticker extends SelectDefine, Stateless :
+  object Ticker extends SelectDefine :
     type Accept = Actor
     sealed trait Letter extends Actor.Letter[Accept]
     case class  Count(n: Int) extends Letter
@@ -119,7 +119,7 @@ trait ProcessAidAcceptTest(using ac: ActorContext) :
         this ! Ticker.Count(n+1)
         switch(new Process.Replace { def process = tick })
 
-  object Ticker extends AcceptDefine, Stateless :
+  object Ticker extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case class  Count(n: Int) extends Letter
     case object Start extends Letter
@@ -164,7 +164,7 @@ trait ProcessAidWideTest(using ac: ActorContext) :
         this ! Ticker.Count(n+1)
         switch(new Process.Replace { def process = tick })
 
-  object Ticker extends WideDefine, Stateless :
+  object Ticker extends WideDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case class  Count(n: Int) extends Letter
     case object Start extends Letter

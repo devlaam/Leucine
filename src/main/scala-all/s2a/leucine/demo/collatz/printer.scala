@@ -53,7 +53,7 @@ private class Printer extends AcceptActor(Printer,"printer") :
       case Switch(device)        => this.device = device
 
 
-object Printer extends AcceptDefine, Stateless:
+object Printer extends AcceptDefine :
   import Auxiliary.toUnit
   Logger.trace(Logger.Collatz)
 

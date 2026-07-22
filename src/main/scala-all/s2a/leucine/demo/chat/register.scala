@@ -61,8 +61,8 @@ class Register(access: Access, noise: Noise) extends RestrictActor(Register,"Reg
       case (_,_) => Logger.fatal("Code should not arrive here.")
 
 
-/** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
-object Register extends RestrictDefine, Stateless :
+/** Companion object where letters and accepted sender actors are defined. */
+object Register extends RestrictDefine :
   Logger.trace(Logger.Chat)
 
   /* We only accept letters from the Noise actor or from an anonymous source. */

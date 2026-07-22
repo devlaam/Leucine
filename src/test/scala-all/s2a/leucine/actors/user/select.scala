@@ -23,7 +23,7 @@ object SelectActorTest extends TestSuite :
       case (Joni.Text(_,0), _ : Anonymous)   => sendMary("*",0); sendSara("*",0)
       case (Joni.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
-  object Joni extends SelectDefine, Stateless  :
+  object Joni extends SelectDefine :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter extends Actor.Letter[Accept]
     case class Text(text: String, depth: Int) extends Letter
@@ -46,7 +46,7 @@ object SelectActorTest extends TestSuite :
       case (Mary.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendSara("*",0)
       case (Mary.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
-  object Mary extends SelectDefine, Stateless  :
+  object Mary extends SelectDefine :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter extends Actor.Letter[Accept]
     case class Text(text: String, depth: Int) extends Letter
@@ -68,7 +68,7 @@ object SelectActorTest extends TestSuite :
       case (Sara.Text(_,0), _ : Anonymous)   => sendJoni("*",0); sendMary("*",0)
       case (Sara.Text(_,_), _ : Anonymous)   => unmatched(letter,sender)
 
-  object Sara extends SelectDefine, Stateless  :
+  object Sara extends SelectDefine :
     type Accept = Joni | Mary | Sara | Anonymous
     sealed trait Letter extends Actor.Letter[Accept]
     case class Text(text: String, depth: Int) extends Letter

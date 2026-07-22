@@ -47,10 +47,8 @@ transparent private trait ActorShare(prename: String) extends BareActor :
     synchronized { failed += 1 }
     /* Report the message as failed */
     ActorGuard.fail(Actor.Post(Actor.Mail.Unmatched,path,letter,sender))
-    /* Depending on the Stateless/Stateful we must return an other type. Per default the state is left as is. */
-    initialState match
-      case _: Actor.State.Default.type => ().asInstanceOf[Receive]
-      case _: Actor.State              => ((s: State) => s).asInstanceOf[Receive]
+    /* Per default the state is left as is. */
+    state
 
 
   /**
@@ -111,7 +109,3 @@ transparent private trait ActorShare(prename: String) extends BareActor :
 transparent private trait ShareDefine :
   /** Use this inside the actor to allow the anonymous sender in Accept for example. */
   type Anonymous = Actor.Anonymous.type
-  /** Define the State you want to modify. Note: if you do not want/have this, mixin Stateless. */
-  type State <: Actor.State
-  /** Define the initial value of the state. */
-  def initial: State

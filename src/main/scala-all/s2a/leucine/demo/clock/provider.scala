@@ -65,7 +65,7 @@ class Provider(protected val socket: ClientSocket, protected val parent: Listene
     println(s"Provider $path stopped.")
     socket.close()
 
-object Provider extends SelectDefine, Stateless:
+object Provider extends SelectDefine :
   Logger.trace(Logger.Clock)
   type Accept = Provider
   sealed trait Letter extends Actor.Letter[Accept]

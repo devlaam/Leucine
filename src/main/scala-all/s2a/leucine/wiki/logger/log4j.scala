@@ -29,8 +29,8 @@ class PongActor extends WideActor(PongActor,"Pong"), LogAid(Logger) :
       Logger.warn("Pong received Stop")
       stop(Actor.Stop.Direct)
 
-object PongActor extends WideDefine, Stateless
-object PingActor extends WideDefine, Stateless
+object PongActor extends WideDefine
+object PingActor extends WideDefine
 
 object Letters :
   case object Ping  extends Actor.Letter[Actor]

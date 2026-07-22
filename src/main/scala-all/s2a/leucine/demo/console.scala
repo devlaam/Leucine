@@ -75,7 +75,7 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger)
       case Console.Cli                   =>  Chatgrt.request(selfie(Console.Cmd(_)))
 
 
-object Console extends AcceptDefine, Stateless :
+object Console extends AcceptDefine :
   Logger.trace()
   /* The letters that are part of this actor. Best practice, derive them from a sealed trait. */
   sealed trait Letter extends Actor.Letter[Actor]

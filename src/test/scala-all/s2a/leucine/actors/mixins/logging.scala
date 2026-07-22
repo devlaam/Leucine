@@ -104,7 +104,7 @@ object ActorLoggerTest extends TestSuite :
   class TraceWriter(name: String, val writeln: String => Unit, val done: () => Unit, logger: TraceLogger) extends BaseWriter(name,writeln,done,logger):
     def receive(letter: Writer.Letter, sender: Sender): Unit = process(letter)
 
-  object Writer extends AcceptDefine, Stateless  :
+  object Writer extends AcceptDefine :
     sealed trait Letter extends Actor.Letter[Actor]
     case object Fatal extends Letter
     case object Error extends Letter

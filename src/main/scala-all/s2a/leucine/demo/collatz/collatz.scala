@@ -31,8 +31,9 @@ import s2a.leucine.actors.*
 
 /* We of course also need some code to let the logger do its job. At the same time this serves as
  * a minimal example of Stateful actors. Since this actor is the main motor of this 'application' it
- * does not accept any letters from the outside world. (Actors always accept letters send to themselves) */
-class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new LocalMonitor(2.seconds)), LogAid(Logger) :
+ * does not accept any letters from the outside world. (Actors always accept letters send to themselves)
+ * We want this actor to be stateful, so we mixin StateAid. */
+class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new LocalMonitor(2.seconds)), LogAid(Logger), StateAid[Collatz.State](Collatz.initial) :
   import Actor.Post
   import MonitorAid.{Sample, Trace, Tracing}
   import ActorLogger.Level
@@ -75,11 +76,12 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
   this ! Collatz.Work
 
   /* In receive we handle the incoming letters. */
-  final protected def receive(letter: Letter, sender: Sender): (State => State) = (state: State) => {
+  final protected def receive(letter: Letter, sender: Sender): State =
     Logger.trace(Logger.Collatz)
     /* In this example, we do not care about the letters that much, but more
-     * about the state. */
-    state match
+     * about the state.  */
+    //TODO: For now, we have the reader theState, that will be 'state' in the future
+    theState match
       case Collatz.Odd(current,full,odd,evens,ceil) =>
         /* Report that we are in the 'odd' state */
         Printer.red(s"Odd  value = $current")
@@ -118,7 +120,7 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
         /* Change the state to a new one. This is obligatory. */
         if next % 2 == 0
         then Collatz.Even(next,full+1,odd,size+1,size max evens,ceil)
-        else Collatz.Odd(next,full+1,odd+1,size max evens,ceil) }
+        else Collatz.Odd(next,full+1,odd+1,size max evens,ceil)
 
 object Collatz extends AcceptDefine :
   Logger.trace(Logger.Collatz)

@@ -50,8 +50,8 @@ class Access extends RestrictActor(Access,"Access") :
       case (Access.Pair(name,password),source: Text) => source ! Text.User(name,checkUser(name,password))
 
 
-/** Companion object where letters and accepted sender actors are defined. We keep our state manually. */
-object Access extends RestrictDefine, Stateless :
+/** Companion object where letters and accepted sender actors are defined. */
+object Access extends RestrictDefine :
   Logger.trace(Logger.Chat)
 
   /* We only accept letters from the Register or Text actors. */
