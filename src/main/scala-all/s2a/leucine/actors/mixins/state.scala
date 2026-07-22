@@ -25,23 +25,28 @@ package s2a.leucine.actors
  **/
 
 /* Methods stub for when there is no stash mixin used. */
-private trait StateDefs extends BareDefs
-  //type State <: Actor.State
-
+private trait StateDefs extends BareDefs :
+  private[actors] def receivedTransform(receive: Receive): Unit = ()
+  private[actors] def sendedTransform(): Receive = ()
 
 trait StateAid[MyState <: Actor.State](initial: MyState) extends ActorInit, ActorDefs :
   type State = MyState
-  //type Letter[_]//[Sender <: Accept]
-  //type Sender
-  private[actors] var state: State
-  protected def theState: State = state
 
+  /**
+   * Variable that keeps track of the transient state between processes.
+   * Note that although access on state may be from different threads, it is strictly sequential, so
+   * there is no need to protect manipulations. */
   /**
    * This defines the initial state that is used before the first letter is processed if needed.
    * The related definition must be in the actor constructor of the user code. */
-  state = initial
+  private var _state: State = initial
 
-  //private[actors] final def initialState: State = initial
+  protected def state: State = _state
+
+  private[actors] final override def receivedTransform(receive: Receive): Unit =
+    if receive != () then _state = receive.asInstanceOf[State]
+
+  private[actors] final override def sendedTransform(): State = _state
 
   // Starks doen het misschien zo.
   // protected def start(initial: State): Unit =

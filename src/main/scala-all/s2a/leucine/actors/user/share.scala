@@ -32,7 +32,6 @@ transparent private trait ActorShare(prename: String) extends BareActor :
   /* Delivers the stopped() callback to the user. */
   private[actors] def deliverStopped(cause: Actor.Stop, complete: Boolean): Unit = stopped(cause,complete)
 
-
   /** Provides the default implementation for handling an exception. */
   private[actors] def defaultExcept[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Unit =
     /* This counts as a failed message, if this exception is not handled. */
@@ -48,7 +47,7 @@ transparent private trait ActorShare(prename: String) extends BareActor :
     /* Report the message as failed */
     ActorGuard.fail(Actor.Post(Actor.Mail.Unmatched,path,letter,sender))
     /* Per default the state is left as is. */
-    state
+    sendedTransform()
 
 
   /**

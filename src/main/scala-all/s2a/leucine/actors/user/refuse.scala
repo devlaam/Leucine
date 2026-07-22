@@ -53,7 +53,7 @@ abstract class RefuseActor(prename: String = "")(using val context: ActorContext
   private var loops: Long = 0
 
   /* Deliver the letter in the envelope. */
-  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
+  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     /* Let the letter be processed, note the type ascription is required for the transformer. */
     val processed: Receive = process(loops)
     /* Post a work message for the next process run. */
@@ -61,12 +61,11 @@ abstract class RefuseActor(prename: String = "")(using val context: ActorContext
     /* Increase the loop counter */
     loops = loops + 1
     /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
-    receivedTransform(processed,state)
+    receivedTransform(processed)
 
   /* Deliver the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
+  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], exception: Exception, exceptionCounter: Int): Unit =
     except(exception,exceptionCounter)
-    state
 
   /**
    * Implement this method in your actor to process the workload in parts. As long as you do not

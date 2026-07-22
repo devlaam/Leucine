@@ -75,7 +75,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* User code is protected by an exception guard.*/
     try
       /* Execute the receiver handler. */
-      state = deliverEnvelope(envelope,state)
+      deliverEnvelope(envelope)
       /* stashEnqueue checks if there was a stash request for this message. If so it is enqueued. */
       stashEnqueue(envelope)
     catch
@@ -83,7 +83,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
        * other throwables are ignored. The user must deal with them before we arrive here if needed.
        * See for more information:
        * https://contributors.scala-lang.org/t/nonfatal-and-controlthrowable-changed-in-stdlib/6049/5*/
-      case exception: Exception => excepts += 1; state = deliverException(envelope,state,exception,excepts)
+      case exception: Exception => excepts += 1; deliverException(envelope,exception,excepts)
     /* Make sure the clock is stopped, and trace when requested */
     finally monitorExit(envelope)
 

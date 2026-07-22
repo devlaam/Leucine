@@ -39,9 +39,6 @@ private trait BareDefs :
   private[actors] type MyLetter[Sender >: Common <: Accept] <: Actor.Letter[Sender]
   /** The combined type of Letter and Accept (Envelope).*/
   private[actors] type Env[Sender >: Common <: Accept] = BareActor.Envelope[Accept,Common,Sender,MyLetter]
-  /** Type dependent transformer for received letters */
-  private[actors] def receivedTransform(receive: Receive, state: State): State =
-    if receive == () then state else receive.asInstanceOf[State]
 
 
 /** Used as a type-parameter free base trait for all mixins. */

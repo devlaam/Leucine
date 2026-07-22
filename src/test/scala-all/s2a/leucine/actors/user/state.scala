@@ -11,8 +11,8 @@ object StateActorTest extends TestSuite :
   class Clock(val writeln: String => Unit, val done: () => Unit) extends RestrictActor(Clock,"clock"), StateAid[Clock.State](Clock.initial) :
    override protected def stopped(cause: Actor.Stop, complete: Boolean) = done()
    protected def receive[Sender <: Accept](letter: Clock.Letter[Sender], sender: Sender): State = letter match
-     case Clock.Tick(extraSec) => theState.advance(extraSec)
-     case Clock.PrintTime      => writeln(state.show); theState
+     case Clock.Tick(extraSec) => state.advance(extraSec)
+     case Clock.PrintTime      => writeln(state.show); state
 
   object Clock extends RestrictDefine :
     type Accept = Anonymous

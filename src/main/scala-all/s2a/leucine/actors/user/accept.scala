@@ -45,16 +45,15 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
   private[actors] type MyLetter[Sender >: Common <: Accept] = actorDefine.Letter
 
   /* Deliver the letter in the envelope. */
-  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender], state: State): State =
+  private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     /* Let the letter be processed, note the type ascription is required for the transformer. */
     val received: Receive = receive(envelope.letter,envelope.sender)
     /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
-    receivedTransform(received,state)
+    receivedTransform(received)
 
   /* Deliver the exception to the user. The state remains unchanged. */
-  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], state: State, exception: Exception, exceptionCounter: Int): State =
+  private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], exception: Exception, exceptionCounter: Int): Unit =
     except(envelope.letter,envelope.sender,exception,exceptionCounter)
-    state
 
   /* Use to distinguish between basic and other actors. AcceptActors does not have sender as parameter. */
   extension (stash: StashOps)

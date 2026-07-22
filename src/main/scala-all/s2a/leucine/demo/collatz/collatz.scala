@@ -80,8 +80,7 @@ class Collatz(debug: Boolean) extends AcceptActor(Collatz), MonitorAid(new Local
     Logger.trace(Logger.Collatz)
     /* In this example, we do not care about the letters that much, but more
      * about the state.  */
-    //TODO: For now, we have the reader theState, that will be 'state' in the future
-    theState match
+    state match
       case Collatz.Odd(current,full,odd,evens,ceil) =>
         /* Report that we are in the 'odd' state */
         Printer.red(s"Odd  value = $current")
