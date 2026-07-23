@@ -80,8 +80,10 @@ abstract class RestrictActor[Define <: RestrictDefine](private[actors] val actor
   /**
    * The user may, as a precaution, end each match statement of the letter/sender type with an
    * catch all, and pass the result to unmatched, if the compiler is unable to verify that all
-   * possible cases have been covered. In case of stateful processing, the state is left unaltered. */
-  protected def unmatched[Sender <: Accept](letter: Letter[Sender], sender: Sender): Receive = defaultUnmatched(letter,sender)
+   * possible cases have been covered. In case of stateful processing, the state is left unaltered,
+   * but if you manually specialize the return type: `receive(letter,sender): State`, you must explicitly
+   * return the state you want to be next. */
+  protected def unmatched[Sender <: Accept](letter: Letter[Sender], sender: Sender): Unit = defaultUnmatched(letter,sender)
 
   /**
    * Send a letter, with the option to say who is sending it. Defaults to anonymous outside the context

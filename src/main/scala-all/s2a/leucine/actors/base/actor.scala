@@ -42,7 +42,7 @@ private trait BareDefs :
 
 
 /** Used as a type-parameter free base trait for all mixins. */
-private trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, ProcessDefs, MonitorDefs, LogDefs, StateDefs:
+private trait ActorDefs extends StashDefs, FamilyDefs, TimingDefs, ProtectDefs, ProcessDefs, MonitorDefs, LogDefs, StateDefs :
   /** The name of this actor. */
   def name: String
   /** The full name of this actor, contains the full path to the first ancestor.*/

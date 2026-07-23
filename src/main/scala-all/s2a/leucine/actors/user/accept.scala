@@ -84,9 +84,10 @@ abstract class AcceptActor[Define <: AcceptDefine](private[actors] val actorDefi
   /**
    * The user may, as a precaution, end each match statement of the letter/sender type with an
    * catch all, and pass the result to unmatched, if the compiler is unable to verify that all
-   * possible cases have been covered. In case of stateful processing, the state is left unaltered. */
-  //TODO: This causes a warning in case receive was specialized to Unit.
-  protected def unmatched(letter: Letter, sender: Sender = Actor.Anonymous): Receive = defaultUnmatched(letter,sender)
+   * possible cases have been covered. In case of stateful processing, the state is left unaltered,
+   * but if you manually specialize the return type: `receive(letter,sender): State`, you must explicitly
+   * return the state you want to be next. */
+  protected def unmatched(letter: Letter, sender: Sender = Actor.Anonymous): Unit = defaultUnmatched(letter,sender)
 
   /**
    * Send a letter to the actor, no need to specify the sender. Returns if the letter was accepted

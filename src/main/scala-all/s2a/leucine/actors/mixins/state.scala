@@ -27,7 +27,6 @@ package s2a.leucine.actors
 /* Methods stub for when there is no stash mixin used. */
 private trait StateDefs extends BareDefs :
   private[actors] def receivedTransform(receive: Receive): Unit = ()
-  private[actors] def sendedTransform(): Receive = ()
 
 trait StateAid[MyState <: Actor.State](initial: MyState) extends ActorInit, ActorDefs :
   type State = MyState
@@ -45,8 +44,6 @@ trait StateAid[MyState <: Actor.State](initial: MyState) extends ActorInit, Acto
 
   private[actors] final override def receivedTransform(receive: Receive): Unit =
     if receive != () then _state = receive.asInstanceOf[State]
-
-  private[actors] final override def sendedTransform(): State = _state
 
   // Starks doen het misschien zo.
   // protected def start(initial: State): Unit =

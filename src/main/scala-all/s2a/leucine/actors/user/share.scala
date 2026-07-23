@@ -40,14 +40,12 @@ transparent private trait ActorShare(prename: String) extends BareActor :
     ActorGuard.fail(Actor.Post(Actor.Mail.Unreadable,path,letter,sender))
 
 
-  /** Provides the default implementation for handling an unmatched letter. */
-  private[actors] def defaultUnmatched[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Receive =
+  /** Provides the default implementation for handling an unmatched letter. If available, the state remains unchanged. */
+  private[actors] def defaultUnmatched[Sender >: Common <: Accept](letter: MyLetter[Sender], sender: Sender): Unit =
     /* This counts as a failed message */
     synchronized { failed += 1 }
     /* Report the message as failed */
     ActorGuard.fail(Actor.Post(Actor.Mail.Unmatched,path,letter,sender))
-    /* Per default the state is left as is. */
-    sendedTransform()
 
 
   /**
