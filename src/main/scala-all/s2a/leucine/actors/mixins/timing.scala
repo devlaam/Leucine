@@ -37,7 +37,8 @@ private trait TimingDefs extends BareDefs :
   private[actors] def eventsDequeue(tail: List[Env[?]]): List[Env[?]] = tail
 
 
-/** Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events.
+/**
+ * Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events.
  * This actor sends messages to itself. For the moment, you must explicitly allow this in the sender
  * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
 trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :

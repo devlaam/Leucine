@@ -61,7 +61,7 @@ abstract class RefuseActor(prename: String = "")(using val context: ActorContext
     /* Increase the loop counter */
     loops = loops + 1
     /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
-    receivedTransform(processed)
+    storeState(processed)
 
   /* Deliver the exception to the user. The state remains unchanged. */
   private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], exception: Exception, exceptionCounter: Int): Unit =

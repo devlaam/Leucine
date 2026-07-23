@@ -24,34 +24,28 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
-/* Methods stub for when there is no stash mixin used. */
+/* Methods stub for when there is no state mixin used. */
 private trait StateDefs extends BareDefs :
-  private[actors] def receivedTransform(receive: Receive): Unit = ()
+  private[actors] def storeState(receive: Receive): Unit = ()
 
-trait StateAid[MyState <: Actor.State](initial: MyState) extends ActorInit, ActorDefs :
-  type State = MyState
+/** Mixin to make your actor stateful. Supply the Type and initial value of your State. */
+trait StateAid[AState <: Actor.State](initial: AState) extends ActorInit, ActorDefs :
+  type State = AState
 
-  /**
-   * Variable that keeps track of the transient state between processes.
-   * Note that although access on state may be from different threads, it is strictly sequential, so
-   * there is no need to protect manipulations. */
-  /**
-   * This defines the initial state that is used before the first letter is processed if needed.
-   * The related definition must be in the actor constructor of the user code. */
+  /* Variable that keeps track of the transient state between processes. Note that although access on
+   * state may be from different threads, it is strictly sequential, so there is no need to protect
+   * manipulations. It is initialized with the initial state before the first letter is processed. */
   private var _state: State = initial
 
-  protected def state: State = _state
-
-  private[actors] final override def receivedTransform(receive: Receive): Unit =
+  /** Method to set the new value of the state after the letter has been processed. */
+  private[actors] final override def storeState(receive: Receive): Unit =
+    /* Only when we have an actual new state we update the value. */
     if receive != () then _state = receive.asInstanceOf[State]
 
-  // Starks doen het misschien zo.
-  // protected def start(initial: State): Unit =
-  //   state = initial
-  //   start()
-
-  //protected def receive(letter: Letter, sender: Sender): State
-  //protected def receive[Sender <: Accept](letter: Letter[Sender], sender: Sender): State
+  /**
+   * Current state available in the actor for generating a new one. Make sure to only call upon its
+   * value when inside the receive method. */
+  protected def state: State = _state
 
   /* Called to count this trait */
   private[actors] override def initCount: Int = super.initCount + 1

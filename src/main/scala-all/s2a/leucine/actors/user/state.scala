@@ -24,3 +24,7 @@ package s2a.leucine.actors
  * SOFTWARE.
  **/
 
+
+/** Actors are now Stateless by default, this, now empty, trait is kept but deprecated. */
+@deprecated("Actors are now stateless by default, you can remove this mixin.","0.7.1")
+trait Stateless

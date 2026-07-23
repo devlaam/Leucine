@@ -120,10 +120,6 @@ object Actor :
   /** This is the base type for all your states. */
   trait State
 
-  object State :
-    /** The Default state is the state that is used internally if you do not need states yourself. */
-    object Default extends State
-
   /** The Anonymous Actor type used by the Anonymous sender. */
   type Anonymous = Anonymous.type
 

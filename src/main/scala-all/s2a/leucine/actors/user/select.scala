@@ -46,8 +46,8 @@ abstract class SelectActor[Define <: SelectDefine](private[actors] val actorDefi
   private[actors] final def deliverEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     /* Let the letter be processed, note the type ascription is required for the transformer. */
     val received: Receive = receive(envelope.letter,envelope.sender)
-    /* The state remains unchanged, if we work stateless, otherwise compute the new state. */
-    receivedTransform(received)
+    /* The state remains unchanged, if we work stateless, otherwise store the new state. */
+    storeState(received)
 
   /* Process the exception to the user. The state remains unchanged. */
   private[actors] final def deliverException[Sender >: Common <: Accept](envelope: Env[Sender], exception: Exception, exceptionCounter: Int): Unit =
