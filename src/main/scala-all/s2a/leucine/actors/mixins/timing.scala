@@ -39,8 +39,9 @@ private trait TimingDefs extends BareDefs :
 
 /**
  * Mixin which enables the actor to send mails to itself on predefined moments and wait for i/o events.
- * This actor sends messages to itself. For the moment, you must explicitly allow this in the sender
- * type definition of this actor. Otherwise mixing in this Aid generates a compiler error. */
+ * This actor sends messages to itself. For the moment, you must explicitly allow this in the sender type
+ * definition of this actor. Otherwise mixing in this Aid generates a compiler error. Also, if your actor
+ * only receives these messages, it must be actively started, with a call to start() after construction. */
 trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
   this: BareActor =>
   import Auxiliary.toUnit
@@ -72,8 +73,9 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
       if anchors.contains(event.anchor) then
         events.enqueue(event)
         anchors.remove(event.anchor).toUnit
-        /* The process may be in pause, so we must tickle it. Events are a core process.*/
-        processTrigger(true)
+        /* The process may be in pause, so we must tickle it. Events are a core process,
+         * but also a letter to itself, so we may not start the actor. */
+        processTrigger(true,false)
     new Callable[Unit] { def call(): Unit = handle() }
 
   /**
@@ -84,8 +86,9 @@ trait TimingAid(using context: ActorContext) extends ActorInit, ActorDefs :
     def handle(letter: MyLetter[Sender]) = synchronized :
       events.enqueue(TimingAid.Event[Accept,This,Sender,MyLetter](anchor,letter))
       anchors.remove(anchor).toUnit
-      /* The process may be in pause, so we must tickle it. Events are a core process.*/
-      processTrigger(true)
+      /* The process may be in pause, so we must tickle it. Events are a core process,
+       * but also a letter to itself, so we may not start the actor. */
+      processTrigger(true,false)
     new Digestible[MyLetter[Sender]] { def digest(letter: MyLetter[Sender]): Unit = handle(letter) }
 
   /** See if there could be events present.  */

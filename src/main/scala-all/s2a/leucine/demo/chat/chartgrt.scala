@@ -34,6 +34,9 @@ object Chatgrt :
   /* We must provide a default sender. */
   given Actor.Anonymous = Actor.Anonymous
 
+  /* Define all required services. Note that, since all services process only
+   * messages from the outside, there is no need to start them explicitly. */
+
   /* Service that generates a random character words. */
   private val noise    = new Noise
 

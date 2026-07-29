@@ -45,6 +45,8 @@ trait SystemParameters :
   def maxMailboxSize: Int
   /** The minimal number of poll loops (from the guard) for an actor to be considered silent. */
   def silentStop: Int
+  /** Start all actors directly after construction. Eliminates the need for start(). */
+  def autoStart: Boolean
 
 
 
@@ -59,3 +61,4 @@ object DefaultSystem extends SystemParameters :
   val familyPathSeparator: Char       = '.'
   val maxMailboxSize: Int             = Int.MaxValue
   val silentStop: Int                 = 3
+  val autoStart: Boolean              = false

@@ -138,8 +138,9 @@ object Init :
     println(s"Started Actor examples on the ${actorContext.platform} platform.")
     /* Define a handler for unhandled messages */
     ActorGuard.failed(post => println(s"FAILED MESSAGE: ${post.full}"))
-    /* Open the console as an actor to get commands from the user. */
-    new Console
+    /* Open the console as an actor to get commands from the user. Since this console does not receive
+     * messages from outside, we must manually start it. */
+    (new Console).start()
     /* Watch the actors for completion. Note that this blocks for the JVM and Native platforms
      * but not on JS. There blocking is not possible and this call returns immediately. Normally
      * you do not call watch on JS, for this does have not much added value. Except if you use

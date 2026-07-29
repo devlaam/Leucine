@@ -49,6 +49,9 @@ trait ActorContext extends PlatformContext with ExecutionContext :
   /** The minimal number of poll loops (from the guard) for an actor to be considered silent. */
   def silentStop: Int
 
+  /** Start all actors directly after construction. Eliminates the need for start(). */
+  def autoStart: Boolean
+
   /** Future to be executed on the ActorContext. */
   def future[T](task: => T): Future[T] =
     val promise = Promise[T]()

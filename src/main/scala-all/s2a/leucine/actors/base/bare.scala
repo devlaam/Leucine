@@ -30,6 +30,10 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
   import ActorGuard.syslog
   import ActorLogger.Level
 
+  /* Note on all syslog() statements. They report path and phase. The path is usually stable, but the phase is not.
+   * This is intentional. Even if we would use a @volatile variable here, the value can lag from the value that is
+   * used later in the method. And there is no possibility to synchronize every method in whole. So, remember that
+   * the phase may not represent the current value. */
   syslog(Level.Trace,s"$path/$phase")
 
   /** Use this inside the actor to test for an anonymous sender */
@@ -45,13 +49,13 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
   /** Used as sender for all messages send from this actor without explicit sender. */
   given this.type = this
 
-  /* Kick start the actor. */
+  /* Take all necessary actions before the actor starts. */
   private[actors] def initComplete(): Unit =
     syslog(Level.Trace,s"$path/$phase")
     /* Activates the real time monitoring, if present. */
     monitorStart()
-    /* Initiate the execution of this actor in a new thread. */
-    context.deferred(processTrigger(true))
+    /* Initiate the execution of this actor in a new thread if autoStart is true. */
+    if context.autoStart then context.deferred(processTrigger(true,true))
 
   /* Signal that this class is instantiated. */
   initReady()
@@ -60,7 +64,10 @@ abstract class BareActor(using context: ActorContext) extends ControlActor, Name
 object BareActor :
 
   /* The actor passes different phases in its lifetime; not called states, for these are external to the handling.
-   * After construction the phase is Start. When the first message comes in, it calls beforeStart and advances to Play.
+   * After construction the phase is Start. This is the phase directly after creation. Now, since the variable phase
+   * is in the main object, it will be null until all mixins are created. Then, when the base actor is created, the
+   * phase becomes Start. In this phase letters may already be stored, but only a letter from the outside, or an explicit
+   * call to start() will trigger processing of the letter queue. Then advances to Play.
    * From there it may oscillate between Play and Pause. The phase is Pause when the message queue is empty and Play
    * as long as there are letters on the queue. If a Finish letter arrives while the loop is running, the phase moves
    * to Finish, and the current queue is finished. If stopDirect() is called, the phase advances to Stop, which terminates

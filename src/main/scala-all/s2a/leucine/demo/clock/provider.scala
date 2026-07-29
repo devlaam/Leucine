@@ -29,7 +29,7 @@ import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
 
 
-/* The provider class sends a timestamp to the connection every two seconds. Since it is not part of a family we must define the
+/* The provider class sends a timestamp to the connection every two seconds. Since it is not root of a family we must define the
  * parent actor in its declaration. Further, it cannot have a constant name, so that is a parameter too. Lastly since the
  * socket is also fixed during its lifetime, this is also made a parameter. An other option would have been to send it in
  * a letter. The RestrictActor is used as a base actor, but since we do not really care who send the messages to the provider,

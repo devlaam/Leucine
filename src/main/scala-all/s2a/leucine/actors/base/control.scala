@@ -41,13 +41,16 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
     def dropAndPassOn: Boolean =
       /* See if we are not double booked. This is the case when this actor is requested to
        * stop on Silent and one of its ancestors is as well. In that case we remove this booking
-       * and ignore the signal. */
+       * and ignore the signal. This may have the effect a needle drop round is skipped. That is
+       * better than performing it twice. */
       if (stopper == Stop.Silent) && !root then
         /* Remove the booking */
         ActorGuard.dropNeedles(false,this)
         /* Ignore this Silent stopper. */
         stopper = Stop.Never
-        /* Do not pass the signal on. */
+        /* Do not pass the signal on. This is required, for if this actor was double booked and already visited
+         * before, the whole children tree might receive to many needles. If it was not visited before, this
+         * will happen on the next round. Eventually this procedure will clean up all double booked actors. */
         false
       /* See if we still want the actor to stop on Silent. This is the case when we received
        * the request ourselves, or when it is passed from the parent in a family. */
@@ -92,8 +95,9 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
         protectRaise(mailbox.size)
         /* ... put the mail in the box */
         mailbox.enqueue(envelope)
-        /* ... trigger the processLoop, so execution starts, if currently in Pause. */
-        processTrigger(true)
+        /* ... trigger the processLoop, so execution starts, if currently in Pause.
+         * If are receiving a letter from ourselves, we may not start the actor, only continue. */
+        processTrigger(true,envelope.sender!=this)
       /* Get the result outside. */
       mail
     /* Report this message as refused (must be outside the synchronized environment) when
@@ -121,10 +125,20 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
       /* When we are done, we are done. */
       case Phase.Done   => Phase.Done
 
+
+  /**
+   * Starting an actor is needed if the actor does not receive messages from the outside. An actor cannot 'boot'
+   * itself, for security reasons. Calling start() on an actor that has already been started is allowed. */
+  final def start(): Unit =
+    syslog(Level.Trace,s"$path/$phase")
+    /* Tickle the actor on an other thread to start. */
+    context.deferred(processTrigger(true,true))
+
+
   /**
    * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
-   * possible if the stop action was not yet initiated. Direct and Finish start immediately, and cannot be retracted. */
+   * possible if the stop action was not yet initiated. Direct and Finish stop it immediately, and cannot be retracted. */
   final def stop(value: Stop): Unit =
     syslog(Level.Trace,s"$path/$phase")
     /* Activate/deactivate the needle dropping, which is there to see if the actor turned silent. */

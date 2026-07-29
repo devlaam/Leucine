@@ -38,7 +38,7 @@ private transparent trait StatusActor extends UserActor :
   /**
    * Variable that keeps track of the phase the actor is in. All actions on phase must be synchronized
    * since it may be reached from different threads at equal times. Synchronization is done at the place
-   * of use for maximal efficiency */
+   * of use for maximal efficiency. */
   private[actors] var phase: Phase = Phase.Start
 
   /**
@@ -59,14 +59,26 @@ private transparent trait StatusActor extends UserActor :
 
   /** See the current activity state of this actor */
   def activity: Activity = synchronized :
-    /* In very rare case it may come to pass that the activity is probed by the guard before the
-     * object construction is completed. In that case the phase value has not yet been initialized.
-     * We report the activity as Running because construction will very soon be completed. */
-    if phase == null then Activity.Running
-    /* Normally however, we can just see if the actor is active. */
-    else if phase.active
-      /* In case we are, we are or running or a 'Stop.Final' has been requested in which
-       * case the actor may be halted by the guard. */
-      then if stopper == Stop.Final then Activity.Haltable    else Activity.Running
-      /* If the actor is not active anymore, termination can be complete or not. */
-      else if phase   == Phase.Done then Activity.Terminated  else Activity.Stopping
+    /* In a very rare case it may come to pass that the activity is probed by the guard/monitor before the
+     * object construction is completed. This is because these have independent timers and the newly
+     * constructing actor is registered somewhere in the process, not necessarily at the end. In that
+     * case the phase value has not yet been initialized. We then report the activity as Starting. */
+    if phase == null then Activity.Starting
+    /* In case the phase is already set, we consider an actor Haltable when the system may stop it
+     * in a non trivial manner, i.e. a Final actor is stopped at the end of the whole actor systems
+     * lifetime, but this does not count as Haltable, other values of the stopper do. If the system
+     * is actively stopping an actor, this is considered Stopping. At the end it is Terminated. */
+    // TODO: We hebben de betekenis van Haltable veranderd, maar dat gaat fout in the Guard.
+    // Haltable was alleen geldig indien stopper == Stop.Final.
+    // Ga even terug naar de oude definitie.
+    else phase match
+      // case Phase.Start  => if stopper >= Stop.Final then Activity.Starting else Activity.Haltable
+      // case Phase.Play   => if stopper >= Stop.Final then Activity.Running  else Activity.Haltable
+      // case Phase.Pause  => if stopper >= Stop.Final then Activity.Running  else Activity.Haltable
+      case Phase.Start  => if stopper != Stop.Final then Activity.Starting else Activity.Haltable
+      case Phase.Play   => if stopper != Stop.Final then Activity.Running  else Activity.Haltable
+      case Phase.Pause  => if stopper != Stop.Final then Activity.Running  else Activity.Haltable
+      case Phase.Finish => Activity.Stopping
+      case Phase.Stop   => Activity.Stopping
+      case Phase.Done   => Activity.Terminated
+

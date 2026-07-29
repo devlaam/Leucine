@@ -84,7 +84,7 @@ trait TimingAidTest(using ac: ActorContext) :
       val deferred = Deferred(buffer.readlns)
       val promise = Promise[Unit]()
       val _ = ac.delayed(promise.tryComplete(Try(())).toUnit, 67.millis)
-      new Expect(promise.isCompleted,buffer.writeln,deferred.done)
+      (new Expect(promise.isCompleted,buffer.writeln,deferred.done)).start()
       deferred.await()
       deferred.compare(list =>
         /* End should only contain succeeded event and end. */

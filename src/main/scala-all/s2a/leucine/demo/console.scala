@@ -63,11 +63,11 @@ private class Console extends AcceptActor(Console,!#), TimingAid, LogAid(Logger)
   def receive(letter: Letter, sender: Sender): Unit =
     Logger.trace()
     letter match
-      case Console.Demo("collatz")       =>  new Collatz(false); stop();
-      case Console.Demo("collatz debug") =>  new Collatz(true); stop();
-      case Console.Demo("clock")         =>  new Listener; stop();
-      case Console.Demo("crawler")       =>  new Tree("F0",false,None); stop();
-      case Console.Demo("crawler debug") =>  new Tree("F0",true,None); stop();
+      case Console.Demo("collatz")       =>  (new Collatz(false)).start(); stop();
+      case Console.Demo("collatz debug") =>  (new Collatz(true)).start(); stop();
+      case Console.Demo("clock")         =>  (new Listener).start(); stop();
+      case Console.Demo("crawler")       =>  (new Tree("F0",false,None)).start(); stop();
+      case Console.Demo("crawler debug") =>  (new Tree("F0",true,None)).start(); stop();
       case Console.Demo("chatgrt")       =>  post(Console.Cli,100.millis).toUnit
       case Console.Demo(unknown)         =>  stop(s"Unknown demo '$unknown', closing ...")
       case Console.Cmd("exit")           =>  Chatgrt.stop(); stop();

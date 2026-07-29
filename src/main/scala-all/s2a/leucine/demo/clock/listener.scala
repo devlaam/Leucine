@@ -104,8 +104,9 @@ class Listener extends SelectActor(Listener,"server"), TimingAid, LogAid(Logger)
       /* The new connection will come in as a letter. */
       case Listener.Connect(socket) =>
         Logger.info("Accepted a connection.")
-        /* We see the providers as workers and generate automatic names for them. */
-        new Provider(socket,this)
+        /* We see the providers as workers and generate automatic names for them. And, since the Providers only
+         * send messages to themselves they must be manually started. */
+        (new Provider(socket,this)).start()
         /* Be ready for a new connection. */
         if !useCallback then expect(connect,expectationAnchor).toUnit
       /* The request has come to close stop this server. */

@@ -33,16 +33,13 @@ import scala.concurrent.duration.DurationInt
  * creation. If the actor has a self defined name, it is added to the name index as well. */
 object ActorGuard :
 
-  /** Collection of all actors that are relevant for keeping the thread pool alive. */
+  /* Collection of all actors that are relevant for keeping the thread pool alive. */
   private var actors: Set[Actor] = Set.empty
 
   /* Index with with all named actors to find them on their name. Not all actors of
    * stored in the set actors are present here. But all of the indexed are also
    * present in the actors, which is the 'leading collection'. */
   private var index: Map[String,Actor] = Map.empty
-
-  /* Worker instance to give all workers, not part of a family a worker name. */
-  private[actors] val worker = new Worker
 
   /* Contains all actors that require needle drop. */
   private var silent: Set[Actor] = Set.empty
@@ -56,6 +53,9 @@ object ActorGuard :
   /* Contains the logger if registered as a service. */
   private var logger: LogHandler | Null = null
 
+  /* Worker instance to give all workers, not part of a family a worker name. */
+  private[actors] val worker = new Worker
+
   /** Call for internal use to send system logs to the active logger. */
   private[actors] inline def syslog(inline level: ActorLogger.Level, message: => String): Unit =
     /* Logging is only possible if a logger is registered. We use null here for efficient inlining
@@ -67,16 +67,18 @@ object ActorGuard :
     if active then silent += actor else silent -= actor
 
   /**
-   * See if all the actors that are running have completed. We do not put synchronized
-   * here and rely in the atomicity of the reference variable actors and _.isActive calls.
-   * Synchronizing would slow down the application and there is no problem with memory
+   * See if all the actors that are running have completed. We do not put synchronized over the
+   * whole call here and rely in the atomicity of the reference variable actors and _.isActive calls.
+   * We only make a synchronized snapshot of the required collections so the form a consistent set.
+   * Synchronizing everything would slow down the application and there is no problem with memory
    * inconsistency for reading the actors variable. Note that this opens the possibility that
    * the application terminates when an actor is added after the watch is called in an
    * other thread and all other actors have terminated as well. This however is an unlikely
    * scenario from a design perspective. The other threads are populated with actors, so
    * these have not terminated when they themselves created new actors.  */
   private def allTerminated(): Boolean =
-    import Actor.Activity.*
+    import Actor.Activity
+    val (_actors,_silent) = synchronized { (actors,silent) }
     /* Use a var to collect all actors that are running that may be stopped. */
     var haltables: List[Actor] = Nil
     /* Test this actor on its activity, return true when is has already stopped or may be stopped. */
@@ -84,21 +86,21 @@ object ActorGuard :
     /* Get its activity */
       val activity = actor.activity
       /* If the actor is allowed to be stopped ... */
-      if activity == Haltable
+      if activity == Activity.Haltable
       /* ... add it to the collection of actors that will be stopped */
       then { haltables = actor :: haltables; true }
       /* ... otherwise see if the actor has already stopped. */
-      else activity == Terminated
+      else activity == Activity.Terminated
     /* Loop all actors to see if they have stopped or may be stopped. Terminate the loop
      * as soon as one actor does not fulfill this test. Note, usually this loop is very
      * short. Terminated actors remove themselves from the list when they are done. */
-    val mayTerminate = actors.forall(act)
+    val mayTerminate = _actors.forall(act)
     /* If we may terminate the actor system ... */
     if mayTerminate
     /* ... we must first terminate the haltable (but still active) actors */
     then haltables.foreach(_.stopWith(true))
     /* if not, we must probe all actors that requested it to see if they are silent (doing nothing). */
-    else silent.foreach(_.dropNeedle(true))
+    else _silent.foreach(_.dropNeedle(true))
     /* Finally we are really terminated if we were allowed to terminate and there were no haltables left. */
     val result = mayTerminate && haltables.isEmpty
     /* Stop all services if we have reached the end. */

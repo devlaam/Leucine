@@ -67,19 +67,34 @@ trait Actor :
   def path: String
 
   /**
-   * See the current activity of the actor. There are four levels:
+   * See the current activity of the actor. There are five levels:
+   *   Starting:   The Actor has just been created and takes letters for queuing, processing not started.
    *   Running:    The Actor is working normally and takes letters for processing.
    *   Haltable:   The Actor is working normally but can be stopped by the system.
    *   Stopping:   The Actor is ceasing operations, and will not accept any letters.
    *   Terminated: The Actor has completely stopped and will be garbage collected when possible.
-   * Activity has a field 'active' which is true for the first two cases and false for the latter.
+   * Activity has a field 'active' which is true for the first three cases and false for the latter.
    * As long as it is active is true it will accept letters, and you can use it normally. Once it
    * cannot longer process any new letters this turns false. This can also be used inside an actor,
    * but it makes no sense to wait for it turning false inside the actor, for that may never happen,
    * even if the actor is stopped from the outside.  Note that in an asynchronous system, the answer
    * may already have changed after the read. Once active turns to false however, it will never return
-   * to true again. In normal circumstances, there is no need for the user to every test the activity. */
+   * to true again. In normal circumstances, there is no need for the user to ever test the activity,
+   * other than to gather statistics on the operations. */
   def activity: Activity
+
+  /**
+   * Actors start their work when the first letter arrives from the outside world and are unable to boot
+   * by themselves. This is a security measure. Should an actor start when receiving a message from its
+   * own constructor, the receive method is called on an other thread and may see an incomplete object. So,
+   * a message from the constructor is queued, but only processed after an other message from the outside
+   * comes in. The order is kept though, you can be sure the message from the constructor is processed first.
+   * Sometimes, an actor is not called from the outside at all, but provides its 'own tick'. In that case it
+   * is required to start the actor after creation, with this call. In the actor has already been started the
+   * call has no effect. You can always safely write: (new MyActor).start(). For legacy systems, where you
+   * may not want to edit all code, searching for the few actors that need this, or you are in a single
+   * threaded application, you can also set the system parameter autoStart to true. */
+  def start(): Unit
 
   /**
    * Method to inform the actor to stop its activities directly, or later, depending on the circumstances.
@@ -126,7 +141,7 @@ object Actor :
   /**
    * Stopping of an actor is organized in levels of severity. The lowest level (Direct) terminates directly, the
    * highest level never terminates. The latter is the default. Levels can always be decreased, increase is only
-   * possible if the stop action was not yet initiated. Direct and Finish start immediately, and cannot be retracted. */
+   * possible if the stop action was not yet initiated. Direct and Finish stop it immediately, and cannot be retracted. */
   enum Stop extends EnumOrder[Stop] :
     /** Stop the actor asap, but complete the running letter. Subsequently stop all children likewise. Terminate afterwards. */
     case Direct
@@ -146,9 +161,11 @@ object Actor :
    * the Phase and Stop situation the actor is in. For the user, this is informational only, since the state may
    * change any time. However, you may assume the activity state may only increase. */
   enum Activity(val active: Boolean) extends EnumOrder[Activity] :
-    /** The Actor is working normally and takes letters for processing. */
+    /** The Actor is being created and takes letters for queuing, not yet processing. */
+    case Starting   extends Activity(true)
+    /** The Actor is working normally and takes letters for processing, cannot be stopped by the system. */
     case Running    extends Activity(true)
-    /** The Actor is working normally but is stopped by the system when there are no Running actors available any more. */
+    /** The Actor is working normally but can stopped by the system. */
     case Haltable   extends Activity(true)
     /** The Actor is ceasing operations, and will not accept any letters. */
     case Stopping   extends Activity(false)
@@ -213,6 +230,8 @@ object Actor :
     def path = name
     /** The Anonymous actor was never in action, so technically it is never terminated, but is certainly not active. */
     def activity: Activity = Activity.Stopping
+    /** The Anonymous actor cannot be started. */
+    def start(): Unit = ()
     /** The Anonymous actor is not running, so it cannot be stopped. */
     def stop(value: Stop): Unit = ()
     /** The Anonymous actor is always silent so dropping has no consequences. */

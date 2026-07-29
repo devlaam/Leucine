@@ -31,25 +31,42 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
   import ActorGuard.syslog
   import ActorLogger.Level
 
-  /** Triggers the processLoop into execution, depending on the phase. */
-  private[actors] def processTrigger(coreTask: Boolean): Unit = synchronized :
-    syslog(Level.Trace,s"$path/$phase")
-    phase = phase match
-      /* If this is the very first trigger, called from the constructor. */
-      case Phase.Start  => processInit(); Phase.Play
-      /* If we are already looping, nothing to do. */
-      case Phase.Play   => Phase.Play
-      /* If we were just taking a break, start the loop again. */
-      case Phase.Pause  => processPlay(coreTask); Phase.Play
-      /* The finish letter was received, we do not except triggers. Do nothing */
-      case Phase.Finish => Phase.Finish
-      /* We are already stopping and do not except triggers. Do nothing */
-      case Phase.Stop   => Phase.Stop
-      /* When we are done, we are done. */
-      case Phase.Done   => Phase.Done
+  /* General note on the exceptions in the process handling. It is a design decision that the
+   * actor system itself should not through exceptions. This is considered a bug. It may
+   * through and Error. But, even although they may formally not all be Fatal, but we consider
+   * them fatal for the actor system and do not catch them. Exceptions on user called code are
+   * catched. */
 
-  /** Contains the instructions to startup the actor */
-  private[actors] def processInit(): Unit =
+  /** Triggers the processLoop into execution, depending on the phase. */
+  private[actors] def processTrigger(coreTask: Boolean, allowStart: Boolean): Unit =
+    syslog(Level.Trace,s"$path/$phase")
+    /* Depending on the phase we must perform a different task. The phase may change. Phase changes must
+     * by done in a synchronized way, tasks do no have this requirement, even worse, since they may start
+     * a different thread, it is better this is not done in a synchronized environment, it does not harm,
+     * but is more difficult to reason about. Define a way to transport the task. */
+    val notask = () => ()
+    /* Advance function which defines new phase and action */
+    inline def advance(inline p: Phase, inline t: Unit) = { phase = p; () => t }
+    /* Now, see what action is needed. Note that the tasks are not expected to throw exceptions. */
+    val action = synchronized :
+      phase match
+      /* If we have been newly constructed, see if we may start. */
+      case Phase.Start  => if allowStart then advance(Phase.Play,processStart()) else notask
+      /* If we are already looping, nothing to do. */
+      case Phase.Play   => notask
+      /* If we were just taking a break, start the loop again. */
+      case Phase.Pause  => advance(Phase.Play,processPlay(coreTask))
+      /* The finish letter was received, we do not except triggers. Do nothing */
+      case Phase.Finish => notask
+      /* We are already stopping and do not except triggers. Do nothing */
+      case Phase.Stop   => notask
+      /* When we are done, we are done. */
+      case Phase.Done   => notask
+    /* Execute the relevant action outside the synchronization. */
+    action()
+
+  /** Contains the instructions to startup the processLoop */
+  private[actors] def processStart(): Unit =
     syslog(Level.Trace,s"$path/$phase")
     /* Process startup code in an other thread. This must be done from the processLoop for
      * otherwise the started() call may be superseded by the first letter. */
@@ -58,16 +75,16 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
   /** Call processPlay to continue the processLoop. */
   private[actors] def processPlay(reset: Boolean): Unit =
     syslog(Level.Trace,s"$path/$phase")
-    /* Reset the dropped needles counter (note we only call processPlay synchronized.) if
-     * requested, otherwise make sure it does not exceed the silentStop value. */
-    if reset then needles = 0 else needles = needles min context.silentStop
+    /* Reset the dropped needles counter if requested, otherwise make sure it does not exceed the silentStop value. */
+    synchronized { if reset then needles = 0 else needles = needles min context.silentStop }
     /* Put the processLoop() on the context. */
     context.deferred(processLoop(false))
 
   /**
    * Tries to process the contents of one envelope. If there is an exception, this is delivered to
    * the user. If this method is not implemented, the exception is only counted, and the processLoop
-   * will advance to the next envelope.  */
+   * will advance to the next envelope. If it throws an error, we are done, and do not try to
+   * recover from it. An error should not happen. */
   private[actors] def processEnvelope[Sender >: Common <: Accept](envelope: Env[Sender]): Unit =
     syslog(Level.Trace,s"$path/$phase letter=${envelope.letter} sender=${envelope.sender.path}")
     /* Start measuring the time passed in the user environment, and trace when requested */
@@ -96,7 +113,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     if init then deliverStarted()
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
      * de-stashed envelopes if any and possibly one event. Since the eventsDequeue and the
-     * mailbox.dequeue both need synchronization we do that on once. */
+     * mailbox.dequeue both need synchronization we do that all at once. */
     var envs: List[Env[? >: Common <: Accept]] = synchronized { eventsDequeue(stashDequeue(mailbox.dequeue())) }
     /* Test if must report an empty mailbox */
     if envs.isEmpty then protectReset()
@@ -105,8 +122,6 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* Loop through all envelopes. We try to process as many as we can within this time slice. */
     while !envs.isEmpty && synchronized { phase != Phase.Stop } do
       /* Process the first envelope in line. */
-      // TODO: if processEnvelope throws an error, there will be a lot of unfinished work.
-      // Effectively, the system will be unusable. Can.should we try to recover with try .. finally?
       processEnvelope(envs.head)
       /* When done, see if we must augment the list with more important envelopes. If there are no
        * events possible then there is no need to synchronize. The stash is always filled within the
@@ -164,33 +179,43 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     synchronized { phase = Phase.Done }
 
   /** After work from the processLoop. Dropped contains the letters that could not be completed. */
-  private[actors] def processExit(dropped: List[Env[?]]): Unit = synchronized :
+  private[actors] def processExit(dropped: List[Env[?]]): Unit =
     syslog(Level.Trace,s"$path/$phase")
-    /* There are regular (core) tasks that handle some enveloped message. There can stem from the
-     * the mailbox, the stash or the event queue. These are all handled in normal operation and when
-     * we are finishing, the event queue is ignored. So we first calculate these coreFinishTasks */
-    val coreFinishTasks = stashFlush      || !mailbox.isEmpty
-    /* and then the corePlayTasks are found by adding the events if present. */
-    val corePlayTasks   = coreFinishTasks || eventsPresent
-    /* Apart from the core tasks there are reports (callbacks) on situations that occur. We report
-     * a child was removed or if the mailbox is empty again. These are called report tasks. */
-    val reportTasks     = !protectIdle    || familyRemoved
-    /* So we start play again when we are in Finish mode if there are coreFinishTasks or reportTasks.
-     * (Note that with Stop.Direct the reportTasks are skipped as well) */
-    val withFinishTasks = coreFinishTasks || reportTasks
-    /* And we start play again in regular operation when there are any of the core or play tasks. */
-    val withPlayTasks   = corePlayTasks   || reportTasks
-    /* See what has changed in the meantime and how to proceed. */
-    phase = phase match
-      /* This situation cannot occur, phase should be advanced before loop is started */
-      case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop"); Phase.Done
-      /* If there are play tasks, start the loop again, and only fully reset the needles on the core tasks. */
-      case Phase.Play   => if withPlayTasks then { processPlay(corePlayTasks); Phase.Play } else Phase.Pause
-      /* This situation cannot occur, a running loop may not be paused. */
-      case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop"); Phase.Done
-      /* If there are finish tasks, start the loop again, and reset does not really matter, since needle dropping has stopped. */
-      case Phase.Finish => if withFinishTasks then  { processPlay(coreFinishTasks); Phase.Finish } else { processStop(dropped,true); Phase.Stop }
-      /* If we got an external stop request, make an end to this. */
-      case Phase.Stop   => processStop(dropped,false); Phase.Stop
-      /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
-      case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop"); Phase.Done
+    /* Depending on the phase we must perform a different task. The phase may change. Phase changes must
+     * by done in a synchronized way, tasks do no have this requirement, even worse, since they may start
+     * a different thread, it is better this is not done in a synchronized environment, it does not harm,
+     * but is more difficult to reason about. Define a way to transport the task with the advance function
+     * which defines new phase and action */
+    inline def advance(inline p: Phase, inline t: Unit = ()) = { phase = p; () => t }
+    /* Now, see what action is needed. Note that the tasks are not expected to throw exceptions. */
+    val action = synchronized :
+      /* There are regular (core) tasks that handle some enveloped message. There can stem from the
+       * the mailbox, the stash or the event queue. These are all handled in normal operation and when
+       * we are finishing, the event queue is ignored. So we first calculate these coreFinishTasks */
+      val coreFinishTasks = stashFlush      || !mailbox.isEmpty
+      /* and then the corePlayTasks are found by adding the events if present. */
+      val corePlayTasks   = coreFinishTasks || eventsPresent
+      /* Apart from the core tasks there are reports (callbacks) on situations that occur. We report
+       * a child was removed or if the mailbox is empty again. These are called report tasks. */
+      val reportTasks     = !protectIdle    || familyRemoved
+      /* So we start play again when we are in Finish mode if there are coreFinishTasks or reportTasks.
+       * (Note that with Stop.Direct the reportTasks are skipped as well) */
+      val withFinishTasks = coreFinishTasks || reportTasks
+      /* And we start play again in regular operation when there are any of the core or play tasks. */
+      val withPlayTasks   = corePlayTasks   || reportTasks
+      /* See what has changed in the meantime and how to proceed. Note that the tasks are not expected to throw exceptions. */
+      phase match
+        /* This situation cannot occur, phase should be advanced before loop is started */
+        case Phase.Start  => assert(false, "Unexpected Phase.Start in processLoop")
+        /* If there are play tasks, start the loop again keep the phase and only fully reset the needles on the core tasks. */
+        case Phase.Play   => if withPlayTasks then advance(Phase.Play,processPlay(corePlayTasks)) else advance(Phase.Pause)
+        /* This situation cannot occur, a running loop may not be paused. */
+        case Phase.Pause  => assert(false, "Unexpected Phase.Pause in processLoop");
+        /* If there are finish tasks, start the loop again keep the phase and reset does not really matter, since needle dropping has stopped. */
+        case Phase.Finish => if withFinishTasks then advance(Phase.Finish,processPlay(coreFinishTasks)) else advance(Phase.Stop,processStop(dropped,true))
+        /* If we got an external stop request, make an end to this. */
+        case Phase.Stop   => advance(Phase.Stop,processStop(dropped,false))
+        /* This situation cannot occur, during loop phase cannot proceed to Phase.Done */
+        case Phase.Done   => assert(false, "Unexpected Phase.Done in processLoop");
+    /* Execute the relevant action outside the synchronization. */
+    action()

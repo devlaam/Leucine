@@ -43,7 +43,7 @@ object RefuseActorTest extends TestSuite :
     test("sending letters, stop at the end"){
       val deferred = Deferred(buffer.readlns)
       val writer = Writer("A",buffer.writeln,deferred.done)
-      Generator("B",writer,buffer.writeln)
+      Generator("B",writer,buffer.writeln).start()
       deferred.await()
       val _ = deferred.compare(_.filter(_.startsWith("A:")) ==> List("A:text1","A:1","A:text2","A:2","A:text1","A:1","A:text2","A:2","A:stop:true"))
       val _ = deferred.compare(_.filter(_.startsWith("B:")) ==> List("B:enter","B:exit","B:enter","B:exit")) } }

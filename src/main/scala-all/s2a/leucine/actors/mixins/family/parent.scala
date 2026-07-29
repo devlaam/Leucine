@@ -144,8 +144,8 @@ transparent private trait FamilyParent extends  ActorDefs :
           if keep then ActorGuard.add(child)
           /* In case we are still active, put them on the list to be reported as abandoned. A process
            * tickle may be needed in case the mailbox is empty so the callbacks are still handled.
-           * This is no core process however. */
-          if activity.active then { removed = child.name :: removed ; processTrigger(false) }
+           * This is no core process however and we may not start the actor itself (unlikely scenario). */
+          if activity.active then { removed = child.name :: removed ; processTrigger(false,false) }
       true
 
   /** See if there are any children removed that we did not yet report. */
