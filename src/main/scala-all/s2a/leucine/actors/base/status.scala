@@ -33,29 +33,38 @@ private transparent trait StatusActor extends UserActor :
    * Holds all the envelops send to this actor in the mutable MQueue. Note that the Finish
    * letter is not on the queue but a separate state. This is because we cannot post Finish
    * on type E and when we make a union type we must type match on every letter being processed. */
-  private[actors] val mailbox: BurstQueue[Env[?]] = new BurstQueue[Env[?]]
+  private[actors] protected val mailbox: BurstQueue[Env[?]] = new BurstQueue[Env[?]]
 
   /**
    * Variable that keeps track of the phase the actor is in. All actions on phase must be synchronized
    * since it may be reached from different threads at equal times. Synchronization is done at the place
    * of use for maximal efficiency. */
-  private[actors] var phase: Phase = Phase.Start
+  private[actors] protected var phase: Phase = Phase.Start
 
   /**
    * Variable that keeps track of the stop that has been requested. Some stops cannot be reverted, or
    * or only increased. */
-  private[actors] var stopper: Stop = Stop.Never
+  private[actors] protected var stopper: Stop = Stop.Never
 
   /** Counter for the total number of exceptions during the lifetime of this actor. */
-  private[actors] var excepts: Int = 0
+  private[actors] protected var excepts: Int = 0
 
   /** Counter for the total number of failed (unhandled) messages during the lifetime of this actor. */
-  private[actors] var failed: Int = 0
+  private[actors] protected var failed: Int = 0
 
   /**
    * Counter for the total number of silent periods (needle drops). Anytime the actor starts the
    * processing loop this is reset. It is periodically increased when in pause mode. */
-  private[actors] var needles: Int = 0
+  private[actors] protected var needles: Int = 0
+
+  /* Sometimes, we must perform tasks depending on one of the status variables. Using these functions
+   * you can define the function and the new value of the status variable in an synchronized environment.
+   * Use notask if there is nothing do. */
+  inline private[actors] protected def notask = () => ()
+  inline private[actors] protected def advance(inline p: Phase, inline t: Unit) = { phase  = p;  () => t }
+  inline private[actors] protected def advance(inline p: Phase)                 = { phase  = p;  notask  }
+  inline private[actors] protected def advance(inline s: Stop, inline t: Unit)  = { stopper = s; () => t }
+  inline private[actors] protected def advance(inline s: Stop)                  = { stopper = s; notask  }
 
   /** See the current activity state of this actor */
   def activity: Activity = synchronized :

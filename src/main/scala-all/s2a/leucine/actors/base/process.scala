@@ -44,9 +44,6 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
      * by done in a synchronized way, tasks do no have this requirement, even worse, since they may start
      * a different thread, it is better this is not done in a synchronized environment, it does not harm,
      * but is more difficult to reason about. Define a way to transport the task. */
-    val notask = () => ()
-    /* Advance function which defines new phase and action */
-    inline def advance(inline p: Phase, inline t: Unit) = { phase = p; () => t }
     /* Now, see what action is needed. Note that the tasks are not expected to throw exceptions. */
     val action = synchronized :
       phase match
@@ -184,10 +181,7 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     /* Depending on the phase we must perform a different task. The phase may change. Phase changes must
      * by done in a synchronized way, tasks do no have this requirement, even worse, since they may start
      * a different thread, it is better this is not done in a synchronized environment, it does not harm,
-     * but is more difficult to reason about. Define a way to transport the task with the advance function
-     * which defines new phase and action */
-    inline def advance(inline p: Phase, inline t: Unit = ()) = { phase = p; () => t }
-    /* Now, see what action is needed. Note that the tasks are not expected to throw exceptions. */
+     * but is more difficult to reason about. */
     val action = synchronized :
       /* There are regular (core) tasks that handle some enveloped message. There can stem from the
        * the mailbox, the stash or the event queue. These are all handled in normal operation and when

@@ -108,22 +108,29 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
   /**
    * Stop this actor asap, but complete the running letter if finish is true. This is an internal call
    * which does not change the stopper value, which holds the primary user action to stop the actor */
-  private[actors] def stopWith(finish: Boolean): Unit = synchronized :
+  private[actors] def stopWith(finish: Boolean): Unit =
     syslog(Level.Trace,s"$path/$phase")
-    phase = phase match
+    /* Depending on the phase we must perform a different task. The phase may change. Phase changes must
+     * by done in a synchronized way, tasks do no have this requirement, even worse, since they may start
+     * a different thread, it is better this is not done in a synchronized environment, it does not harm,
+     * but is more difficult to reason about. See what action is needed. Note that the tasks are not
+     * expected to throw exceptions. */
+    val action = synchronized :
+      phase match
       /* When we did not yet start, but the party is already over, nothing to do. */
-      case Phase.Start  => context.deferred(processStop(Nil,finish)); Phase.Stop
+      case Phase.Start  => advance(Phase.Stop,context.deferred(processStop(Nil,finish)))
       /* If we are already looping, proceed to stop, which will halt the looping after the
        * letter is done or finish and let the mailbox complete. */
-      case Phase.Play   => if finish then Phase.Finish else Phase.Stop
+      case Phase.Play   => if finish then advance(Phase.Finish) else advance(Phase.Stop)
       /* If we we were just taking a break, we can stop immediately. */
-      case Phase.Pause  => context.deferred(processStop(Nil,finish)); Phase.Stop
+      case Phase.Pause  => advance(Phase.Stop,context.deferred(processStop(Nil,finish)))
       /* The finish command was already given but we may want to stop even quicker */
-      case Phase.Finish => if finish then Phase.Finish else Phase.Stop
+      case Phase.Finish => if finish then advance(Phase.Finish) else advance(Phase.Stop)
       /* Repeated call to stop has no effect. */
-      case Phase.Stop   => Phase.Stop
+      case Phase.Stop   => notask
       /* When we are done, we are done. */
-      case Phase.Done   => Phase.Done
+      case Phase.Done   => notask
+    action()
 
 
   /**
@@ -142,43 +149,45 @@ private transparent trait ControlActor(using context: ActorContext) extends Proc
   final def stop(value: Stop): Unit =
     syslog(Level.Trace,s"$path/$phase")
     /* Activate/deactivate the needle dropping, which is there to see if the actor turned silent. */
-    def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
-    /* Stop with finish if there are no children for this actor. */
-    def stopChildless(): Unit = if familySize == 0 then stopWith(true)
+    inline def drop(state: Boolean): Unit = ActorGuard.dropNeedles(state,this);
+    /* Stop with finish if there are no children for this actor. Make sure familySize is called with synchronization. */
+    inline def stopChildless(stop: Stop) = if familySize == 0 then advance(stop,stopWith(true)) else advance(stop)
     /* All changes to the stopper are protected by a test on the current phase. There can only be one
      * cause to stop the actor. Once the tear down process has started, this cannot be changed anymore.
      * This is important for the user can call stop from different threads an the parent actor sometimes
      * tries to stop the child twice. The second time will be ignored. Furthermore, the stop level cannot
-     * be increased in most cases. */
-    synchronized :
-      stopper = value match
+     * be increased in most cases. Note that in the code below it is the stopper that advances, not the
+     * stop value (which is not possible btw). */
+    val action = synchronized :
+      value match
       /* A request to stop the actor right now is always honored, unless the actor is already stopping.
        * It is allowed to overwrite a Stop.Finish here to accelerate the stopping process. */
-      case Stop.Direct  if (stopper >  Stop.Direct) && (phase < Phase.Stop)   => stopWith(false); Stop.Direct
+      case Stop.Direct  if (stopper >  Stop.Direct) && (phase < Phase.Stop)   => advance(Stop.Direct,stopWith(false))
       /* A request to stop the actor and finish completion of the mailbox is honored when we are not already doing this.
        * Note that, due to the nested synchronization calls, the situation where (phase >= Phase.Finish) after
        * stopper >  Stop.Finish should not appear. But for consistency and protection this test is kept in. */
-      case Stop.Finish  if (stopper >  Stop.Finish) && (phase < Phase.Finish) => stopWith(true);  Stop.Finish
+      case Stop.Finish  if (stopper >  Stop.Finish) && (phase < Phase.Finish) => advance(Stop.Finish,stopWith(true))
       /* A stop on Barren (i.e. stop when there are no children, equals a request to finish when there are no children
        * right now, and otherwise the actor waits until this situation occurs. If we were waiting on silence before
        * this is deleted, since the silence test also waits on the disappearance of the children, but Barren is stronger. */
-      case Stop.Barren  if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); stopChildless(); Stop.Barren
+      case Stop.Barren  if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); stopChildless(Stop.Barren)
       /* In case we were not waiting on Silent before, we can directly test or wait. */
-      case Stop.Barren  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => stopChildless(); Stop.Barren
+      case Stop.Barren  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => stopChildless(Stop.Barren)
       /* If we want to stop on Silent (but were not before, make sure to start the needle dropping.  */
-      case Stop.Silent  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => drop(true);  Stop.Silent
+      case Stop.Silent  if (stopper >  Stop.Silent) && (phase < Phase.Finish) => drop(true); advance(Stop.Silent)
       /* Setting Stop to Final when we were on Barren is a simple reset, so the Barren condition is not tested any more. */
-      case Stop.Final   if (stopper == Stop.Barren) && (phase < Phase.Finish) => Stop.Final
+      case Stop.Final   if (stopper == Stop.Barren) && (phase < Phase.Finish) => advance(Stop.Final)
       /*  Setting Stop to Final when we were on Silent requires removing the actor from needle dropping. */
-      case Stop.Final   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); Stop.Final
+      case Stop.Final   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); advance(Stop.Final)
       /* In other cases we just set the stopper to Final, which is probed by the guard. The guard decides if the actor
        * must stop. When the time has come, he will stop the actors by the internal stop call. */
-      case Stop.Final   if (stopper >  Stop.Final ) && (phase < Phase.Finish) => Stop.Final
+      case Stop.Final   if (stopper >  Stop.Final ) && (phase < Phase.Finish) => advance(Stop.Final)
       /* Just reset the stopper to prohibit stopping, but only when the tear down did not yet start. */
-      case Stop.Never   if (stopper == Stop.Barren) && (phase < Phase.Finish) => Stop.Never
+      case Stop.Never   if (stopper == Stop.Barren) && (phase < Phase.Finish) => advance(Stop.Never)
       /* Cancel needle dropping to prohibit stopping, but only when the tear down did not yet start. */
-      case Stop.Never   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); Stop.Never
+      case Stop.Never   if (stopper == Stop.Silent) && (phase < Phase.Finish) => drop(false); advance(Stop.Never)
       /* In all other cases (only Final) reset the stopper. */
-      case Stop.Never   if (stopper >  Stop.Silent) && (phase < Phase.Finish) => Stop.Never
+      case Stop.Never   if (stopper >  Stop.Silent) && (phase < Phase.Finish) => advance(Stop.Never)
       /* In all other situations the call cannot be honored and nothing is changed. */
-      case _            => stopper
+      case _            => notask
+    action()
