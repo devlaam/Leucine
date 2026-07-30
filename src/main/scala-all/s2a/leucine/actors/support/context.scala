@@ -31,12 +31,8 @@ import scala.util.Try
 import scala.concurrent.duration.FiniteDuration
 
 
-/**
- * An extended `scala.concurrent.ExecutionContext`; provides the ability to
- * schedule messages to be sent later, and hooks to track the current number of
- * outstanding tasks or log the actor message sends for debugging purposes */
-trait ActorContext extends PlatformContext with ExecutionContext :
-
+/** Trait to define the parameters needed for the context classes to run. */
+trait ContextParameters :
   /** The prefix used in actor names for actors that are workers */
   def workerPrefix: String
 
@@ -51,6 +47,13 @@ trait ActorContext extends PlatformContext with ExecutionContext :
 
   /** Start all actors directly after construction. Eliminates the need for start(). */
   def autoStart: Boolean
+
+
+/**
+ * An extended `scala.concurrent.ExecutionContext`; provides the ability to
+ * schedule messages to be sent later, and hooks to track the current number of
+ * outstanding tasks or log the actor message sends for debugging purposes */
+trait ActorContext extends PlatformContext, ExecutionContext, ContextParameters:
 
   /** Future to be executed on the ActorContext. */
   def future[T](task: => T): Future[T] =

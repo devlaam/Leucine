@@ -27,19 +27,25 @@ package s2a.leucine.actors
 import java.util.concurrent.Callable
 import scala.concurrent.duration.FiniteDuration
 
-//TODO: most of these methods are not user methods. Make them private[actors].
-// or can we just make the whole class private? Does that help??
-/** Used to construct the actor context with platform depended methods. */
-trait PlatformContext:
 
-  /** Method to detect on which platform the code is running. */
-  def platform: PlatformContext.Platform
+
+/** Trait to define the parameters needed for the platform classes to run. */
+trait PlatformParameters :
+
+  /** The natural time the system pauses when there are no tasks. The use is platform dependent. */
+  def idleThreadPause: FiniteDuration
 
   /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
   def threadsPerCore: Int
 
-  /** The natural pause time for this context. Its meaning and use is platform dependent. */
-  def idleThreadPause: FiniteDuration
+
+//TODO: most of these methods are not user methods. Make them private[actors].
+// or can we just make the whole class private? Does that help??
+/** Used to construct the actor context with platform depended methods. */
+trait PlatformContext extends PlatformParameters:
+
+  /** Method to detect on which platform the code is running. */
+  def platform: PlatformContext.Platform
 
   /** True as long as there has been no Shutdown request. */
   def active: Boolean

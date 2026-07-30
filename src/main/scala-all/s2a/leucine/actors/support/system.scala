@@ -32,33 +32,24 @@ import scala.concurrent.duration.DurationInt
 final val !# = DefaultSystem.workerPrefix * 3
 
 /** Trait to define the parameters needed for the context and platform classes to run. */
-trait SystemParameters :
-  /** The natural time the system pauses when there are no tasks. The use is platform dependent. */
-  def idleThreadPause: FiniteDuration
-  /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
-  def threadsPerCore: Int
-  /** The prefix used in actor names for actors that are workers */
-  def workerPrefix: String
-  /** The character that will be used in the full name definitions of the actors. */
-  def familyPathSeparator: Char
-  /** Global maximum number of letters per mailbox. */
-  def maxMailboxSize: Int
-  /** The minimal number of poll loops (from the guard) for an actor to be considered silent. */
-  def silentStop: Int
-  /** Start all actors directly after construction. Eliminates the need for start(). */
-  def autoStart: Boolean
-
-
+trait SystemParameters extends ContextParameters, PlatformParameters
 
 /**
  * Default parameters for the system you may use. If other values are needed, construct an instance
  * of your own and initialize the ActorImplementation with that. You may of course also write a
  * completely new ActorImplementation.  */
 object DefaultSystem extends SystemParameters :
+  /** The natural time the system pauses when there are no tasks. The use is platform dependent. */
   val idleThreadPause: FiniteDuration = 10.millis
+  /** The average thread load per core. Override to change. This is only used on multithreaded platforms. */
   val threadsPerCore: Int             = 4
+  /** The prefix used in actor names for actors that are workers */
   val workerPrefix: String            = "#"
+  /** The character that will be used in the full name definitions of the actors. */
   val familyPathSeparator: Char       = '.'
+  /** Global maximum number of letters per mailbox. */
   val maxMailboxSize: Int             = Int.MaxValue
+  /** The minimal number of poll loops (from the guard) for an actor to be considered silent. */
   val silentStop: Int                 = 3
+  /** Start all actors directly after construction. Eliminates the need for start(). */
   val autoStart: Boolean              = false
