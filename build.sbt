@@ -6,8 +6,8 @@ import org.scalajs.linker.interface.ModuleKind
  * https://docs.scala-lang.org/overviews/contributors/index.html
  */
 
-val latest  = "3.8.4"
-val stable  = "3.3.8"
+val latest  = "3.10.0"
+val stable  = "3.3.8"  //runs "3.9.0" LTS
 
 /* Select one of the possible compiler modes: Demo, Sona, Test or Wiki */
 val mode: Mode = Mode.Demo
