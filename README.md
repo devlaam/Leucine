@@ -58,8 +58,8 @@ class MyActor(name: String) extends AcceptActor(MyActor,name) :
     case MyActor.Text(data)   => println(s"Received text: $data.")
     case MyActor.Number(data) => println(s"Received number: $data.")
 
-/* In the companion object define the base types, and indicate we keep no state. */
-object MyActor extends AcceptDefine, Stateless :
+/* In the companion object define the base types. */
+object MyActor extends AcceptDefine :
   /* Base type of all MyActor Letters, sealed to see if we handled them all. */
   sealed trait Letter extends Actor.Letter[Actor]
   /* Letter that sends some text */
@@ -80,7 +80,7 @@ object Main :
     myActor.stop(Actor.Stop.Finish)
     ActorGuard.watch(false,1.second,complete)
 ```
-See this [run in Scastie](https://scastie.scala-lang.org/devlaam/rpMXSz4wTA2hnLG68swyBA/3).
+See this [run in Scastie](https://scastie.scala-lang.org/devlaam/HM4tZZDNQEWG1EBUzapjkA/1).
 Remark: Depending on the release used, there may be syntactical differences.
 
 ### Advanced features
@@ -90,6 +90,7 @@ The functionality of actors can be extended with mixins. There are:
 * [Timing](https://github.com/devlaam/Leucine/wiki/TimingAid) mixin, to send letters with delay and asynchronously wait for an event.
 * [Protect](https://github.com/devlaam/Leucine/wiki/ProtectAid) mixin, to create back pressure when the mailbox reaches some threshold.
 * [Process](https://github.com/devlaam/Leucine/wiki/ProcessAid) mixin, to process the letter/sender combination as stackable partial functions.
+* [State](https://github.com/devlaam/Leucine/wiki/StateAid) mixin, to activate managed state.
 * [Monitor](https://github.com/devlaam/Leucine/wiki/MonitorAid) mixin and class, which produces KPI's for each actor.
 * [Logging](https://github.com/devlaam/Leucine/wiki/LogAid) mixin and class, to allow for actor local logging.
 
@@ -123,7 +124,7 @@ Each demo allows a startup (!) parameter indicating the log level for the demons
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJVM/assembly
-[info] welcome to sbt 2.0.2 (Java 21.0.3)
+[info] welcome to sbt 2.0.9 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Java to run):
@@ -140,7 +141,7 @@ you can also `collatz debug` or `crawler debug`. The other demo's do not allow f
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJS/fullLinkJS
-[info] welcome to sbt 2.0.2 (Java 21.0.3)
+[info] welcome to sbt 2.0.9 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Node JS to run):
@@ -159,7 +160,7 @@ working in parallel.
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineNative/nativeLink
-[info] welcome to sbt 2.0.2 (Java 21.0.3)
+[info] welcome to sbt 2.0.9 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (runs directly):
