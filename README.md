@@ -37,7 +37,7 @@ The five actor base types you can choose from. They accept:
 * [WideActor](https://github.com/devlaam/Leucine/wiki/WideActor): all letters from all other actors in the system,
 * [AcceptActor](https://github.com/devlaam/Leucine/wiki/AcceptActor): your letters from all other actors in the system,
 * [SelectActor](https://github.com/devlaam/Leucine/wiki/SelectActor): your letters from a selected list of actors only,
-* [RestrictActor](https://github.com/devlaam/Leucine/wiki/RestrictActor): your letters from a selected actors with sender restriction,
+* [RestrictActor](https://github.com/devlaam/Leucine/wiki/RestrictActor): your letters from selected actors with sender restriction,
 * [RefuseActor](https://github.com/devlaam/Leucine/wiki/RefuseActor): no letters.
 
 All restrictions are enforced at compile time. The `WideActor` is comparable to an untyped actor and
@@ -124,7 +124,7 @@ Each demo allows a startup (!) parameter indicating the log level for the demons
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJVM/assembly
-[info] welcome to sbt 2.0.9 (Java 21.0.3)
+[info] welcome to sbt 2.0.11 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Java to run):
@@ -141,7 +141,7 @@ you can also `collatz debug` or `crawler debug`. The other demo's do not allow f
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineJS/fullLinkJS
-[info] welcome to sbt 2.0.9 (Java 21.0.3)
+[info] welcome to sbt 2.0.11 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (requires Node JS to run):
@@ -160,7 +160,7 @@ working in parallel.
 Compile and package the demo as follows:
 ```
 leucine $ sbt leucineNative/nativeLink
-[info] welcome to sbt 2.0.9 (Java 21.0.3)
+[info] welcome to sbt 2.0.11 (Java 21.0.3)
 [info] ...
 ```
 Now you should be able to run the demo's (runs directly):
