@@ -26,6 +26,7 @@ val sharedSettings = Seq(
   scalacOptions           ++= Seq("-feature","-deprecation","-unchecked","-explain","-Wunused:all","-Wnonunit-statement","-Wvalue-discard"),
   libraryDependencies     ++= Seq("com.lihaoyi" %% "utest" % "0.10.0-RC1" % Test).drop(Mode.Test.drop(mode)),
   libraryDependencies     ++= Seq("org.apache.logging.log4j" % "log4j-core" % "2.26.0").drop(Mode.Wiki.drop(mode)),
+  libraryDependencies     ++= Seq("ch.qos.logback" % "logback-classic" % "1.5.32").drop(Mode.Wiki.drop(mode)),
   testFrameworks          +=  new TestFramework("utest.runner.Framework"),
   Compile / excludeFilter := compileExcluder(mode)
   )

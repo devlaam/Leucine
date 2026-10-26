@@ -1,5 +1,6 @@
-package s2a.leucine.wiki.logger.log4j
-/* https://scastie.scala-lang.org/devlaam/rnMaYfopQYaxAGF8ENR8Bg/16 */
+package s2a.leucine.wiki.LogAid2
+
+// Scastie: (old version) https://scastie.scala-lang.org/devlaam/rnMaYfopQYaxAGF8ENR8Bg/16
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.DurationInt
@@ -39,7 +40,7 @@ object Letters :
   case object Stop  extends Actor.Letter[Actor]
 
 object Logger extends ActorLogger, DefaultLoggerProcessing, ProductionLoggerSettings :
-  import ActorLogger.{Entry,Level,Timing}
+  import ActorLogger.Entry
   final override def process(entry: Entry) =
   Log4jLogSink.process(entry)
 

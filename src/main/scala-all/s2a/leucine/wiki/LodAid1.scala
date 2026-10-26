@@ -1,5 +1,6 @@
-package s2a.leucine.wiki.logger.basic
-/* https://scastie.scala-lang.org/devlaam/rnMaYfopQYaxAGF8ENR8Bg/18 */
+package s2a.leucine.wiki.LogAid1
+
+// Scastie: (old version) https://scastie.scala-lang.org/devlaam/rnMaYfopQYaxAGF8ENR8Bg/18
 
 import scala.concurrent.duration.DurationInt
 import s2a.leucine.actors.*
