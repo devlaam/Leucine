@@ -53,7 +53,7 @@ trait ContextParameters :
  * An extended `scala.concurrent.ExecutionContext`; provides the ability to
  * schedule messages to be sent later, and hooks to track the current number of
  * outstanding tasks or log the actor message sends for debugging purposes */
-trait ActorContext extends PlatformContext, ExecutionContext, ContextParameters:
+trait ActorContext extends PlatformContext, ExecutionContext, ContextParameters :
 
   /** Future to be executed on the ActorContext. */
   def future[T](task: => T): Future[T] =

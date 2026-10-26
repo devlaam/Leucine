@@ -106,7 +106,9 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
    * until all the letters are processed and the queues are exhausted. */
   private[actors] def processLoop(init: Boolean): Unit =
     syslog(Level.Trace,s"$path/$phase")
-    /* If we come here for the first time we must execute the started() call back */
+    /* If we come here for the first time we must execute the started() call back. deliverStarted may set
+     * variables for the first letter to execute. Within processLoop we do not switch threads, so all there
+     * are guaranteed to be visible when the first letter is processed. */
     if init then deliverStarted()
     /* List of envelopes to process. It starts with the mailbox, which is augmented with
      * de-stashed envelopes if any and possibly one event. Since the eventsDequeue and the
@@ -124,7 +126,8 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
        * events possible then there is no need to synchronize. The stash is always filled within the
        * letter handling. */
       envs = if eventsPossible then synchronized { eventsDequeue(stashDequeue(envs.tail)) } else stashDequeue(envs.tail)
-      /* In case we have mailbox protection we may have to take action, since the queue may have grown */
+      /* In case we have mailbox protection we may have to take action, since the queue may have grown. We do this in
+       * the same thread the last letter was processed. All actor variables are guaranteed to have the correct value. */
       protectCheck()
     /* If we have any children that were removed report them now. This means we still receive callbacks on the removed
      * children after a Stop, but only as long as they were rejected when this actor was still active. Note that we
@@ -133,7 +136,9 @@ private transparent trait ProcessActor(using context: ActorContext) extends Stat
     familyReport()
     /* If there is any logging, we spool them to the central collection point */
     logExit()
-    /* The loop is done, we must exit, pass the unprocessed letters along */
+    /* The loop is done, we must exit, pass the unprocessed letters along. Note that processExit provides that the final
+     * synchronization action on the same monitor, required to close the last envelope handling. This establishes the
+     * required happens-before relation to the next processLoop call, which ensures the visibility of the internal variables. */
     processExit(envs)
 
   /**

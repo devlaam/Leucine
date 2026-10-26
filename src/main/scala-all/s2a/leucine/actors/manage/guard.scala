@@ -162,16 +162,13 @@ object ActorGuard :
     if service.isInstanceOf[LogHandler] then logger = service.asInstanceOf[LogHandler]
 
   /**
-   * Start watching for actor system completion. This uses polling to see if all actors are
-   * done. Do not set the pollInterval to low, for this calls all actors under guard. The minimum is 1
+   * Start watching for actor system completion. This uses polling to see if all actors are done.
+   * Do not set the pollInterval to low, for this calls all actors under guard. The minimum is 1
    * second. In practice this time defines the maximum time to wait for the application to terminate
-   * after all the work is done. So for servers running days or more 10 seconds to 1 minute may be a good
-   * value, for CLI apps, use 2 seconds. Use force if you want to terminate other processes as well when
-   * the actors are all completed to shutdown. Note that if some actors have not stopped by themselves,
-   * but do not receive messages any more, the application may run indefinitely (this
-   * is platform dependent). In that case you may need to call context.showdown(true/false) somewhere
-   * manually. The function complete() is called after all actors have stopped. Calling the watch method
-   * may be needed to start the actor system  depending on the platform. */
+   * after all the work is done. So for servers running days or more 10 seconds to 1 minute may be a
+   * good value, for CLI apps, use 2 seconds. Use force if you want to terminate other processes as
+   * well when the actors are all completed to shutdown. The function complete() is called after all
+   * actors have stopped. Calling the watch method may be needed to start the actor system. */
   def watch(force: Boolean, pollInterval: FiniteDuration, complete: () => Unit = () => ())(using context: ActorContext): Unit =
     /* Start all services */
     services.foreach(_.start(true))

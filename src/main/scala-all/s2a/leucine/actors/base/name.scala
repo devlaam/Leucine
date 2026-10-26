@@ -51,5 +51,5 @@ transparent trait NameActor(using context: ActorContext) extends Actor, ActorDef
   /** In the bare actor the path and name are equal. */
   def path: String = name
 
-  /** Values contains if this actor is a worker based on its name prefix (# per default) */
+  /** Test if this actor is a worker based on its name prefix (# per default) */
   def isWorker: Boolean = name.startsWith(context.workerPrefix)
